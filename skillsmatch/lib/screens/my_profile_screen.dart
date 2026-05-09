@@ -7,6 +7,10 @@ import 'edit_profile_screen.dart';
 class MyProfileScreen extends StatelessWidget {
   const MyProfileScreen({super.key});
 
+  static const Color dark = Color(0xff004d40);
+  static const Color teal = Color(0xff009688);
+  static const Color bg = Color(0xffeef7f5);
+
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -18,7 +22,7 @@ class MyProfileScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xffeef7f5),
+      backgroundColor: bg,
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')
@@ -26,9 +30,7 @@ class MyProfileScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Color(0xff009688)),
-            );
+            return const Center(child: CircularProgressIndicator(color: teal));
           }
 
           if (!snapshot.hasData || !snapshot.data!.exists) {
@@ -61,7 +63,6 @@ class MyProfileScreen extends StatelessWidget {
                       children: [
                         _editButton(context),
                         const SizedBox(height: 18),
-
                         _infoCard(
                           icon: Icons.description,
                           title: 'Opis',
@@ -69,25 +70,20 @@ class MyProfileScreen extends StatelessWidget {
                               ? 'Ni opisa.'
                               : data['opis'],
                         ),
-
                         _infoCard(
                           icon: Icons.schedule,
                           title: 'Razpoložljivost',
                           text: data['razpolozljivost'] ?? 'Ni podatka.',
                         ),
-
                         const SizedBox(height: 16),
-
                         _sectionTitle('Moje veščine', Icons.auto_awesome),
                         const SizedBox(height: 12),
-
                         if (vescine.isEmpty)
                           _emptySkillsCard()
                         else
                           ...vescine.asMap().entries.map((entry) {
                             return _skillCard(entry.value, entry.key);
                           }),
-
                         const SizedBox(height: 90),
                       ],
                     ),
@@ -102,6 +98,8 @@ class MyProfileScreen extends StatelessWidget {
   }
 
   Widget _profileHeader(BuildContext context, Map<String, dynamic> data) {
+    final photoUrl = (data['photoUrl'] ?? '').toString();
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(22, 54, 22, 34),
@@ -125,7 +123,6 @@ class MyProfileScreen extends StatelessWidget {
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
               ),
-
               GestureDetector(
                 onTap: () async {
                   final shouldLogout = await showDialog<bool>(
@@ -189,9 +186,7 @@ class MyProfileScreen extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 10),
-
           TweenAnimationBuilder<double>(
             duration: const Duration(milliseconds: 700),
             tween: Tween(begin: 0.7, end: 1),
@@ -199,29 +194,60 @@ class MyProfileScreen extends StatelessWidget {
             builder: (context, value, child) {
               return Transform.scale(scale: value, child: child);
             },
-            child: Container(
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.18),
-                    blurRadius: 18,
-                    offset: const Offset(0, 8),
+            child: Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.18),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: const CircleAvatar(
-                radius: 48,
-                backgroundColor: Colors.white,
-                child: Icon(Icons.person, size: 58, color: Color(0xff009688)),
-              ),
+                  child: CircleAvatar(
+                    radius: 48,
+                    backgroundColor: Colors.white,
+                    backgroundImage: photoUrl.isNotEmpty
+                        ? NetworkImage(photoUrl)
+                        : null,
+                    child: photoUrl.isEmpty
+                        ? const Icon(Icons.person, size: 58, color: teal)
+                        : null,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const EditProfileScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: teal, width: 2),
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_rounded,
+                      color: teal,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-
           const SizedBox(height: 18),
-
           Text(
             '${data['ime'] ?? ''} ${data['priimek'] ?? ''}',
             textAlign: TextAlign.center,
@@ -231,9 +257,7 @@ class MyProfileScreen extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 8),
-
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
@@ -274,7 +298,7 @@ class MyProfileScreen extends StatelessWidget {
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xff009688),
+          backgroundColor: teal,
           foregroundColor: Colors.white,
           elevation: 6,
           shadowColor: Colors.teal.withOpacity(0.35),
@@ -315,7 +339,7 @@ class MyProfileScreen extends StatelessWidget {
               color: Colors.teal.shade50,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(icon, color: const Color(0xff009688), size: 28),
+            child: Icon(icon, color: teal, size: 28),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -327,7 +351,7 @@ class MyProfileScreen extends StatelessWidget {
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
-                    color: Color(0xff004d40),
+                    color: dark,
                   ),
                 ),
                 const SizedBox(height: 5),
@@ -356,7 +380,7 @@ class MyProfileScreen extends StatelessWidget {
             color: Colors.teal.shade50,
             borderRadius: BorderRadius.circular(14),
           ),
-          child: Icon(icon, color: const Color(0xff009688)),
+          child: Icon(icon, color: teal),
         ),
         const SizedBox(width: 10),
         Text(
@@ -364,7 +388,7 @@ class MyProfileScreen extends StatelessWidget {
           style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
-            color: Color(0xff004d40),
+            color: dark,
           ),
         ),
       ],
@@ -382,7 +406,7 @@ class MyProfileScreen extends StatelessWidget {
       ),
       child: const Column(
         children: [
-          Icon(Icons.lightbulb_outline, color: Color(0xff009688), size: 38),
+          Icon(Icons.lightbulb_outline, color: teal, size: 38),
           SizedBox(height: 10),
           Text(
             'Ni dodanih veščin.',
@@ -432,9 +456,7 @@ class MyProfileScreen extends StatelessWidget {
           children: [
             CircleAvatar(
               radius: 24,
-              backgroundColor: canTeach
-                  ? const Color(0xff009688)
-                  : Colors.amber.shade700,
+              backgroundColor: canTeach ? teal : Colors.amber.shade700,
               child: Icon(
                 canTeach ? Icons.volunteer_activism : Icons.school,
                 color: Colors.white,
@@ -468,7 +490,7 @@ class MyProfileScreen extends StatelessWidget {
 
   Widget _emptyProfile(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xffeef7f5),
+      backgroundColor: bg,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -488,18 +510,14 @@ class MyProfileScreen extends StatelessWidget {
             child: const Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.person_add_alt_1,
-                  size: 58,
-                  color: Color(0xff009688),
-                ),
+                Icon(Icons.person_add_alt_1, size: 58, color: teal),
                 SizedBox(height: 16),
                 Text(
                   'Profil še ni ustvarjen',
                   style: TextStyle(
                     fontSize: 23,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xff004d40),
+                    color: dark,
                   ),
                 ),
                 SizedBox(height: 8),
