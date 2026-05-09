@@ -1,535 +1,1018 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'edit_profile_screen.dart';
 
-class MyProfileScreen extends StatelessWidget {
-  const MyProfileScreen({super.key});
+// ─── Color System ──────────────────────────────────────────────────────────────
+const _kPrimary      = Color(0xFF4F46E5);
+const _kPrimaryDark  = Color(0xFF312E81);
+const _kPrimaryLight = Color(0xFF818CF8);
+const _kViolet       = Color(0xFF7C3AED);
+const _kAmber        = Color(0xFFD97706);
+const _kGreen        = Color(0xFF059669);
+const _kSurface      = Color(0xFFF5F5FF);
+const _kCardBg       = Color(0xFFFFFFFF);
+const _kBg           = Color(0xFFF0F0FF);
+const _kBorder       = Color(0xFFE2E8F0);
+const _kText         = Color(0xFF1E1B4B);
+const _kTextSub      = Color(0xFF6B7280);
 
-  static const Color dark = Color(0xff004d40);
-  static const Color teal = Color(0xff009688);
-  static const Color bg = Color(0xffeef7f5);
+// Nivo barvni sistem
+const _nivoColors = {
+  'Začetnik':      Color(0xFF10B981),
+  'Srednji nivo':  Color(0xFF3B82F6),
+  'Napredni nivo': Color(0xFF8B5CF6),
+  'Strokovnjak':   Color(0xFFF59E0B),
+};
+const _nivoBg = {
+  'Začetnik':      Color(0xFFD1FAE5),
+  'Srednji nivo':  Color(0xFFDBEAFE),
+  'Napredni nivo': Color(0xFFEDE9FE),
+  'Strokovnjak':   Color(0xFFFEF3C7),
+};
+const _nivoIcons = {
+  'Začetnik':      Icons.eco_rounded,
+  'Srednji nivo':  Icons.trending_up_rounded,
+  'Napredni nivo': Icons.rocket_launch_rounded,
+  'Strokovnjak':   Icons.military_tech_rounded,
+};
 
+// ─── Orb Painter ──────────────────────────────────────────────────────────────
+class _OrbPainter extends CustomPainter {
+  final double t;
+  _OrbPainter(this.t);
   @override
-  Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-
-    if (uid == null) {
-      return const Scaffold(
-        body: Center(child: Text('Uporabnik ni prijavljen.')),
+  void paint(Canvas canvas, Size size) {
+    for (final (rx, ry, r, color) in [
+      (0.08, 0.18, 80.0, const Color(0x38818CF8)),
+      (0.88, 0.08, 60.0, const Color(0x327C3AED)),
+      (0.60, 0.85, 65.0, const Color(0x2A4F46E5)),
+      (0.92, 0.55, 44.0, const Color(0x22818CF8)),
+      (0.22, 0.88, 52.0, const Color(0x307C3AED)),
+    ]) {
+      final dx = math.sin(t + rx * 5) * 14;
+      final dy = math.cos(t + ry * 4) * 11;
+      canvas.drawCircle(
+        Offset(size.width * rx + dx, size.height * ry + dy), r,
+        Paint()..shader = RadialGradient(
+            colors: [color, Colors.transparent]).createShader(
+            Rect.fromCircle(
+                center: Offset(size.width * rx + dx, size.height * ry + dy),
+                radius: r)),
       );
     }
+  }
+  @override
+  bool shouldRepaint(_OrbPainter o) => o.t != t;
+}
 
-    return Scaffold(
-      backgroundColor: bg,
-      body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: teal));
-          }
+// ─── Mini Network Painter (za banner ilustracijo) ─────────────────────────────
+class _NetworkMiniPainter extends CustomPainter {
+  final double t;
+  _NetworkMiniPainter(this.t);
 
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return _emptyProfile(context);
-          }
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width  * 0.5;
+    final cy = size.height * 0.5;
 
-          final data = snapshot.data!.data() as Map<String, dynamic>;
-          final vescine = data['vescine'] as List<dynamic>? ?? [];
+    // Pozicije vozlišč z rahlo animacijo
+    final nodes = [
+      Offset(cx + math.sin(t) * 3,          cy + math.cos(t) * 3),
+      Offset(cx - 38 + math.sin(t+1) * 4,   cy - 34 + math.cos(t+2) * 3),
+      Offset(cx + 36 + math.sin(t+2) * 3,   cy - 28 + math.cos(t+1) * 4),
+      Offset(cx - 30 + math.sin(t+3) * 4,   cy + 36 + math.cos(t+0.5) * 3),
+      Offset(cx + 32 + math.sin(t+0.5) * 3, cy + 38 + math.cos(t+3) * 4),
+    ];
 
-          return SingleChildScrollView(
-            child: TweenAnimationBuilder<double>(
-              duration: const Duration(milliseconds: 800),
-              tween: Tween(begin: 0, end: 1),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, 35 * (1 - value)),
-                    child: child,
-                  ),
-                );
-              },
-              child: Column(
-                children: [
-                  _profileHeader(context, data),
-                  Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Column(
-                      children: [
-                        _editButton(context),
-                        const SizedBox(height: 18),
-                        _infoCard(
-                          icon: Icons.description,
-                          title: 'Opis',
-                          text: (data['opis'] ?? '').toString().isEmpty
-                              ? 'Ni opisa.'
-                              : data['opis'],
-                        ),
-                        _infoCard(
-                          icon: Icons.schedule,
-                          title: 'Razpoložljivost',
-                          text: data['razpolozljivost'] ?? 'Ni podatka.',
-                        ),
-                        const SizedBox(height: 16),
-                        _sectionTitle('Moje veščine', Icons.auto_awesome),
-                        const SizedBox(height: 12),
-                        if (vescine.isEmpty)
-                          _emptySkillsCard()
-                        else
-                          ...vescine.asMap().entries.map((entry) {
-                            return _skillCard(entry.value, entry.key);
-                          }),
-                        const SizedBox(height: 90),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
+    // Linije
+    final linePaint = Paint()
+      ..color = Colors.white.withOpacity(0.22)
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+
+    for (int i = 1; i < nodes.length; i++) {
+      canvas.drawLine(nodes[0], nodes[i], linePaint);
+    }
+    canvas.drawLine(nodes[1], nodes[2], linePaint);
+    canvas.drawLine(nodes[3], nodes[4], linePaint);
+
+    // Animiran pulz
+    final pulse = (math.sin(t * 1.6) + 1) / 2;
+    final pp = nodes[0] + (nodes[2] - nodes[0]) * pulse;
+    canvas.drawCircle(pp, 4, Paint()
+      ..color = Colors.white.withOpacity(0.7)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3));
+
+    // Vozlišča
+    void drawNode(Offset o, double r, bool main) {
+      if (main) {
+        canvas.drawCircle(o, r + 4, Paint()
+          ..color = Colors.white.withOpacity(0.12));
+      }
+      canvas.drawCircle(o, r, Paint()
+        ..shader = RadialGradient(colors: [
+          Colors.white.withOpacity(main ? 0.95 : 0.6),
+          Colors.white.withOpacity(main ? 0.5 : 0.2),
+        ]).createShader(Rect.fromCircle(center: o, radius: r)));
+
+      if (main) {
+        final tp = TextPainter(
+          text: const TextSpan(text: '👤',
+              style: TextStyle(fontSize: 12)),
+          textDirection: TextDirection.ltr)..layout();
+        tp.paint(canvas, o - Offset(tp.width/2, tp.height/2));
+      }
+    }
+
+    drawNode(nodes[0], 18, true);
+    for (int i = 1; i < nodes.length; i++) {
+      drawNode(nodes[i], 12, false);
+    }
   }
 
-  Widget _profileHeader(BuildContext context, Map<String, dynamic> data) {
-    final photoUrl = (data['photoUrl'] ?? '').toString();
+  @override
+  bool shouldRepaint(_NetworkMiniPainter o) => o.t != t;
+}
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(22, 54, 22, 34),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xff004d40), Color(0xff009688), Color(0xff4db6ac)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(38),
-          bottomRight: Radius.circular(38),
+// ─── Screen ───────────────────────────────────────────────────────────────────
+class MyProfileScreen extends StatefulWidget {
+  final VoidCallback? onNavigateToSkupnost;
+  const MyProfileScreen({super.key, this.onNavigateToSkupnost});
+  @override
+  State<MyProfileScreen> createState() => _MyProfileScreenState();
+}
+
+class _MyProfileScreenState extends State<MyProfileScreen>
+    with TickerProviderStateMixin {
+
+  late AnimationController _orbCtrl;
+  late AnimationController _entryCtrl;
+  late Animation<double>   _fadeAnim;
+  late Animation<Offset>   _slideAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _orbCtrl = AnimationController(vsync: this,
+        duration: const Duration(seconds: 9))..repeat();
+    _entryCtrl = AnimationController(vsync: this,
+        duration: const Duration(milliseconds: 850));
+    _fadeAnim  = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(
+        begin: const Offset(0, 0.06), end: Offset.zero).animate(
+        CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOutCubic));
+    _entryCtrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _orbCtrl.dispose();
+    _entryCtrl.dispose();
+    super.dispose();
+  }
+
+  // ── Logout dialog ──────────────────────────────────────────────────────────
+  Future<void> _logout(BuildContext ctx) async {
+    final ok = await showDialog<bool>(
+      context: ctx,
+      builder: (c) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: Padding(padding: const EdgeInsets.all(26),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 60, height: 60,
+              decoration: BoxDecoration(
+                  color: Colors.red.shade50, shape: BoxShape.circle),
+              child: const Icon(Icons.logout_rounded,
+                  color: Colors.redAccent, size: 30)),
+            const SizedBox(height: 14),
+            const Text('Odjava', style: TextStyle(
+                fontSize: 20, fontWeight: FontWeight.bold, color: _kText)),
+            const SizedBox(height: 8),
+            const Text('Ali se želite odjaviti iz aplikacije?',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: _kTextSub, fontSize: 14)),
+            const SizedBox(height: 22),
+            Row(children: [
+              Expanded(child: OutlinedButton(
+                onPressed: () => Navigator.pop(c, false),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _kTextSub,
+                  side: const BorderSide(color: _kBorder),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(13))),
+                child: const Text('Prekliči'),
+              )),
+              const SizedBox(width: 10),
+              Expanded(child: ElevatedButton.icon(
+                onPressed: () => Navigator.pop(c, true),
+                icon: const Icon(Icons.logout_rounded, size: 16),
+                label: const Text('Odjava',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(13))),
+              )),
+            ]),
+          ]),
         ),
       ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-              ),
-              GestureDetector(
-                onTap: () async {
-                  final shouldLogout = await showDialog<bool>(
-                    context: context,
-                    builder: (context) {
-                      return AlertDialog(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        title: const Text('Odjava'),
-                        content: const Text(
-                          'Ali se želite odjaviti iz aplikacije?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, false),
-                            child: const Text('Prekliči'),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () => Navigator.pop(context, true),
-                            icon: const Icon(Icons.logout),
-                            label: const Text('Odjava'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  );
+    );
+    if (ok == true) await FirebaseAuth.instance.signOut();
+  }
 
-                  if (shouldLogout == true) {
-                    await FirebaseAuth.instance.signOut();
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.white.withOpacity(0.25)),
-                  ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.logout_rounded, color: Colors.white, size: 20),
-                      SizedBox(width: 6),
-                      Text(
-                        'Logout',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+  // ── Header ─────────────────────────────────────────────────────────────────
+  Widget _header(BuildContext ctx, Map<String, dynamic> data) {
+    final photoUrl = (data['photoUrl'] ?? '').toString();
+    final ime      = data['ime'] ?? '';
+    final priimek  = data['priimek'] ?? '';
+    final lokacija = data['lokacija'] ?? 'Ni lokacije';
+    final initials = '${ime.isNotEmpty ? ime[0] : ''}${priimek.isNotEmpty ? priimek[0] : ''}'.toUpperCase();
+
+    return AnimatedBuilder(
+      animation: _orbCtrl,
+      builder: (_, __) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(20, 56, 20, 32),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E1B4B), Color(0xFF3730A3),
+                     Color(0xFF4F46E5), Color(0xFF818CF8)],
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
           ),
-          const SizedBox(height: 10),
-          TweenAnimationBuilder<double>(
-            duration: const Duration(milliseconds: 700),
-            tween: Tween(begin: 0.7, end: 1),
-            curve: Curves.elasticOut,
-            builder: (context, value, child) {
-              return Transform.scale(scale: value, child: child);
-            },
-            child: Stack(
-              alignment: Alignment.bottomRight,
+        ),
+        child: Stack(children: [
+          Positioned.fill(child: CustomPaint(
+              painter: _OrbPainter(_orbCtrl.value * 2 * math.pi))),
+
+          Column(children: [
+            // Top bar — back + logout
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 3),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.18),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: CircleAvatar(
-                    radius: 48,
-                    backgroundColor: Colors.white,
-                    backgroundImage: photoUrl.isNotEmpty
-                        ? NetworkImage(photoUrl)
-                        : null,
-                    child: photoUrl.isEmpty
-                        ? const Icon(Icons.person, size: 58, color: teal)
-                        : null,
+                GestureDetector(
+                  onTap: () => Navigator.pop(ctx),
+                  child: Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.14),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: Colors.white.withOpacity(0.25))),
+                    child: const Icon(Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white, size: 18),
                   ),
                 ),
                 GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const EditProfileScreen(),
-                      ),
-                    );
-                  },
+                  onTap: () => _logout(ctx),
                   child: Container(
-                    padding: const EdgeInsets.all(9),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 9),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: teal, width: 2),
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt_rounded,
-                      color: teal,
-                      size: 18,
-                    ),
+                      color: Colors.white.withOpacity(0.13),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: Colors.white.withOpacity(0.22))),
+                    child: const Row(children: [
+                      Icon(Icons.logout_rounded,
+                          color: Colors.white, size: 17),
+                      SizedBox(width: 6),
+                      Text('Odjava', style: TextStyle(
+                          color: Colors.white, fontSize: 13,
+                          fontWeight: FontWeight.w600)),
+                    ]),
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            '${data['ime'] ?? ''} ${data['priimek'] ?? ''}',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(30),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.location_on, color: Colors.white, size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  data['lokacija'] ?? 'Ni lokacije',
-                  style: const TextStyle(color: Colors.white, fontSize: 15),
+
+            const SizedBox(height: 20),
+
+            // Avatar
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.6, end: 1.0),
+              duration: const Duration(milliseconds: 750),
+              curve: Curves.elasticOut,
+              builder: (_, v, child) =>
+                  Transform.scale(scale: v, child: child),
+              child: Stack(alignment: Alignment.bottomRight, children: [
+                Container(
+                  width: 100, height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [Colors.white24, Colors.white12],
+                      begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    border: Border.all(color: Colors.white, width: 3),
+                    boxShadow: [BoxShadow(
+                        color: Colors.black.withOpacity(0.22),
+                        blurRadius: 20, offset: const Offset(0, 8))],
+                  ),
+                  child: photoUrl.isNotEmpty
+                      ? ClipOval(child: Image.network(photoUrl,
+                          fit: BoxFit.cover))
+                      : Center(child: Text(initials,
+                          style: const TextStyle(color: Colors.white,
+                              fontSize: 32, fontWeight: FontWeight.bold))),
                 ),
-              ],
+                // Camera button
+                GestureDetector(
+                  onTap: () => Navigator.push(ctx, MaterialPageRoute(
+                      builder: (_) => const EditProfileScreen())),
+                  child: Container(
+                    width: 32, height: 32,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [_kPrimary, _kViolet],
+                        begin: Alignment.topLeft, end: Alignment.bottomRight),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [BoxShadow(
+                          color: _kPrimary.withOpacity(0.4),
+                          blurRadius: 8, offset: const Offset(0, 3))]),
+                    child: const Icon(Icons.camera_alt_rounded,
+                        color: Colors.white, size: 15),
+                  ),
+                ),
+              ]),
             ),
-          ),
-        ],
+
+            const SizedBox(height: 14),
+
+            // Ime
+            Text('$ime $priimek', textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 26,
+                    fontWeight: FontWeight.bold, letterSpacing: -0.3)),
+
+            const SizedBox(height: 10),
+
+            // Lokacija pill
+            Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 7),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.13),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withOpacity(0.22))),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.location_on_rounded,
+                    color: Colors.white70, size: 15),
+                const SizedBox(width: 5),
+                Text(lokacija, style: const TextStyle(
+                    color: Colors.white, fontSize: 13,
+                    fontWeight: FontWeight.w500)),
+              ]),
+            ),
+          ]),
+        ]),
       ),
     );
   }
 
-  Widget _editButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton.icon(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const EditProfileScreen()),
-          );
-        },
-        icon: const Icon(Icons.edit),
-        label: const Text(
-          'Uredi profil',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: teal,
-          foregroundColor: Colors.white,
-          elevation: 6,
-          shadowColor: Colors.teal.withOpacity(0.35),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-        ),
-      ),
-    );
-  }
+  // ── Edit button ────────────────────────────────────────────────────────────
+  Widget _editBtn(BuildContext ctx) => GestureDetector(
+    onTap: () => Navigator.push(ctx,
+        MaterialPageRoute(builder: (_) => const EditProfileScreen())),
+    child: Container(
+      width: double.infinity, height: 52,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [_kPrimary, _kViolet],
+          begin: Alignment.centerLeft, end: Alignment.centerRight),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(
+            color: _kPrimary.withOpacity(0.38),
+            blurRadius: 14, offset: const Offset(0, 5))]),
+      child: const Row(mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+        Icon(Icons.edit_rounded, color: Colors.white, size: 18),
+        SizedBox(width: 8),
+        Text('Uredi profil', style: TextStyle(
+            color: Colors.white, fontSize: 15,
+            fontWeight: FontWeight.bold, letterSpacing: 0.2)),
+      ]),
+    ),
+  );
 
-  Widget _infoCard({
-    required IconData icon,
-    required String title,
-    required String text,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+  // ── Info card ──────────────────────────────────────────────────────────────
+  Widget _infoCard(IconData icon, String title, String text, Color accent) =>
+    Container(
+      margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.teal.shade100),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 7),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(11),
-            decoration: BoxDecoration(
-              color: Colors.teal.shade50,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Icon(icon, color: teal, size: 28),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: dark,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  text,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: Colors.black87,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String title, IconData icon) {
-    return Row(
-      children: [
+        color: _kCardBg,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _kBorder),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
+            blurRadius: 10, offset: const Offset(0, 4))]),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Container(
-          padding: const EdgeInsets.all(9),
+          width: 44, height: 44,
           decoration: BoxDecoration(
-            color: Colors.teal.shade50,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Icon(icon, color: teal),
-        ),
-        const SizedBox(width: 10),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: dark,
-          ),
-        ),
-      ],
+            color: accent.withOpacity(0.10),
+            borderRadius: BorderRadius.circular(13)),
+          child: Icon(icon, color: accent, size: 22)),
+        const SizedBox(width: 14),
+        Expanded(child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: const TextStyle(
+              fontWeight: FontWeight.bold, fontSize: 14, color: _kText)),
+          const SizedBox(height: 4),
+          Text(text, style: const TextStyle(
+              fontSize: 14, color: _kTextSub, height: 1.4)),
+        ])),
+      ]),
     );
-  }
 
-  Widget _emptySkillsCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
+  // ── Section header ─────────────────────────────────────────────────────────
+  Widget _sectionHdr(String title, IconData icon) => Row(children: [
+    Container(
+      width: 36, height: 36,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.teal.shade100),
-      ),
-      child: const Column(
-        children: [
-          Icon(Icons.lightbulb_outline, color: teal, size: 38),
-          SizedBox(height: 10),
-          Text(
-            'Ni dodanih veščin.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 16),
-          ),
-        ],
-      ),
-    );
-  }
+        gradient: const LinearGradient(
+          colors: [_kPrimary, _kViolet],
+          begin: Alignment.topLeft, end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(11)),
+      child: Icon(icon, color: Colors.white, size: 18)),
+    const SizedBox(width: 10),
+    Text(title, style: const TextStyle(
+        fontSize: 17, fontWeight: FontWeight.bold, color: _kText)),
+  ]);
 
+  // ── Skill card ─────────────────────────────────────────────────────────────
   Widget _skillCard(dynamic skill, int index) {
-    final bool canTeach = skill['tip'] == 'Lahko učim druge';
+    final canTeach = skill['tip'] == 'Lahko učim druge';
+    final nivo     = skill['nivoZnanja'] as String? ?? 'Začetnik';
+    final mColor   = _nivoColors[nivo] ?? _kPrimary;
+    final mBg      = _nivoBg[nivo] ?? _kSurface;
+    final mIcon    = _nivoIcons[nivo] ?? Icons.star_rounded;
+    final accent   = canTeach ? _kPrimary : _kAmber;
 
     return TweenAnimationBuilder<double>(
-      duration: Duration(milliseconds: 350 + index * 90),
       tween: Tween(begin: 0, end: 1),
-      curve: Curves.easeOutBack,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value.clamp(0, 1),
-          child: Transform.scale(scale: 0.92 + (0.08 * value), child: child),
-        );
-      },
+      duration: Duration(milliseconds: 280 + index * 70),
+      curve: Curves.easeOutCubic,
+      builder: (_, v, child) => Opacity(opacity: v,
+          child: Transform.translate(
+              offset: Offset(0, 14 * (1 - v)), child: child)),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(15),
+        margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: canTeach
-                ? [const Color(0xffe0f2f1), Colors.white]
-                : [const Color(0xfffff8e1), Colors.white],
-          ),
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: canTeach ? Colors.teal.shade100 : Colors.amber.shade100,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.045),
-              blurRadius: 14,
-              offset: const Offset(0, 7),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 24,
-              backgroundColor: canTeach ? teal : Colors.amber.shade700,
-              child: Icon(
-                canTeach ? Icons.volunteer_activism : Icons.school,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    skill['naziv'] ?? '',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${skill['nivoZnanja'] ?? ''} • ${skill['tip'] ?? ''}',
-                    style: const TextStyle(color: Colors.black54),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          color: _kCardBg,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _kBorder),
+          boxShadow: [BoxShadow(
+              color: accent.withOpacity(0.07),
+              blurRadius: 10, offset: const Offset(0, 4))]),
+        child: Row(children: [
+          // Colored left bar
+          Container(
+            width: 5, height: 68,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: canTeach
+                    ? [_kPrimary, _kViolet]
+                    : [_kAmber, const Color(0xFFF59E0B)],
+                begin: Alignment.topCenter, end: Alignment.bottomCenter),
+              borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  bottomLeft: Radius.circular(18)))),
+
+          const SizedBox(width: 12),
+
+          // Icon
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: canTeach
+                    ? [_kPrimary, _kViolet]
+                    : [_kAmber, const Color(0xFFF59E0B)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+              shape: BoxShape.circle),
+            child: Icon(
+              canTeach
+                  ? Icons.volunteer_activism_rounded
+                  : Icons.school_rounded,
+              color: Colors.white, size: 18)),
+
+          const SizedBox(width: 12),
+
+          // Content
+          Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(skill['naziv'] ?? '',
+                style: const TextStyle(fontSize: 15,
+                    fontWeight: FontWeight.bold, color: _kText)),
+            const SizedBox(height: 5),
+            Row(children: [
+              // Nivo badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                    color: mBg, borderRadius: BorderRadius.circular(6)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(mIcon, size: 10, color: mColor),
+                  const SizedBox(width: 3),
+                  Text(nivo, style: TextStyle(
+                      fontSize: 10, color: mColor,
+                      fontWeight: FontWeight.bold)),
+                ])),
+              const SizedBox(width: 6),
+              // Tip badge
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: accent.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(6)),
+                child: Text(canTeach ? 'Učim' : 'Učim se',
+                    style: TextStyle(fontSize: 10, color: accent,
+                        fontWeight: FontWeight.bold))),
+            ]),
+          ])),
+
+          const SizedBox(width: 12),
+        ]),
       ),
     );
   }
 
-  Widget _emptyProfile(BuildContext context) {
-    return Scaffold(
-      backgroundColor: bg,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Container(
-            padding: const EdgeInsets.all(26),
+  // ── Empty skills ───────────────────────────────────────────────────────────
+  Widget _emptySkills() => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Color(0xFFF5F3FF), Color(0xFFEEF2FF)],
+        begin: Alignment.topLeft, end: Alignment.bottomRight),
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: const Color(0xFFDDD6FE))),
+    child: Column(children: [
+      Container(
+        width: 52, height: 52,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [_kViolet, _kPrimary],
+            begin: Alignment.topLeft, end: Alignment.bottomRight),
+          shape: BoxShape.circle),
+        child: const Icon(Icons.lightbulb_rounded,
+            color: Colors.white, size: 26)),
+      const SizedBox(height: 12),
+      const Text('Ni dodanih veščin', style: TextStyle(
+          fontWeight: FontWeight.bold, fontSize: 15, color: _kText)),
+      const SizedBox(height: 4),
+      const Text('Dodajte veščine v zavihku Uredi.',
+          style: TextStyle(color: _kTextSub, fontSize: 13)),
+    ]),
+  );
+
+  // ── Stat item ──────────────────────────────────────────────────────────────
+  Widget _statItem(String value, String label, IconData icon) => Column(
+    children: [
+      Icon(icon, color: Colors.white70, size: 18),
+      const SizedBox(height: 5),
+      Text(value, style: const TextStyle(
+          color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+      const SizedBox(height: 2),
+      Text(label, style: const TextStyle(
+          color: Colors.white54, fontSize: 11)),
+    ],
+  );
+
+  Widget _vDivider() => Container(
+      height: 36, width: 1, color: Colors.white.withOpacity(0.18));
+
+  // ── Profile completeness card ───────────────────────────────────────────────
+  Widget _completenessCard(Map<String, dynamic> data, int skillCount) {
+    final checks = [
+      ('Ime in priimek', (data['ime'] ?? '').toString().isNotEmpty &&
+          (data['priimek'] ?? '').toString().isNotEmpty,
+          Icons.badge_outlined),
+      ('Lokacija', (data['lokacija'] ?? '').toString().isNotEmpty,
+          Icons.location_on_outlined),
+      ('Opis', (data['opis'] ?? '').toString().isNotEmpty,
+          Icons.description_outlined),
+      ('Veščine', skillCount > 0,
+          Icons.auto_awesome_outlined),
+    ];
+    final done  = checks.where((c) => c.$2).length;
+    final total = checks.length;
+    final pct   = done / total;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: _kCardBg,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _kBorder),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04),
+            blurRadius: 10, offset: const Offset(0, 4))]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Header
+        Row(children: [
+          Container(
+            width: 36, height: 36,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ],
+              color: pct == 1.0
+                  ? const Color(0xFF10B981).withOpacity(0.12)
+                  : _kPrimary.withOpacity(0.10),
+              borderRadius: BorderRadius.circular(10)),
+            child: Icon(
+              pct == 1.0
+                  ? Icons.verified_rounded
+                  : Icons.person_search_rounded,
+              color: pct == 1.0 ? const Color(0xFF10B981) : _kPrimary,
+              size: 18)),
+          const SizedBox(width: 10),
+          Expanded(child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Popolnost profila', style: TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 14, color: _kText)),
+            Text('$done od $total korakov zaključenih',
+                style: const TextStyle(fontSize: 12, color: _kTextSub)),
+          ])),
+          Text('${(pct * 100).round()}%', style: TextStyle(
+              fontSize: 16, fontWeight: FontWeight.bold,
+              color: pct == 1.0 ? const Color(0xFF10B981) : _kPrimary)),
+        ]),
+
+        const SizedBox(height: 12),
+
+        // Progress bar
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Stack(children: [
+            Container(height: 7, color: const Color(0xFFF1F5F9)),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 600),
+              curve: Curves.easeOutCubic,
+              height: 7,
+              width: (MediaQuery.of(context).size.width - 28 - 36) * pct,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: pct == 1.0
+                      ? [const Color(0xFF10B981), const Color(0xFF34D399)]
+                      : [_kPrimary, _kViolet],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight),
+                borderRadius: BorderRadius.circular(6)),
             ),
-            child: const Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.person_add_alt_1, size: 58, color: teal),
-                SizedBox(height: 16),
-                Text(
-                  'Profil še ni ustvarjen',
-                  style: TextStyle(
-                    fontSize: 23,
-                    fontWeight: FontWeight.bold,
-                    color: dark,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Najprej izpolnite obrazec za ustvarjanje profila.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: Colors.black54),
-                ),
-              ],
-            ),
-          ),
+          ]),
         ),
+
+        const SizedBox(height: 14),
+
+        // Check items
+        Wrap(spacing: 8, runSpacing: 8, children: checks.map((c) {
+          final (label, done, icon) = c;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: done
+                  ? const Color(0xFFECFDF5)
+                  : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: done
+                    ? const Color(0xFF6EE7B7)
+                    : _kBorder)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(
+                done ? Icons.check_circle_rounded : icon,
+                size: 14,
+                color: done
+                    ? const Color(0xFF10B981)
+                    : _kTextSub),
+              const SizedBox(width: 5),
+              Text(label, style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: done ? const Color(0xFF059669) : _kTextSub)),
+            ]),
+          );
+        }).toList()),
+      ]),
+    );
+  }
+
+  // ── Illustrated banner ─────────────────────────────────────────────────────
+  Widget _illustratedBanner(BuildContext ctx) {
+    return Container(
+      width: double.infinity,
+      height: 160,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E1B4B), Color(0xFF3730A3), Color(0xFF4F46E5)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(
+            color: _kPrimary.withOpacity(0.3),
+            blurRadius: 18, offset: const Offset(0, 7))]),
+      child: Stack(children: [
+
+        // Dekorativni krogi v ozadju
+        Positioned(right: -20, top: -20,
+          child: Container(width: 120, height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.06)))),
+        Positioned(right: 40, bottom: -30,
+          child: Container(width: 90, height: 90,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.05)))),
+        Positioned(left: -15, bottom: -15,
+          child: Container(width: 80, height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _kViolet.withOpacity(0.25)))),
+
+        // Ilustracija — stilizovane figure
+        Positioned(right: 16, top: 0, bottom: 0,
+          child: _networkIllustration()),
+
+        // Tekst
+        Positioned(left: 20, top: 24, child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(20)),
+              child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.groups_rounded, color: Colors.white, size: 13),
+                SizedBox(width: 5),
+                Text('Skills Match', style: TextStyle(
+                    color: Colors.white, fontSize: 11,
+                    fontWeight: FontWeight.w600)),
+              ])),
+            const SizedBox(height: 10),
+            const Text('Poveži se z\ndrugo skupnostjo!',
+                style: TextStyle(color: Colors.white, fontSize: 18,
+                    fontWeight: FontWeight.bold, height: 1.3)),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => widget.onNavigateToSkupnost?.call(),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 8, offset: const Offset(0, 3))]),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text('Odkrij', style: TextStyle(
+                      color: _kPrimary, fontSize: 13,
+                      fontWeight: FontWeight.bold)),
+                  SizedBox(width: 4),
+                  Icon(Icons.arrow_forward_rounded,
+                      color: _kPrimary, size: 14),
+                ]),
+              ),
+            ),
+          ],
+        )),
+      ]),
+    );
+  }
+
+  // Majhna SVG-like ilustracija omrežja
+  Widget _networkIllustration() {
+    return SizedBox(
+      width: 130, height: 160,
+      child: AnimatedBuilder(
+        animation: _orbCtrl,
+        builder: (_, __) {
+          final t = _orbCtrl.value * 2 * math.pi;
+          return CustomPaint(painter: _NetworkMiniPainter(t));
+        },
+      ),
+    );
+  }
+
+  // ── Tips sekcija ───────────────────────────────────────────────────────────
+  Widget _tipsSection() {
+    final tips = [
+      (Icons.tips_and_updates_rounded, 'Dopolnite profil',
+          'Popoln profil dobi 3× več ogleda.',
+          const Color(0xFF4F46E5), const Color(0xFFEEF2FF)),
+      (Icons.star_rounded, 'Dodajte veščine',
+          'Več veščin = več priložnosti za povezovanje.',
+          const Color(0xFFD97706), const Color(0xFFFFFBEB)),
+      (Icons.handshake_rounded, 'Povežite se',
+          'Poiščite mentorje in učence v skupnosti.',
+          const Color(0xFF059669), const Color(0xFFECFDF5)),
+    ];
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _sectionHdr('Nasveti za vas', Icons.lightbulb_rounded),
+      const SizedBox(height: 12),
+      ...tips.map((t) {
+        final (icon, title, sub, color, bg) = t;
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color.withOpacity(0.2))),
+          child: Row(children: [
+            Container(
+              width: 42, height: 42,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(13)),
+              child: Icon(icon, color: color, size: 22)),
+            const SizedBox(width: 12),
+            Expanded(child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 13, color: color)),
+              const SizedBox(height: 2),
+              Text(sub, style: const TextStyle(
+                  fontSize: 12, color: _kTextSub, height: 1.4)),
+            ])),
+          ]),
+        );
+      }),
+    ]);
+  }
+
+  // ── Empty profile ──────────────────────────────────────────────────────────
+  Widget _emptyProfile() => Scaffold(
+    backgroundColor: _kBg,
+    body: Center(child: Padding(
+      padding: const EdgeInsets.all(28),
+      child: Container(
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: _kCardBg,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06),
+              blurRadius: 18, offset: const Offset(0, 8))]),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 70, height: 70,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [_kPrimary, _kViolet],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+              shape: BoxShape.circle),
+            child: const Icon(Icons.person_add_alt_1_rounded,
+                color: Colors.white, size: 34)),
+          const SizedBox(height: 18),
+          const Text('Profil še ni ustvarjen', style: TextStyle(
+              fontSize: 20, fontWeight: FontWeight.bold, color: _kText)),
+          const SizedBox(height: 8),
+          const Text('Najprej izpolnite obrazec za ustvarjanje profila.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: _kTextSub, height: 1.5)),
+        ]),
+      ),
+    )),
+  );
+
+  // ── BUILD ──────────────────────────────────────────────────────────────────
+  @override
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return _emptyProfile();
+
+    return Scaffold(
+      backgroundColor: _kBg,
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users').doc(uid).snapshots(),
+        builder: (ctx, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(
+                color: _kPrimary));
+          }
+          if (!snap.hasData || !snap.data!.exists) return _emptyProfile();
+
+          final data   = snap.data!.data() as Map<String, dynamic>;
+          final vescine = data['vescine'] as List<dynamic>? ?? [];
+          final opis   = (data['opis'] ?? '').toString();
+          final razp   = data['razpolozljivost'] ?? 'Ni podatka.';
+
+          return FadeTransition(
+            opacity: _fadeAnim,
+            child: SlideTransition(
+              position: _slideAnim,
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(children: [
+
+                  // ── Header ─────────────────────────────────────────────
+                  _header(ctx, data),
+
+                  // ── Content ────────────────────────────────────────────
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 16, 14, 100),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+
+                      // ── Edit button ──────────────────────────────────────
+                      _editBtn(ctx),
+                      const SizedBox(height: 16),
+
+                      // ── Stats row ────────────────────────────────────────
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 18, horizontal: 16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1E1B4B), Color(0xFF4F46E5)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight),
+                          borderRadius: BorderRadius.circular(22),
+                          boxShadow: [BoxShadow(
+                              color: _kPrimary.withOpacity(0.28),
+                              blurRadius: 16, offset: const Offset(0, 6))]),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                          _statItem('${vescine.length}', 'Veščine',
+                              Icons.auto_awesome_rounded),
+                          _vDivider(),
+                          _statItem(
+                              vescine.where((s) =>
+                                  s['tip'] == 'Lahko učim druge').length
+                                  .toString(),
+                              'Učim', Icons.volunteer_activism_rounded),
+                          _vDivider(),
+                          _statItem(
+                              vescine.where((s) =>
+                                  s['tip'] == 'Želim se naučiti').length
+                                  .toString(),
+                              'Učim se', Icons.school_rounded),
+                        ]),
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // ── Profil completeness ──────────────────────────────
+                      _completenessCard(data, vescine.length),
+
+                      const SizedBox(height: 14),
+
+                      // ── Info kartice ─────────────────────────────────────
+                      _infoCard(
+                        Icons.description_outlined,
+                        'Opis',
+                        opis.isEmpty ? 'Ni opisa.' : opis,
+                        _kPrimary,
+                      ),
+                      _infoCard(
+                        Icons.schedule_outlined,
+                        'Razpoložljivost',
+                        razp,
+                        _kViolet,
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      // ── Veščine section ───────────────────────────────────
+                      _sectionHdr('Moje veščine', Icons.auto_awesome_rounded),
+                      const SizedBox(height: 12),
+
+                      if (vescine.isEmpty)
+                        _emptySkills()
+                      else
+                        ...vescine.asMap().entries.map(
+                            (e) => _skillCard(e.value, e.key)),
+
+                      const SizedBox(height: 20),
+
+                      // ── Illustrated banner ────────────────────────────────
+                      _illustratedBanner(ctx),
+
+                      const SizedBox(height: 14),
+
+                      // ── Nasveti sekcija ───────────────────────────────────
+                      _tipsSection(),
+
+                    ]),
+                  ),
+                ]),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
