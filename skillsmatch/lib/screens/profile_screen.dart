@@ -112,26 +112,17 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  Future<User?> _getOrCreateUser() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) return user;
-
-    final credential = await FirebaseAuth.instance.signInAnonymously();
-    return credential.user;
-  }
-
   Future<void> shraniProfil() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => isSaving = true);
 
     try {
-      final user = await _getOrCreateUser();
+      final user = FirebaseAuth.instance.currentUser;
 
       if (user == null) {
-        throw Exception('Prijava uporabnika ni uspela.');
+        throw Exception('Za ustvarjanje profila se morate prijaviti.');
       }
-
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'uid': user.uid,
         'ime': imeController.text.trim(),

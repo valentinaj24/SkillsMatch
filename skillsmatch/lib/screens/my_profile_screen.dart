@@ -87,6 +87,8 @@ class MyProfileScreen extends StatelessWidget {
                           ...vescine.asMap().entries.map((entry) {
                             return _skillCard(entry.value, entry.key);
                           }),
+
+                        const SizedBox(height: 90),
                       ],
                     ),
                   ),
@@ -116,13 +118,79 @@ class MyProfileScreen extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+              ),
+
+              GestureDetector(
+                onTap: () async {
+                  final shouldLogout = await showDialog<bool>(
+                    context: context,
+                    builder: (context) {
+                      return AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        title: const Text('Odjava'),
+                        content: const Text(
+                          'Ali se želite odjaviti iz aplikacije?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('Prekliči'),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: () => Navigator.pop(context, true),
+                            icon: const Icon(Icons.logout),
+                            label: const Text('Odjava'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+
+                  if (shouldLogout == true) {
+                    await FirebaseAuth.instance.signOut();
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.white.withOpacity(0.25)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.logout_rounded, color: Colors.white, size: 20),
+                      SizedBox(width: 6),
+                      Text(
+                        'Logout',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
+
+          const SizedBox(height: 10),
 
           TweenAnimationBuilder<double>(
             duration: const Duration(milliseconds: 700),
