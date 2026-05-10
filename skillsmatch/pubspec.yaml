@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  shared_preferences: ^2.2.2
 
   cupertino_icons: ^1.0.8
   firebase_core: ^4.0.0
@@ -26,3 +27,14 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/slika1.png
+    - assets/images/slika2.png
+    - assets/images/slika3.png
+    - assets/images/slika4.png
+    - assets/images/slika5.png
+    - assets/images/slika6.png
+    - assets/images/slika7.png
+    - assets/images/slika8.png
+    - assets/images/slika9.png
+    - assets/images/slika10.png
