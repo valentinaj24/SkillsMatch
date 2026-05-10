@@ -59,13 +59,13 @@ class _AnimatedMascot extends StatelessWidget {
   const _AnimatedMascot({
     required this.t,
     required this.imagePath,
-    this.size = 270,
+    this.size = 200,
     this.showTyping = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final floatY = math.sin(t * 1.4) * 10;
+    final floatY = math.sin(t * 1.4) * 8;
     final rotate = math.sin(t * 1.1) * 0.035;
     final scale = 1 + math.sin(t * 1.8) * 0.025;
 
@@ -84,28 +84,30 @@ class _AnimatedMascot extends StatelessWidget {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    Colors.white.withOpacity(0.28),
-                    _kPL.withOpacity(0.16),
+                    Colors.white.withOpacity(0.24),
+                    _kPL.withOpacity(0.12),
                     Colors.transparent,
                   ],
                 ),
               ),
             ),
           ),
+
           Transform.scale(
-            scale: 0.88 + math.sin(t * 1.3) * 0.05,
+            scale: 0.88 + math.sin(t * 1.3) * 0.04,
             child: Container(
               width: size * 0.78,
               height: size * 0.78,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.24),
-                  width: 2,
+                  color: Colors.white.withOpacity(0.22),
+                  width: 1.5,
                 ),
               ),
             ),
           ),
+
           ...List.generate(7, (i) {
             final angle = t + i * math.pi / 3.5;
             return Transform.translate(
@@ -114,21 +116,22 @@ class _AnimatedMascot extends StatelessWidget {
                 math.sin(angle) * size * 0.42,
               ),
               child: Container(
-                width: i.isEven ? 8 : 5,
-                height: i.isEven ? 8 : 5,
+                width: i.isEven ? 7 : 4,
+                height: i.isEven ? 7 : 4,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.75),
+                  color: Colors.white.withOpacity(0.70),
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.white.withOpacity(0.45),
-                      blurRadius: 12,
+                      color: Colors.white.withOpacity(0.40),
+                      blurRadius: 10,
                     ),
                   ],
                 ),
               ),
             );
           }),
+
           Transform.translate(
             offset: Offset(0, floatY),
             child: Transform.rotate(
@@ -139,6 +142,7 @@ class _AnimatedMascot extends StatelessWidget {
               ),
             ),
           ),
+
           Positioned(
             top: size * 0.12,
             right: size * 0.13,
@@ -146,28 +150,26 @@ class _AnimatedMascot extends StatelessWidget {
               angle: math.sin(t * 2.4) * 0.5,
               child: Icon(
                 Icons.auto_awesome_rounded,
-                color: Colors.white.withOpacity(0.55 + math.sin(t * 2) * 0.35),
-                size: 24,
+                color: Colors.white.withOpacity(0.50 + math.sin(t * 2) * 0.35),
+                size: 20,
               ),
             ),
           ),
+
           if (showTyping)
             Positioned(
               bottom: size * 0.08,
               right: size * 0.04,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 7,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.94),
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.18),
-                      blurRadius: 14,
-                      offset: const Offset(0, 6),
+                      color: Colors.black.withOpacity(0.16),
+                      blurRadius: 12,
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
@@ -176,11 +178,10 @@ class _AnimatedMascot extends StatelessWidget {
                   children: List.generate(3, (i) {
                     final opacity =
                         0.35 + 0.65 * ((math.sin(t * 3 + i) + 1) / 2);
-
                     return Container(
                       margin: const EdgeInsets.symmetric(horizontal: 2),
-                      width: 6,
-                      height: 6,
+                      width: 5,
+                      height: 5,
                       decoration: BoxDecoration(
                         color: _kP.withOpacity(opacity),
                         shape: BoxShape.circle,
@@ -190,53 +191,6 @@ class _AnimatedMascot extends StatelessWidget {
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AnimatedAppLogo extends StatelessWidget {
-  final double t;
-  final double size;
-
-  const _AnimatedAppLogo({required this.t, this.size = 150});
-
-  @override
-  Widget build(BuildContext context) {
-    final scale = 1 + math.sin(t * 1.7) * 0.035;
-    final rotate = math.sin(t * 1.2) * 0.025;
-
-    return SizedBox(
-      width: size * 1.35,
-      height: size * 1.35,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Transform.scale(
-            scale: 1 + math.sin(t) * 0.08,
-            child: Container(
-              width: size * 1.22,
-              height: size * 1.22,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Colors.white.withOpacity(0.30),
-                    _kPL.withOpacity(0.18),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Transform.rotate(
-            angle: rotate,
-            child: Transform.scale(
-              scale: scale,
-              child: Image.asset(_appLogo, width: size, fit: BoxFit.contain),
-            ),
-          ),
         ],
       ),
     );
@@ -338,7 +292,9 @@ class _SplashScreenState extends State<SplashScreen>
 
     final prefs = await SharedPreferences.getInstance();
 
-    // OVO OBRIŠI KAD ZAVRŠIŠ TESTIRANJE:
+    // Ako želiš da se onboarding uvek prikazuje tokom testiranja,
+    // ostavi ovu liniju uključenu.
+    // Ako želiš da se onboarding prikaže samo prvi put, obriši ovu liniju.
     await prefs.remove('onboarding_seen');
 
     final seen = prefs.getBool('onboarding_seen') ?? false;
@@ -350,9 +306,8 @@ class _SplashScreenState extends State<SplashScreen>
         pageBuilder: (_, __, ___) => seen
             ? widget.nextScreen
             : OnboardingScreen(nextScreen: widget.nextScreen),
-        transitionsBuilder: (_, a, __, child) {
-          return FadeTransition(opacity: a, child: child);
-        },
+        transitionsBuilder: (_, a, __, child) =>
+            FadeTransition(opacity: a, child: child),
         transitionDuration: const Duration(milliseconds: 500),
       ),
     );
@@ -384,6 +339,7 @@ class _SplashScreenState extends State<SplashScreen>
           Positioned.fill(
             child: Image.asset('assets/images/slika11.jpeg', fit: BoxFit.cover),
           ),
+
           Positioned(
             bottom: 85,
             left: 0,
@@ -398,44 +354,42 @@ class _SplashScreenState extends State<SplashScreen>
                       borderRadius: BorderRadius.circular(8),
                       child: AnimatedBuilder(
                         animation: _progressAnim,
-                        builder: (_, __) {
-                          return Stack(
-                            children: [
-                              Container(
+                        builder: (_, __) => Stack(
+                          children: [
+                            Container(
+                              height: 4,
+                              color: Colors.white.withOpacity(0.28),
+                            ),
+                            FractionallySizedBox(
+                              widthFactor: _progressAnim.value,
+                              child: Container(
                                 height: 4,
-                                color: Colors.white.withOpacity(0.28),
-                              ),
-                              FractionallySizedBox(
-                                widthFactor: _progressAnim.value,
-                                child: Container(
-                                  height: 4,
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [_kPL, Colors.white],
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [_kPL, Colors.white],
                                   ),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                            ],
-                          );
-                        },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 10),
+
                   AnimatedBuilder(
                     animation: _progressAnim,
-                    builder: (_, __) {
-                      return Text(
-                        _progressLabel(_progressAnim.value),
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      );
-                    },
+                    builder: (_, __) => Text(
+                      _progressLabel(_progressAnim.value),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -488,7 +442,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     with TickerProviderStateMixin {
   final PageController _ctrl = PageController();
   int _page = 0;
-
   late AnimationController _orbCtrl;
 
   static const _pages = [
@@ -523,6 +476,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         ),
       ],
     ),
+
     _OBData(
       title: 'Ponudi svoje znanje',
       subtitle: 'Tvoje veščine imajo vrednost',
@@ -554,6 +508,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         ),
       ],
     ),
+
     _OBData(
       title: 'Nauči se novega',
       subtitle: 'Znanje, ki ti je bližje',
@@ -585,6 +540,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         ),
       ],
     ),
+
     _OBData(
       title: 'Poveži generacije',
       subtitle: 'Skupnost, ki raste skupaj',
@@ -699,6 +655,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             },
             itemBuilder: (_, i) => _buildPage(_pages[i], i),
           ),
+
           Positioned(bottom: 0, left: 0, right: 0, child: _buildControls()),
         ],
       ),
@@ -706,228 +663,227 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Widget _buildPage(_OBData data, int idx) {
-    return AnimatedBuilder(
-      animation: _orbCtrl,
-      builder: (_, __) {
-        final t = _orbCtrl.value * 2 * math.pi;
-        final heroMove = math.sin(t * 0.9) * 6;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenH = constraints.maxHeight;
+        final isSmall = screenH < 700;
 
-        return Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: data.gradient,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Stack(
-            children: [
-              Positioned.fill(child: CustomPaint(painter: _OrbPainter(t))),
+        final mascotSize = isSmall ? 150.0 : 205.0;
+        final titleSize = isSmall ? 27.0 : 34.0;
+        final subtitleSize = isSmall ? 11.0 : 12.0;
+        final descSize = isSmall ? 12.0 : 13.5;
 
-              Positioned(
-                top: -165,
-                right: -155,
-                child: _glow(data.accent, 430, 0.52),
+        final featureTileH = isSmall ? 68.0 : 78.0;
+        final featureIconSize = isSmall ? 20.0 : 24.0;
+        final featureTitleSize = isSmall ? 13.5 : 15.5;
+        final featureSubSize = isSmall ? 11.0 : 12.0;
+
+        return AnimatedBuilder(
+          animation: _orbCtrl,
+          builder: (_, __) {
+            final t = _orbCtrl.value * 2 * math.pi;
+            final heroMove = math.sin(t * 0.9) * 5;
+
+            return Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: data.gradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
               ),
-              Positioned(
-                bottom: 40,
-                left: -190,
-                child: _glow(data.accent, 430, 0.30),
-              ),
+              child: Stack(
+                children: [
+                  Positioned.fill(child: CustomPaint(painter: _OrbPainter(t))),
 
-              Positioned(
-                top: 145,
-                left: -110,
-                right: -110,
-                child: Transform.rotate(
-                  angle: -0.42,
-                  child: Container(
-                    height: 145,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(140),
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white.withOpacity(0.10),
-                          Colors.white.withOpacity(0.012),
+                  Positioned(
+                    top: -120,
+                    right: -120,
+                    child: _glow(data.accent, 340, 0.48),
+                  ),
+
+                  Positioned(
+                    bottom: 60,
+                    left: -150,
+                    child: _glow(data.accent, 340, 0.26),
+                  ),
+
+                  Positioned(
+                    top: screenH * 0.18,
+                    left: -80,
+                    right: -80,
+                    child: Transform.rotate(
+                      angle: -0.42,
+                      child: Container(
+                        height: 100,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(120),
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.white.withOpacity(0.08),
+                              Colors.white.withOpacity(0.01),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  SafeArea(
+                    bottom: false,
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 145),
+                      child: Column(
+                        children: [
+                          _topBar(data),
+
+                          SizedBox(height: isSmall ? 6 : 12),
+
+                          Transform.translate(
+                            offset: Offset(0, heroMove),
+                            child: TweenAnimationBuilder<double>(
+                              key: ValueKey('hero-$idx'),
+                              tween: Tween(begin: 0.0, end: 1.0),
+                              duration: const Duration(milliseconds: 700),
+                              curve: Curves.easeOutCubic,
+                              builder: (_, v, child) => Opacity(
+                                opacity: v,
+                                child: Transform.translate(
+                                  offset: Offset(0, 20 * (1 - v)),
+                                  child: child,
+                                ),
+                              ),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  _glow(data.accent, mascotSize * 1.18, 0.50),
+
+                                  Container(
+                                    width: mascotSize * 1.05,
+                                    height: mascotSize * 1.05,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.20),
+                                        width: 1.5,
+                                      ),
+                                      gradient: RadialGradient(
+                                        colors: [
+                                          Colors.white.withOpacity(0.12),
+                                          data.accent.withOpacity(0.08),
+                                          Colors.transparent,
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+
+                                  _AnimatedMascot(
+                                    t: t + idx,
+                                    imagePath: _pageImage(idx),
+                                    size: mascotSize,
+                                    showTyping: idx == 2,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(height: isSmall ? 14 : 20),
+
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: isSmall ? 5 : 7,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.13),
+                              borderRadius: BorderRadius.circular(40),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.26),
+                              ),
+                            ),
+                            child: Text(
+                              data.subtitle,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: subtitleSize,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(height: isSmall ? 8 : 10),
+
+                          Text(
+                            data.title,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: titleSize,
+                              height: 1.0,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -1.0,
+                            ),
+                          ),
+
+                          SizedBox(height: isSmall ? 8 : 10),
+
+                          Text(
+                            data.description,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.78),
+                              fontSize: descSize,
+                              height: 1.35,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+
+                          SizedBox(height: isSmall ? 16 : 22),
+
+                          ...data.features.asMap().entries.map((e) {
+                            final f = e.value;
+
+                            return TweenAnimationBuilder<double>(
+                              key: ValueKey('feature-$idx-${e.key}'),
+                              tween: Tween(begin: 0.0, end: 1.0),
+                              duration: Duration(
+                                milliseconds: 500 + e.key * 90,
+                              ),
+                              curve: Curves.easeOutCubic,
+                              builder: (_, v, child) => Opacity(
+                                opacity: v,
+                                child: Transform.translate(
+                                  offset: Offset(0, 16 * (1 - v)),
+                                  child: child,
+                                ),
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: isSmall ? 9 : 12,
+                                ),
+                                child: _featureTile(
+                                  data,
+                                  f,
+                                  tileHeight: featureTileH,
+                                  iconSize: featureIconSize,
+                                  titleSize: featureTitleSize,
+                                  subSize: featureSubSize,
+                                ),
+                              ),
+                            );
+                          }),
                         ],
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-
-              SafeArea(
-                bottom: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(22, 10, 22, 132),
-                  child: Column(
-                    children: [
-                      _topBar(data),
-                      const SizedBox(height: 8),
-
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Transform.translate(
-                              offset: Offset(0, heroMove),
-                              child: TweenAnimationBuilder<double>(
-                                key: ValueKey('hero-$idx'),
-                                tween: Tween(begin: 0.0, end: 1.0),
-                                duration: const Duration(milliseconds: 780),
-                                curve: Curves.easeOutCubic,
-                                builder: (_, v, child) {
-                                  return Opacity(
-                                    opacity: v,
-                                    child: Transform.translate(
-                                      offset: Offset(0, 24 * (1 - v)),
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                                child: Column(
-                                  children: [
-                                    Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        _glow(data.accent, 235, 0.56),
-                                        Container(
-                                          width: 210,
-                                          height: 210,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: Colors.white.withOpacity(
-                                                0.22,
-                                              ),
-                                              width: 2,
-                                            ),
-                                            gradient: RadialGradient(
-                                              colors: [
-                                                Colors.white.withOpacity(0.15),
-                                                data.accent.withOpacity(0.10),
-                                                Colors.transparent,
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                        _AnimatedMascot(
-                                          t: t + idx,
-                                          imagePath: _pageImage(idx),
-                                          size: 195,
-                                          showTyping: idx == 2,
-                                        ),
-                                      ],
-                                    ),
-
-                                    const SizedBox(height: 4),
-
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 17,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.14),
-                                        borderRadius: BorderRadius.circular(40),
-                                        border: Border.all(
-                                          color: Colors.white.withOpacity(0.28),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        data.subtitle,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0.2,
-                                        ),
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 13),
-
-                                    Text(
-                                      data.title,
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 37,
-                                        height: 1.0,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: -1.3,
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 10),
-
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                      ),
-                                      child: Text(
-                                        data.description,
-                                        textAlign: TextAlign.center,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.80),
-                                          fontSize: 14.3,
-                                          height: 1.36,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 20),
-
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.start,
-                                children: data.features.asMap().entries.map((
-                                  e,
-                                ) {
-                                  final f = e.value;
-
-                                  return TweenAnimationBuilder<double>(
-                                    key: ValueKey('feature-$idx-${e.key}'),
-                                    tween: Tween(begin: 0.0, end: 1.0),
-                                    duration: Duration(
-                                      milliseconds: 560 + e.key * 100,
-                                    ),
-                                    curve: Curves.easeOutCubic,
-                                    builder: (_, v, child) {
-                                      return Opacity(
-                                        opacity: v,
-                                        child: Transform.translate(
-                                          offset: Offset(0, 18 * (1 - v)),
-                                          child: child,
-                                        ),
-                                      );
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 11,
-                                      ),
-                                      child: _featureTile(data, f),
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         );
       },
     );
@@ -937,11 +893,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     return Row(
       children: [
         const Spacer(),
+
         if (_page < _pages.length - 1)
           GestureDetector(
             onTap: _finish,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.10),
                 borderRadius: BorderRadius.circular(26),
@@ -951,7 +908,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 'Preskoči',
                 style: TextStyle(
                   color: Colors.white70,
-                  fontSize: 14,
+                  fontSize: 13,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -961,55 +918,62 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  Widget _featureTile(_OBData data, _Feat feature) {
+  Widget _featureTile(
+    _OBData data,
+    _Feat feature, {
+    required double tileHeight,
+    required double iconSize,
+    required double titleSize,
+    required double subSize,
+  }) {
     return Container(
       width: double.infinity,
-      height: 86,
-      padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
+      height: tileHeight,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.082),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withOpacity(0.12)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.18),
-            blurRadius: 22,
-            offset: const Offset(0, 12),
+            color: Colors.black.withOpacity(0.16),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
           BoxShadow(
-            color: data.accent.withOpacity(0.13),
-            blurRadius: 22,
-            offset: const Offset(0, 6),
+            color: data.accent.withOpacity(0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            width: 52,
-            height: 52,
+            width: tileHeight * 0.60,
+            height: tileHeight * 0.60,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  data.accent.withOpacity(0.98),
-                  const Color(0xFF4C1D95).withOpacity(0.86),
+                  data.accent.withOpacity(0.95),
+                  const Color(0xFF4C1D95).withOpacity(0.82),
                 ],
               ),
               boxShadow: [
                 BoxShadow(
-                  color: data.accent.withOpacity(0.42),
-                  blurRadius: 24,
-                  offset: const Offset(0, 8),
+                  color: data.accent.withOpacity(0.38),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
                 ),
               ],
             ),
-            child: Icon(feature.icon, color: Colors.white, size: 27),
+            child: Icon(feature.icon, color: Colors.white, size: iconSize),
           ),
 
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
 
           Expanded(
             child: Column(
@@ -1020,22 +984,24 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   feature.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16.2,
+                    fontSize: titleSize,
                     fontWeight: FontWeight.w900,
                     height: 1.05,
                   ),
                 ),
-                const SizedBox(height: 5),
+
+                const SizedBox(height: 4),
+
                 Text(
                   feature.text,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.68),
-                    fontSize: 12.8,
-                    height: 1.23,
+                    color: Colors.white.withOpacity(0.66),
+                    fontSize: subSize,
+                    height: 1.22,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1056,7 +1022,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         gradient: RadialGradient(
           colors: [
             color.withOpacity(opacity),
-            color.withOpacity(opacity * 0.32),
+            color.withOpacity(opacity * 0.30),
             Colors.transparent,
           ],
         ),
@@ -1068,10 +1034,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     final isLast = _page == _pages.length - 1;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 10, 24, 32),
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 30),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.transparent, Colors.black.withOpacity(0.50)],
+          colors: [Colors.transparent, Colors.black.withOpacity(0.48)],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -1086,19 +1052,19 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               (i) => AnimatedContainer(
                 duration: const Duration(milliseconds: 330),
                 margin: const EdgeInsets.symmetric(horizontal: 4),
-                width: i == _page ? 34 : 8,
-                height: 8,
+                width: i == _page ? 30 : 7,
+                height: 7,
                 decoration: BoxDecoration(
                   color: i == _page
                       ? Colors.white
-                      : Colors.white.withOpacity(0.30),
+                      : Colors.white.withOpacity(0.28),
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
           Row(
             children: [
@@ -1108,17 +1074,17 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 child: GestureDetector(
                   onTap: _page > 0 ? _back : null,
                   child: Container(
-                    width: 56,
-                    height: 56,
+                    width: 52,
+                    height: 52,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.14),
+                      color: Colors.white.withOpacity(0.13),
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withOpacity(0.28)),
+                      border: Border.all(color: Colors.white.withOpacity(0.26)),
                     ),
                     child: const Icon(
                       Icons.arrow_back_rounded,
                       color: Colors.white,
-                      size: 26,
+                      size: 24,
                     ),
                   ),
                 ),
@@ -1130,23 +1096,23 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 onTap: _next,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 320),
-                  height: 60,
-                  padding: EdgeInsets.symmetric(horizontal: isLast ? 30 : 30),
+                  height: 56,
+                  padding: const EdgeInsets.symmetric(horizontal: 28),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Colors.white, Color(0xFFEDE9FE)],
                     ),
-                    borderRadius: BorderRadius.circular(38),
+                    borderRadius: BorderRadius.circular(36),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.white.withOpacity(0.42),
-                        blurRadius: 30,
-                        offset: const Offset(0, 10),
+                        color: Colors.white.withOpacity(0.38),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
                       ),
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.18),
-                        blurRadius: 20,
-                        offset: const Offset(0, 12),
+                        color: Colors.black.withOpacity(0.16),
+                        blurRadius: 16,
+                        offset: const Offset(0, 10),
                       ),
                     ],
                   ),
@@ -1157,17 +1123,19 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         isLast ? 'Začni z aplikacijo' : 'Naprej',
                         style: const TextStyle(
                           color: _kPD,
-                          fontSize: 15.5,
+                          fontSize: 15,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(width: 10),
+
+                      const SizedBox(width: 8),
+
                       Icon(
                         isLast
                             ? Icons.rocket_launch_rounded
                             : Icons.arrow_forward_rounded,
                         color: _kPD,
-                        size: 21,
+                        size: 20,
                       ),
                     ],
                   ),
