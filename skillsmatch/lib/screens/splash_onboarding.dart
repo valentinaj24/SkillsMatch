@@ -449,154 +449,70 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+Widget build(BuildContext context) {
+  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
 
-    return Scaffold(
-      body: AnimatedBuilder(
-        animation: _orbCtrl,
-        builder: (_, __) {
-          final t = _orbCtrl.value * 2 * math.pi;
-
-          return Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                    Color(0xFFFFFFFF),
-                    Color(0xFFF4F1FF),
-                    Color(0xFFBFA8FF),
-                    Color(0xFF4F22C9),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: CustomPaint(
-                    painter: _OrbPainter(t),
-                  ),
-                ),
-
-                Center(
-  child: Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 22),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+  return Scaffold(
+    body: Stack(
       children: [
-        FadeTransition(
-          opacity: _logoFade,
-          child: ScaleTransition(
-            scale: _logoScale,
-            child: Image.asset(
-              'assets/images/slika6.png',
-              width: 135,
-              fit: BoxFit.contain,
-            ),
+        Positioned.fill(
+          child: Image.asset(
+            'assets/images/slika11.jpeg',
+            fit: BoxFit.cover,
           ),
         ),
 
-        const SizedBox(height: 10),
-
-        SlideTransition(
-          position: _textSlide,
+        Positioned(
+          bottom: 85,
+          left: 0,
+          right: 0,
           child: FadeTransition(
             opacity: _textFade,
-            child: const Column(
-              children: [
-                Text(
-                  'Skills Match',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 38,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -1,
-                  ),
-                ),
-                SizedBox(height: 6),
-                Text(
-                  'UČI • POVEZUJ • RASTI',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 28),
-
-        AnimatedBuilder(
-          animation: _orbCtrl,
-          builder: (_, __) {
-            final t = _orbCtrl.value * 2 * math.pi;
-
-            return Transform.translate(
-              offset: Offset(0, math.sin(t * 1.4) * 10),
-              child: Transform.scale(
-                scale: 1 + math.sin(t * 1.8) * 0.025,
-                child: Image.asset(
-                  'assets/images/slika10.png',
-                  width: 310,
-                  fit: BoxFit.contain,
-                ),
-              ),
-            );
-          },
-        ),
-
-        const SizedBox(height: 24),
-
-        FadeTransition(
-          opacity: _textFade,
-          child: SizedBox(
-            width: 190,
             child: Column(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: AnimatedBuilder(
-                    animation: _progressAnim,
-                    builder: (_, __) {
-                      return Stack(
-                        children: [
-                          Container(
-                            height: 4,
-                            color: Colors.white.withOpacity(0.18),
-                          ),
-                          FractionallySizedBox(
-                            widthFactor: _progressAnim.value,
-                            child: Container(
+                SizedBox(
+                  width: 190,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: AnimatedBuilder(
+                      animation: _progressAnim,
+                      builder: (_, __) {
+                        return Stack(
+                          children: [
+                            Container(
                               height: 4,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [_kPL, Colors.white],
+                              color: Colors.white.withOpacity(0.28),
+                            ),
+                            FractionallySizedBox(
+                              widthFactor: _progressAnim.value,
+                              child: Container(
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [_kPL, Colors.white],
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                          ),
-                        ],
-                      );
-                    },
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
+
                 const SizedBox(height: 10),
+
                 AnimatedBuilder(
                   animation: _progressAnim,
                   builder: (_, __) {
                     return Text(
                       _progressLabel(_progressAnim.value),
                       style: const TextStyle(
-                        color: Colors.white60,
+                        color: Colors.white70,
                         fontSize: 12,
+                        fontWeight: FontWeight.w500,
                       ),
                     );
                   },
@@ -607,32 +523,8 @@ class _SplashScreenState extends State<SplashScreen>
         ),
       ],
     ),
-  ),
-),
-
-                Positioned(
-                  bottom: 32,
-                  left: 0,
-                  right: 0,
-                  child: FadeTransition(
-                    opacity: _taglineFade,
-                    child: const Text(
-                      'v1.0.0 · SkillBridge Team',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white24,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
+  );
+}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
