@@ -6,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 const _kP = Color(0xFF4F46E5);
 const _kPD = Color(0xFF312E81);
 const _kPL = Color(0xFF818CF8);
-const _kV = Color(0xFF7C3AED);
 
 const _mascotImages = [
   'assets/images/slika1.png',
@@ -18,7 +17,6 @@ const _mascotImages = [
 
 const _appLogo = 'assets/images/slika2.png';
 
-// ─── Orb painter ──────────────────────────────────────────────────────────────
 class _OrbPainter extends CustomPainter {
   final double t;
 
@@ -52,20 +50,17 @@ class _OrbPainter extends CustomPainter {
   bool shouldRepaint(_OrbPainter oldDelegate) => oldDelegate.t != t;
 }
 
-// ─── Animated mascot image ────────────────────────────────────────────────────
 class _AnimatedMascot extends StatelessWidget {
   final double t;
   final String imagePath;
   final double size;
   final bool showTyping;
-  final bool showTapHint;
 
   const _AnimatedMascot({
     required this.t,
     required this.imagePath,
     this.size = 270,
     this.showTyping = true,
-    this.showTapHint = false,
   });
 
   @override
@@ -83,21 +78,20 @@ class _AnimatedMascot extends StatelessWidget {
           Transform.scale(
             scale: 1 + math.sin(t) * 0.05,
             child: Container(
-              width: size * 0.92,
-              height: size * 0.92,
+              width: size * 0.95,
+              height: size * 0.95,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    Colors.white.withOpacity(0.30),
-                    _kPL.withOpacity(0.18),
+                    Colors.white.withOpacity(0.28),
+                    _kPL.withOpacity(0.16),
                     Colors.transparent,
                   ],
                 ),
               ),
             ),
           ),
-
           Transform.scale(
             scale: 0.88 + math.sin(t * 1.3) * 0.05,
             child: Container(
@@ -106,13 +100,12 @@ class _AnimatedMascot extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.22),
+                  color: Colors.white.withOpacity(0.24),
                   width: 2,
                 ),
               ),
             ),
           ),
-
           ...List.generate(7, (i) {
             final angle = t + i * math.pi / 3.5;
             return Transform.translate(
@@ -136,22 +129,16 @@ class _AnimatedMascot extends StatelessWidget {
               ),
             );
           }),
-
           Transform.translate(
             offset: Offset(0, floatY),
             child: Transform.rotate(
               angle: rotate,
               child: Transform.scale(
                 scale: scale,
-                child: Image.asset(
-                  imagePath,
-                  width: size,
-                  fit: BoxFit.contain,
-                ),
+                child: Image.asset(imagePath, width: size, fit: BoxFit.contain),
               ),
             ),
           ),
-
           Positioned(
             top: size * 0.12,
             right: size * 0.13,
@@ -159,27 +146,11 @@ class _AnimatedMascot extends StatelessWidget {
               angle: math.sin(t * 2.4) * 0.5,
               child: Icon(
                 Icons.auto_awesome_rounded,
-                color: Colors.white.withOpacity(
-                  0.55 + math.sin(t * 2) * 0.35,
-                ),
+                color: Colors.white.withOpacity(0.55 + math.sin(t * 2) * 0.35),
                 size: 24,
               ),
             ),
           ),
-
-          Positioned(
-            bottom: size * 0.20,
-            left: size * 0.12,
-            child: Transform.scale(
-              scale: 1 + math.sin(t * 2.2) * 0.25,
-              child: Icon(
-                Icons.star_rounded,
-                color: Colors.white.withOpacity(0.70),
-                size: 16,
-              ),
-            ),
-          ),
-
           if (showTyping)
             Positioned(
               bottom: size * 0.08,
@@ -219,23 +190,17 @@ class _AnimatedMascot extends StatelessWidget {
                 ),
               ),
             ),
-
-          
         ],
       ),
     );
   }
 }
 
-// ─── Animated app logo ────────────────────────────────────────────────────────
 class _AnimatedAppLogo extends StatelessWidget {
   final double t;
   final double size;
 
-  const _AnimatedAppLogo({
-    required this.t,
-    this.size = 150,
-  });
+  const _AnimatedAppLogo({required this.t, this.size = 150});
 
   @override
   Widget build(BuildContext context) {
@@ -265,40 +230,11 @@ class _AnimatedAppLogo extends StatelessWidget {
               ),
             ),
           ),
-
-          ...List.generate(6, (i) {
-            final angle = t + i * math.pi / 3;
-            return Transform.translate(
-              offset: Offset(
-                math.cos(angle) * size * 0.65,
-                math.sin(angle) * size * 0.65,
-              ),
-              child: Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.75),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.white.withOpacity(0.45),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }),
-
           Transform.rotate(
             angle: rotate,
             child: Transform.scale(
               scale: scale,
-              child: Image.asset(
-                _appLogo,
-                width: size,
-                fit: BoxFit.contain,
-              ),
+              child: Image.asset(_appLogo, width: size, fit: BoxFit.contain),
             ),
           ),
         ],
@@ -307,9 +243,6 @@ class _AnimatedAppLogo extends StatelessWidget {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// SPLASH SCREEN
-// ═══════════════════════════════════════════════════════════════════════════════
 class SplashScreen extends StatefulWidget {
   final Widget nextScreen;
 
@@ -342,31 +275,24 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 900),
     );
 
-    _logoScale = Tween<double>(begin: 0.3, end: 1.0).animate(
-      CurvedAnimation(parent: _logoCtrl, curve: Curves.elasticOut),
-    );
+    _logoScale = Tween<double>(
+      begin: 0.3,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.elasticOut));
 
-    _logoFade = CurvedAnimation(
-      parent: _logoCtrl,
-      curve: Curves.easeOut,
-    );
+    _logoFade = CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOut);
 
     _textCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
 
-    _textFade = CurvedAnimation(
-      parent: _textCtrl,
-      curve: Curves.easeOut,
-    );
+    _textFade = CurvedAnimation(parent: _textCtrl, curve: Curves.easeOut);
 
     _textSlide = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _textCtrl, curve: Curves.easeOutCubic),
-    );
+    ).animate(CurvedAnimation(parent: _textCtrl, curve: Curves.easeOutCubic));
 
     _taglineFade = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(
@@ -449,115 +375,106 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   @override
-Widget build(BuildContext context) {
-  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+  Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
 
-  return Scaffold(
-    body: Stack(
-      children: [
-        Positioned.fill(
-          child: Image.asset(
-            'assets/images/slika11.jpeg',
-            fit: BoxFit.cover,
+    return Scaffold(
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset('assets/images/slika11.jpeg', fit: BoxFit.cover),
           ),
-        ),
-
-        Positioned(
-          bottom: 85,
-          left: 0,
-          right: 0,
-          child: FadeTransition(
-            opacity: _textFade,
-            child: Column(
-              children: [
-                SizedBox(
-                  width: 190,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: AnimatedBuilder(
-                      animation: _progressAnim,
-                      builder: (_, __) {
-                        return Stack(
-                          children: [
-                            Container(
-                              height: 4,
-                              color: Colors.white.withOpacity(0.28),
-                            ),
-                            FractionallySizedBox(
-                              widthFactor: _progressAnim.value,
-                              child: Container(
+          Positioned(
+            bottom: 85,
+            left: 0,
+            right: 0,
+            child: FadeTransition(
+              opacity: _textFade,
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: 190,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: AnimatedBuilder(
+                        animation: _progressAnim,
+                        builder: (_, __) {
+                          return Stack(
+                            children: [
+                              Container(
                                 height: 4,
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [_kPL, Colors.white],
+                                color: Colors.white.withOpacity(0.28),
+                              ),
+                              FractionallySizedBox(
+                                widthFactor: _progressAnim.value,
+                                child: Container(
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [_kPL, Colors.white],
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
                                   ),
-                                  borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                            ),
-                          ],
-                        );
-                      },
+                            ],
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 10),
-
-                AnimatedBuilder(
-                  animation: _progressAnim,
-                  builder: (_, __) {
-                    return Text(
-                      _progressLabel(_progressAnim.value),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    );
-                  },
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  AnimatedBuilder(
+                    animation: _progressAnim,
+                    builder: (_, __) {
+                      return Text(
+                        _progressLabel(_progressAnim.value),
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ONBOARDING DATA
-// ═══════════════════════════════════════════════════════════════════════════════
 class _OBData {
   final String title;
   final String subtitle;
   final String description;
-  final IconData icon;
   final List<Color> gradient;
+  final Color accent;
+  final IconData mainIcon;
   final List<_Feat> features;
 
   const _OBData({
     required this.title,
     required this.subtitle,
     required this.description,
-    required this.icon,
     required this.gradient,
+    required this.accent,
+    required this.mainIcon,
     required this.features,
   });
 }
 
 class _Feat {
   final IconData icon;
+  final String title;
   final String text;
 
-  const _Feat(this.icon, this.text);
+  const _Feat(this.icon, this.title, this.text);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ONBOARDING SCREEN
-// ═══════════════════════════════════════════════════════════════════════════════
 class OnboardingScreen extends StatefulWidget {
   final Widget nextScreen;
 
@@ -569,7 +486,7 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen>
     with TickerProviderStateMixin {
-  final _ctrl = PageController();
+  final PageController _ctrl = PageController();
   int _page = 0;
 
   late AnimationController _orbCtrl;
@@ -577,70 +494,126 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   static const _pages = [
     _OBData(
       title: 'Skills Match',
-      subtitle: 'Dobrodošli!',
+      subtitle: 'Dobrodošli v skupnosti',
       description:
-          'Platforma, ki združuje generacije skozi izmenjavo znanja, veščin in izkušenj.',
-      icon: Icons.hub_rounded,
+          'Odkrij prostor, kjer se znanje, izkušnje in ljudje povežejo v eno pametno skupnost.',
       gradient: [
-        Color(0xFF1E1B4B),
-        Color(0xFF3730A3),
-        Color(0xFF4F46E5),
+        Color(0xFF05001A),
+        Color(0xFF180044),
+        Color(0xFF3B0A78),
+        Color(0xFF6D28D9),
       ],
+      accent: Color(0xFFA855F7),
+      mainIcon: Icons.hub_rounded,
       features: [
-        _Feat(Icons.people_alt_rounded, 'Poveži se z drugimi'),
-        _Feat(Icons.auto_awesome_rounded, 'Izmenjuj znanje'),
-        _Feat(Icons.security_rounded, 'Zaupanja vredna skupnost'),
+        _Feat(
+          Icons.groups_rounded,
+          'Povezovanje uporabnikov',
+          'Poveži se z ljudmi, ki delijo tvoje interese.',
+        ),
+        _Feat(
+          Icons.auto_awesome_rounded,
+          'Pametna izmenjava znanja',
+          'Deli znanje, uči se in rasti vsak dan.',
+        ),
+        _Feat(
+          Icons.verified_user_rounded,
+          'Varna skupnost',
+          'Zaupanja vredno okolje za vse generacije.',
+        ),
       ],
     ),
     _OBData(
       title: 'Ponudi svoje znanje',
-      subtitle: 'Postani mentor',
+      subtitle: 'Tvoje veščine imajo vrednost',
       description:
-          'Imaš veščine ali izkušnje? Deli jih z drugimi! Ustvari profil in se poveži.',
-      icon: Icons.volunteer_activism_rounded,
+          'Predstavi se kot mentor, izpostavi svoje izkušnje in pomagaj drugim napredovati.',
       gradient: [
-        Color(0xFF312E81),
-        Color(0xFF7C3AED),
-        Color(0xFF818CF8),
+        Color(0xFF08001F),
+        Color(0xFF260057),
+        Color(0xFF5B21B6),
+        Color(0xFF9333EA),
       ],
+      accent: Color(0xFFC084FC),
+      mainIcon: Icons.workspace_premium_rounded,
       features: [
-        _Feat(Icons.badge_rounded, 'Ustvari profil'),
-        _Feat(Icons.star_rounded, 'Dodaj svoje veščine'),
-        _Feat(Icons.school_rounded, 'Poučuj druge'),
+        _Feat(
+          Icons.badge_rounded,
+          'Premium profil',
+          'Uredi predstavitev, ki jasno pokaže tvoje znanje.',
+        ),
+        _Feat(
+          Icons.star_rounded,
+          'Izpostavljene veščine',
+          'Dodaj področja, v katerih lahko pomagaš drugim.',
+        ),
+        _Feat(
+          Icons.school_rounded,
+          'Mentorstvo drugim',
+          'Postani oseba, od katere se skupnost lahko uči.',
+        ),
       ],
     ),
     _OBData(
       title: 'Nauči se novega',
-      subtitle: 'Najdi mentorja',
+      subtitle: 'Znanje, ki ti je bližje',
       description:
-          'Poišči pravega mentorja glede na veščine, lokacijo in razpoložljivost.',
-      icon: Icons.school_rounded,
+          'Poišči mentorja po veščinah, lokaciji in razpoložljivosti ter začni napredovati.',
       gradient: [
-        Color(0xFF1E1B4B),
-        Color(0xFF0891B2),
-        Color(0xFF818CF8),
+        Color(0xFF020617),
+        Color(0xFF082F49),
+        Color(0xFF0369A1),
+        Color(0xFF0EA5E9),
       ],
+      accent: Color(0xFF67E8F9),
+      mainIcon: Icons.travel_explore_rounded,
       features: [
-        _Feat(Icons.search_rounded, 'Išči po veščinah'),
-        _Feat(Icons.location_on_rounded, 'Filtriraj po lokaciji'),
-        _Feat(Icons.schedule_rounded, 'Prilagodi razpoložljivost'),
+        _Feat(
+          Icons.manage_search_rounded,
+          'Pametno iskanje',
+          'Hitro najdi znanje, ki ga trenutno potrebuješ.',
+        ),
+        _Feat(
+          Icons.location_on_rounded,
+          'Iskanje po lokaciji',
+          'Poveži se z mentorji v svoji bližini.',
+        ),
+        _Feat(
+          Icons.schedule_rounded,
+          'Ujemanje po času',
+          'Izberi osebe, ki imajo podobno razpoložljivost.',
+        ),
       ],
     ),
     _OBData(
       title: 'Poveži generacije',
-      subtitle: 'Skupaj rastemo',
+      subtitle: 'Skupnost, ki raste skupaj',
       description:
-          'Skills Match je most med generacijami. Mladi in starejši skupaj gradijo skupnost.',
-      icon: Icons.diversity_3_rounded,
+          'Mladi in starejši delijo izkušnje, gradijo zaupanje in ustvarjajo močnejšo skupnost.',
       gradient: [
-        Color(0xFF312E81),
-        Color(0xFF059669),
-        Color(0xFF4F46E5),
+        Color(0xFF021A22),
+        Color(0xFF064E3B),
+        Color(0xFF047857),
+        Color(0xFF3730A3),
       ],
+      accent: Color(0xFF6EE7B7),
+      mainIcon: Icons.diversity_3_rounded,
       features: [
-        _Feat(Icons.handshake_rounded, 'Sodeluj z drugimi'),
-        _Feat(Icons.verified_rounded, 'Preverjeni profili'),
-        _Feat(Icons.trending_up_rounded, 'Rasči z vsako izkušnjo'),
+        _Feat(
+          Icons.handshake_rounded,
+          'Medgeneracijsko sodelovanje',
+          'Poveži različne izkušnje, znanje in poglede.',
+        ),
+        _Feat(
+          Icons.verified_rounded,
+          'Preverjeni profili',
+          'Več zaupanja pri vsakem novem stiku.',
+        ),
+        _Feat(
+          Icons.trending_up_rounded,
+          'Osebna rast',
+          'Vsaka izmenjava je nova priložnost za napredek.',
+        ),
       ],
     ),
   ];
@@ -651,7 +624,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
     _orbCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 8),
+      duration: const Duration(seconds: 12),
     )..repeat();
   }
 
@@ -662,11 +635,19 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     super.dispose();
   }
 
+  String _pageImage(int idx) {
+    if (idx == 0) return _mascotImages[1];
+    if (idx == 1) return _mascotImages[4];
+    if (idx == 2) return _mascotImages[2];
+    if (idx == 3) return _mascotImages[3];
+    return _mascotImages[1];
+  }
+
   void _next() {
     if (_page < _pages.length - 1) {
       HapticFeedback.selectionClick();
       _ctrl.nextPage(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 560),
         curve: Curves.easeOutCubic,
       );
     } else {
@@ -678,7 +659,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     if (_page > 0) {
       HapticFeedback.selectionClick();
       _ctrl.previousPage(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 560),
         curve: Curves.easeOutCubic,
       );
     }
@@ -695,21 +676,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => widget.nextScreen,
-        transitionsBuilder: (_, a, __, child) {
-          return FadeTransition(opacity: a, child: child);
-        },
+        transitionsBuilder: (_, a, __, child) =>
+            FadeTransition(opacity: a, child: child),
         transitionDuration: const Duration(milliseconds: 500),
       ),
     );
   }
-
-  String _pageImage(int idx) {
-  if (idx == 0) return _mascotImages[1]; 
-  if (idx == 1) return _mascotImages[4]; 
-  if (idx == 2) return _mascotImages[2]; 
-  if (idx == 3) return _mascotImages[3]; 
-  return _mascotImages[1];
-}
 
   @override
   Widget build(BuildContext context) {
@@ -727,284 +699,379 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             },
             itemBuilder: (_, i) => _buildPage(_pages[i], i),
           ),
-
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: _buildControls(),
-          ),
+          Positioned(bottom: 0, left: 0, right: 0, child: _buildControls()),
         ],
       ),
     );
   }
 
   Widget _buildPage(_OBData data, int idx) {
-  return AnimatedBuilder(
-    animation: _orbCtrl,
-    builder: (_, __) {
-      final t = _orbCtrl.value * 2 * math.pi;
+    return AnimatedBuilder(
+      animation: _orbCtrl,
+      builder: (_, __) {
+        final t = _orbCtrl.value * 2 * math.pi;
+        final heroMove = math.sin(t * 0.9) * 6;
 
-      return Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: data.gradient,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _OrbPainter(t),
-              ),
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: data.gradient,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+          ),
+          child: Stack(
+            children: [
+              Positioned.fill(child: CustomPaint(painter: _OrbPainter(t))),
 
-            SafeArea(
-              bottom: false,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
+              Positioned(
+                top: -165,
+                right: -155,
+                child: _glow(data.accent, 430, 0.52),
+              ),
+              Positioned(
+                bottom: 40,
+                left: -190,
+                child: _glow(data.accent, 430, 0.30),
+              ),
+
+              Positioned(
+                top: 145,
+                left: -110,
+                right: -110,
+                child: Transform.rotate(
+                  angle: -0.42,
+                  child: Container(
+                    height: 145,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(140),
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.white.withOpacity(0.10),
+                          Colors.white.withOpacity(0.012),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              SafeArea(
+                bottom: false,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 10, 24, 145),
+                  padding: const EdgeInsets.fromLTRB(22, 10, 22, 132),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: _page < _pages.length - 1
-                            ? GestureDetector(
-                                onTap: _finish,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 7,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.2),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'Preskoči',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : const SizedBox(height: 34),
-                      ),
-
-                      const SizedBox(height: 4),
-
-                      TweenAnimationBuilder<double>(
-                        key: ValueKey('visual-$idx'),
-                        tween: Tween(begin: 0.4, end: 1.0),
-                        duration: const Duration(milliseconds: 650),
-                        curve: Curves.elasticOut,
-                        builder: (_, v, child) {
-                          return Transform.scale(scale: v, child: child);
-                        },
-                        child: _AnimatedMascot(
-                          t: t + idx,
-                          imagePath: _pageImage(idx),
-                          size: 155,
-                          showTyping: idx == 2,
-                          showTapHint: false,
-                        ),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      TweenAnimationBuilder<double>(
-                        key: ValueKey('sub-$idx'),
-                        tween: Tween(begin: 0.0, end: 1.0),
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.easeOut,
-                        builder: (_, v, child) {
-                          return Opacity(opacity: v, child: child);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.25),
-                            ),
-                          ),
-                          child: Text(
-                            data.subtitle,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-
+                      _topBar(data),
                       const SizedBox(height: 8),
 
-                      TweenAnimationBuilder<double>(
-                        key: ValueKey('ttl-$idx'),
-                        tween: Tween(begin: 0.0, end: 1.0),
-                        duration: const Duration(milliseconds: 450),
-                        curve: Curves.easeOut,
-                        builder: (_, v, child) {
-                          return Opacity(
-                            opacity: v,
-                            child: Transform.translate(
-                              offset: Offset(0, 16 * (1 - v)),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: Text(
-                          data.title,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      TweenAnimationBuilder<double>(
-                        key: ValueKey('dsc-$idx'),
-                        tween: Tween(begin: 0.0, end: 1.0),
-                        duration: const Duration(milliseconds: 480),
-                        curve: Curves.easeOut,
-                        builder: (_, v, child) {
-                          return Opacity(opacity: v, child: child);
-                        },
-                        child: Text(
-                          data.description,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                            height: 1.45,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 14),
-
-                      TweenAnimationBuilder<double>(
-                        key: ValueKey('fts-$idx'),
-                        tween: Tween(begin: 0.0, end: 1.0),
-                        duration: const Duration(milliseconds: 520),
-                        curve: Curves.easeOut,
-                        builder: (_, v, child) {
-                          return Opacity(
-                            opacity: v,
-                            child: Transform.translate(
-                              offset: Offset(0, 20 * (1 - v)),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.13),
-                            borderRadius: BorderRadius.circular(22),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.22),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.16),
-                                blurRadius: 22,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: data.features.asMap().entries.map((e) {
-                              return Padding(
-                                padding: EdgeInsets.only(
-                                  bottom: e.key < data.features.length - 1
-                                      ? 10
-                                      : 0,
-                                ),
-                                child: Row(
+                      Expanded(
+                        child: Column(
+                          children: [
+                            Transform.translate(
+                              offset: Offset(0, heroMove),
+                              child: TweenAnimationBuilder<double>(
+                                key: ValueKey('hero-$idx'),
+                                tween: Tween(begin: 0.0, end: 1.0),
+                                duration: const Duration(milliseconds: 780),
+                                curve: Curves.easeOutCubic,
+                                builder: (_, v, child) {
+                                  return Opacity(
+                                    opacity: v,
+                                    child: Transform.translate(
+                                      offset: Offset(0, 24 * (1 - v)),
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: Column(
                                   children: [
-                                    Transform.scale(
-                                      scale: 1 + math.sin(t + e.key) * 0.035,
-                                      child: Container(
-                                        width: 32,
-                                        height: 32,
-                                        decoration: BoxDecoration(
-                                          color:
-                                              Colors.white.withOpacity(0.18),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(
-                                            color:
-                                                Colors.white.withOpacity(0.20),
+                                    Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        _glow(data.accent, 235, 0.56),
+                                        Container(
+                                          width: 210,
+                                          height: 210,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(
+                                              color: Colors.white.withOpacity(
+                                                0.22,
+                                              ),
+                                              width: 2,
+                                            ),
+                                            gradient: RadialGradient(
+                                              colors: [
+                                                Colors.white.withOpacity(0.15),
+                                                data.accent.withOpacity(0.10),
+                                                Colors.transparent,
+                                              ],
+                                            ),
                                           ),
                                         ),
-                                        child: Icon(
-                                          e.value.icon,
+                                        _AnimatedMascot(
+                                          t: t + idx,
+                                          imagePath: _pageImage(idx),
+                                          size: 195,
+                                          showTyping: idx == 2,
+                                        ),
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: 4),
+
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 17,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.14),
+                                        borderRadius: BorderRadius.circular(40),
+                                        border: Border.all(
+                                          color: Colors.white.withOpacity(0.28),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        data.subtitle,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
                                           color: Colors.white,
-                                          size: 16,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.2,
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 10),
-                                    Expanded(
+
+                                    const SizedBox(height: 13),
+
+                                    Text(
+                                      data.title,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 37,
+                                        height: 1.0,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -1.3,
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 10),
+
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                      ),
                                       child: Text(
-                                        e.value.text,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w500,
+                                        data.description,
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.80),
+                                          fontSize: 14.3,
+                                          height: 1.36,
+                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ),
                                   ],
                                 ),
-                              );
-                            }).toList(),
-                          ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: data.features.asMap().entries.map((
+                                  e,
+                                ) {
+                                  final f = e.value;
+
+                                  return TweenAnimationBuilder<double>(
+                                    key: ValueKey('feature-$idx-${e.key}'),
+                                    tween: Tween(begin: 0.0, end: 1.0),
+                                    duration: Duration(
+                                      milliseconds: 560 + e.key * 100,
+                                    ),
+                                    curve: Curves.easeOutCubic,
+                                    builder: (_, v, child) {
+                                      return Opacity(
+                                        opacity: v,
+                                        child: Transform.translate(
+                                          offset: Offset(0, 18 * (1 - v)),
+                                          child: child,
+                                        ),
+                                      );
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 11,
+                                      ),
+                                      child: _featureTile(data, f),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _topBar(_OBData data) {
+    return Row(
+      children: [
+        const Spacer(),
+        if (_page < _pages.length - 1)
+          GestureDetector(
+            onTap: _finish,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(color: Colors.white.withOpacity(0.22)),
+              ),
+              child: const Text(
+                'Preskoči',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ),
+          ),
+      ],
+    );
+  }
+
+  Widget _featureTile(_OBData data, _Feat feature) {
+    return Container(
+      width: double.infinity,
+      height: 86,
+      padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.082),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.18),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
+          ),
+          BoxShadow(
+            color: data.accent.withOpacity(0.13),
+            blurRadius: 22,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  data.accent.withOpacity(0.98),
+                  const Color(0xFF4C1D95).withOpacity(0.86),
+                ],
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: data.accent.withOpacity(0.42),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Icon(feature.icon, color: Colors.white, size: 27),
+          ),
+
+          const SizedBox(width: 16),
+
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  feature.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16.2,
+                    fontWeight: FontWeight.w900,
+                    height: 1.05,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  feature.text,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.68),
+                    fontSize: 12.8,
+                    height: 1.23,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _glow(Color color, double size, double opacity) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [
+            color.withOpacity(opacity),
+            color.withOpacity(opacity * 0.32),
+            Colors.transparent,
           ],
         ),
-      );
-    },
-  );
-}
+      ),
+    );
+  }
 
   Widget _buildControls() {
     final isLast = _page == _pages.length - 1;
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 40),
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 32),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Colors.transparent,
-            Colors.black.withOpacity(0.35),
-          ],
+          colors: [Colors.transparent, Colors.black.withOpacity(0.50)],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -1017,15 +1084,15 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             children: List.generate(
               _pages.length,
               (i) => AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
+                duration: const Duration(milliseconds: 330),
                 margin: const EdgeInsets.symmetric(horizontal: 4),
-                width: i == _page ? 24 : 8,
+                width: i == _page ? 34 : 8,
                 height: 8,
                 decoration: BoxDecoration(
                   color: i == _page
                       ? Colors.white
-                      : Colors.white.withOpacity(0.35),
-                  borderRadius: BorderRadius.circular(4),
+                      : Colors.white.withOpacity(0.30),
+                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
             ),
@@ -1036,24 +1103,22 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           Row(
             children: [
               AnimatedOpacity(
-                opacity: _page > 0 ? 1.0 : 0.0,
+                opacity: _page > 0 ? 1 : 0,
                 duration: const Duration(milliseconds: 200),
                 child: GestureDetector(
-                  onTap: _back,
+                  onTap: _page > 0 ? _back : null,
                   child: Container(
-                    width: 50,
-                    height: 50,
+                    width: 56,
+                    height: 56,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withOpacity(0.14),
                       shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
-                      ),
+                      border: Border.all(color: Colors.white.withOpacity(0.28)),
                     ),
                     child: const Icon(
                       Icons.arrow_back_rounded,
                       color: Colors.white,
-                      size: 22,
+                      size: 26,
                     ),
                   ),
                 ),
@@ -1064,20 +1129,24 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               GestureDetector(
                 onTap: _next,
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOutCubic,
-                  height: 52,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isLast ? 28 : 22,
-                  ),
+                  duration: const Duration(milliseconds: 320),
+                  height: 60,
+                  padding: EdgeInsets.symmetric(horizontal: isLast ? 30 : 30),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(26),
+                    gradient: const LinearGradient(
+                      colors: [Colors.white, Color(0xFFEDE9FE)],
+                    ),
+                    borderRadius: BorderRadius.circular(38),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.white.withOpacity(0.3),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
+                        color: Colors.white.withOpacity(0.42),
+                        blurRadius: 30,
+                        offset: const Offset(0, 10),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.18),
+                        blurRadius: 20,
+                        offset: const Offset(0, 12),
                       ),
                     ],
                   ),
@@ -1088,17 +1157,17 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                         isLast ? 'Začni z aplikacijo' : 'Naprej',
                         style: const TextStyle(
                           color: _kPD,
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Icon(
                         isLast
                             ? Icons.rocket_launch_rounded
                             : Icons.arrow_forward_rounded,
                         color: _kPD,
-                        size: 18,
+                        size: 21,
                       ),
                     ],
                   ),
