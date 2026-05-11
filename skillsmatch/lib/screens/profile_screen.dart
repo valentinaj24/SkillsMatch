@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_profile.dart';
+import 'main_navigation_screen.dart';
 
 const _kPrimary = Color(0xFF4F46E5);
 const _kPrimaryDark = Color(0xFF312E81);
@@ -376,10 +377,20 @@ class _ProfileScreenState extends State<ProfileScreen>
               },
             )
             .toList(),
+        'profileCompleted': true,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       if (!mounted) return;
-      _prikaziUspeh();
+
+      await _prikaziUspeh();
+
+      if (!mounted) return;
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+        (route) => false,
+      );
     } catch (e) {
       if (!mounted) return;
       _snack('Napaka pri shranjevanju: $e', Colors.redAccent);
@@ -401,7 +412,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     ),
   );
 
-  void _prikaziUspeh() => showDialog(
+  Future<void> _prikaziUspeh() => showDialog(
     context: context,
     builder: (ctx) => Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),

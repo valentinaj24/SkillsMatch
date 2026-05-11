@@ -352,6 +352,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         'opis': '',
         'razpolozljivost': '',
         'vescine': [],
+        'profileCompleted': false,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));

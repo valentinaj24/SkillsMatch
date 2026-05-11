@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'profile_screen.dart';
+
 import 'my_profile_screen.dart';
 import 'users_list_screen.dart';
 
@@ -22,7 +22,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   late final List<Animation<double>> _tapScales;
 
   final List<_NavItem> items = const [
-    _NavItem(icon: Icons.school_rounded, label: 'Veščine'),
     _NavItem(icon: Icons.person_rounded, label: 'Profil'),
     _NavItem(icon: Icons.groups_rounded, label: 'Skupnost'),
   ];
@@ -32,9 +31,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     super.initState();
 
     screens = [
-      const ProfileScreen(),
       MyProfileScreen(
-        onNavigateToSkupnost: () => setState(() => selectedIndex = 2),
+        onNavigateToSkupnost: () {
+          setState(() {
+            selectedIndex = 1;
+          });
+        },
       ),
       const UsersListScreen(),
     ];
@@ -49,53 +51,40 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
     _tapScales = _tapCtrls
         .map(
-          (c) => Tween<double>(
-            begin: 1.0,
-            end: 0.92,
-          ).animate(CurvedAnimation(parent: c, curve: Curves.easeInOut)),
+          (controller) => Tween<double>(begin: 1.0, end: 0.92).animate(
+            CurvedAnimation(parent: controller, curve: Curves.easeInOut),
+          ),
         )
         .toList();
   }
 
   @override
   void dispose() {
-    for (final c in _tapCtrls) {
-      c.dispose();
+    for (final controller in _tapCtrls) {
+      controller.dispose();
     }
     super.dispose();
   }
 
   void _onTap(int index) {
     HapticFeedback.lightImpact();
-    _tapCtrls[index].forward().then((_) => _tapCtrls[index].reverse());
-    setState(() => selectedIndex = index);
+
+    _tapCtrls[index].forward().then((_) {
+      if (mounted) {
+        _tapCtrls[index].reverse();
+      }
+    });
+
+    setState(() {
+      selectedIndex = index;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: false,
       backgroundColor: const Color(0xFFF0F0FF),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 360),
-        transitionBuilder: (child, anim) => FadeTransition(
-          opacity: anim,
-          child: SlideTransition(
-            position:
-                Tween<Offset>(
-                  begin: const Offset(0.04, 0),
-                  end: Offset.zero,
-                ).animate(
-                  CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
-                ),
-            child: child,
-          ),
-        ),
-        child: KeyedSubtree(
-          key: ValueKey(selectedIndex),
-          child: screens[selectedIndex],
-        ),
-      ),
+      body: IndexedStack(index: selectedIndex, children: screens),
       bottomNavigationBar: SafeArea(
         top: false,
         child: Padding(
@@ -123,16 +112,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               ],
             ),
             child: Row(
-              children: List.generate(items.length, (i) {
-                final item = items[i];
-                final selected = selectedIndex == i;
+              children: List.generate(items.length, (index) {
+                final item = items[index];
+                final selected = selectedIndex == index;
 
                 return Expanded(
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
-                    onTap: () => _onTap(i),
+                    onTap: () => _onTap(index),
                     child: ScaleTransition(
-                      scale: _tapScales[i],
+                      scale: _tapScales[index],
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 260),
                         curve: Curves.easeOutCubic,
