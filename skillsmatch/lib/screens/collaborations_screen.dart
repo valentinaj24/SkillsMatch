@@ -84,7 +84,6 @@ class _CollaborationsScreenState extends State<CollaborationsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-
       _showSnack('Napaka pri odpiranju sporočil: $e', color: _kRed);
     }
   }
@@ -92,9 +91,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen> {
   Future<void> _updateStatus(String docId, String status) async {
     if (isUpdating) return;
 
-    setState(() {
-      isUpdating = true;
-    });
+    setState(() => isUpdating = true);
 
     try {
       await FirebaseFirestore.instance
@@ -117,14 +114,9 @@ class _CollaborationsScreenState extends State<CollaborationsScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-
       _showSnack('Napaka pri posodobitvi: $e', color: _kRed);
     } finally {
-      if (mounted) {
-        setState(() {
-          isUpdating = false;
-        });
-      }
+      if (mounted) setState(() => isUpdating = false);
     }
   }
 
@@ -250,7 +242,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen> {
   Widget _header() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(22, 58, 22, 30),
+      padding: const EdgeInsets.fromLTRB(22, 50, 22, 24),
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -270,8 +262,8 @@ class _CollaborationsScreenState extends State<CollaborationsScreen> {
       child: Column(
         children: [
           Container(
-            width: 64,
-            height: 64,
+            width: 58,
+            height: 58,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.14),
               shape: BoxShape.circle,
@@ -280,27 +272,27 @@ class _CollaborationsScreenState extends State<CollaborationsScreen> {
             child: const Icon(
               Icons.handshake_rounded,
               color: Colors.white,
-              size: 36,
+              size: 32,
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           const Text(
             'Sodelovanja',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 31,
+              fontSize: 29,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 7),
           const Text(
             'Preglej povabila, termine in statuse sodelovanj.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white70,
-              fontSize: 14,
-              height: 1.4,
+              fontSize: 13,
+              height: 1.35,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -311,7 +303,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen> {
 
   Widget _tabs() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+      margin: const EdgeInsets.fromLTRB(18, 16, 18, 0),
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: _kCard,
@@ -349,14 +341,12 @@ class _CollaborationsScreenState extends State<CollaborationsScreen> {
       child: GestureDetector(
         onTap: () {
           if (selectedTab != value) {
-            setState(() {
-              selectedTab = value;
-            });
+            setState(() => selectedTab = value);
           }
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
-          height: 48,
+          height: 46,
           decoration: BoxDecoration(
             gradient: selected
                 ? const LinearGradient(
@@ -398,80 +388,90 @@ class _CollaborationsScreenState extends State<CollaborationsScreen> {
   }
 
   Widget _emptyState() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(24, 34, 24, 34),
-        decoration: BoxDecoration(
-          color: _kCard,
-          borderRadius: BorderRadius.circular(26),
-          border: Border.all(color: _kBorder),
-          boxShadow: [
-            BoxShadow(
-              color: _kPrimary.withOpacity(0.05),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 76,
-              height: 76,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [_kPrimary, _kViolet],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(24, 18, 24, 120),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight - 120),
+            child: Center(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(22, 26, 22, 26),
+                decoration: BoxDecoration(
+                  color: _kCard,
+                  borderRadius: BorderRadius.circular(26),
+                  border: Border.all(color: _kBorder),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _kPrimary.withOpacity(0.05),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: _kPrimary.withOpacity(0.26),
-                    blurRadius: 16,
-                    offset: const Offset(0, 7),
-                  ),
-                ],
-              ),
-              child: Icon(
-                selectedTab == 'received'
-                    ? Icons.mark_email_unread_rounded
-                    : Icons.outbox_rounded,
-                color: Colors.white,
-                size: 36,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 68,
+                      height: 68,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          colors: [_kPrimary, _kViolet],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _kPrimary.withOpacity(0.26),
+                            blurRadius: 16,
+                            offset: const Offset(0, 7),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        selectedTab == 'received'
+                            ? Icons.mark_email_unread_rounded
+                            : Icons.outbox_rounded,
+                        color: Colors.white,
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      selectedTab == 'received'
+                          ? 'Ni prejetih povabil'
+                          : 'Ni poslanih povabil',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: _kText,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      selectedTab == 'received'
+                          ? 'Ko vam nekdo pošlje povabilo, bo prikazano tukaj.'
+                          : 'Povabila lahko pošljete iz profila uporabnika.',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: _kSub,
+                        fontSize: 13,
+                        height: 1.35,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 18),
-            Text(
-              selectedTab == 'received'
-                  ? 'Ni prejetih povabil'
-                  : 'Ni poslanih povabil',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: _kText,
-                fontSize: 19,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              selectedTab == 'received'
-                  ? 'Ko vam nekdo pošlje povabilo, bo prikazano tukaj.'
-                  : 'Povabila lahko pošljete iz profila uporabnika.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: _kSub,
-                fontSize: 13,
-                height: 1.45,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -661,9 +661,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen> {
                     icon: Icons.chat_bubble_rounded,
                     label: 'Sporočila',
                     filled: true,
-                    onTap: () {
-                      _openChat(docId, data, otherName);
-                    },
+                    onTap: () => _openChat(docId, data, otherName),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -827,66 +825,69 @@ class _CollaborationsScreenState extends State<CollaborationsScreen> {
 
     return Scaffold(
       backgroundColor: _kBg,
-      body: Column(
-        children: [
-          _header(),
-          _tabs(),
-          const SizedBox(height: 16),
-          Expanded(
-            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-              stream: _stream(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: _kPrimary),
-                  );
-                }
-
-                if (snapshot.hasError) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(22),
-                      child: Text(
-                        'Napaka: ${snapshot.error}',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: _kRed,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  );
-                }
-
-                final docs = snapshot.data?.docs ?? [];
-
-                if (docs.isEmpty) {
-                  return _emptyState();
-                }
-
-                docs.sort((a, b) {
-                  final ad = a.data()['createdAt'];
-                  final bd = b.data()['createdAt'];
-
-                  if (ad is Timestamp && bd is Timestamp) {
-                    return bd.compareTo(ad);
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            _header(),
+            _tabs(),
+            const SizedBox(height: 12),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                stream: _stream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: CircularProgressIndicator(color: _kPrimary),
+                    );
                   }
 
-                  return 0;
-                });
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(22),
+                        child: Text(
+                          'Napaka: ${snapshot.error}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: _kRed,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
 
-                return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 112),
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    final doc = docs[index];
-                    return _collaborationCard(doc.id, doc.data());
-                  },
-                );
-              },
+                  final docs = snapshot.data?.docs ?? [];
+
+                  if (docs.isEmpty) {
+                    return _emptyState();
+                  }
+
+                  docs.sort((a, b) {
+                    final ad = a.data()['createdAt'];
+                    final bd = b.data()['createdAt'];
+
+                    if (ad is Timestamp && bd is Timestamp) {
+                      return bd.compareTo(ad);
+                    }
+
+                    return 0;
+                  });
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 112),
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final doc = docs[index];
+                      return _collaborationCard(doc.id, doc.data());
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
