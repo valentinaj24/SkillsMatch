@@ -41,8 +41,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-
     _setMyOnlineStatus(true);
+
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus && showEmojiPicker) {
+        setState(() => showEmojiPicker = false);
+      }
+    });
 
     Future.delayed(const Duration(milliseconds: 400), () {
       _markMessagesAsSeen();
@@ -91,7 +96,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         .get();
 
     final data = chatDoc.data();
-
     if (data == null) return null;
 
     final users = List<String>.from(data['users'] ?? []);
@@ -141,10 +145,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     if (text.isEmpty || currentUid.isEmpty || isSending) return;
 
-    setState(() {
-      isSending = true;
-    });
-
+    setState(() => isSending = true);
     _messageController.clear();
 
     try {
@@ -180,24 +181,20 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         ),
       );
     } finally {
-      if (mounted) {
-        setState(() {
-          isSending = false;
-        });
-      }
+      if (mounted) setState(() => isSending = false);
     }
   }
 
   void _toggleEmojiPicker() {
     if (showEmojiPicker) {
-      setState(() {
-        showEmojiPicker = false;
+      setState(() => showEmojiPicker = false);
+      Future.delayed(const Duration(milliseconds: 120), () {
+        if (mounted) _focusNode.requestFocus();
       });
-      _focusNode.requestFocus();
     } else {
       FocusScope.of(context).unfocus();
-      setState(() {
-        showEmojiPicker = true;
+      Future.delayed(const Duration(milliseconds: 120), () {
+        if (mounted) setState(() => showEmojiPicker = true);
       });
     }
   }
@@ -225,7 +222,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (text.isEmpty) return;
 
     final cursor = selection.start < 0 ? text.length : selection.start;
-
     if (cursor == 0) return;
 
     final newText = text.replaceRange(cursor - 1, cursor, '');
@@ -253,7 +249,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final d = value.toDate();
       return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
     }
-
     return '';
   }
 
@@ -456,107 +451,98 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Widget _inputBar() {
-    return SafeArea(
-      top: false,
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+      decoration: BoxDecoration(
+        color: _kBg,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 18,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+        padding: const EdgeInsets.fromLTRB(10, 6, 7, 6),
         decoration: BoxDecoration(
-          color: _kBg,
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(26),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 18,
-              offset: const Offset(0, -5),
+              color: _kPrimary.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 7),
             ),
           ],
         ),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(26),
-            boxShadow: [
-              BoxShadow(
-                color: _kPrimary.withOpacity(0.08),
-                blurRadius: 20,
-                offset: const Offset(0, 7),
+        child: Row(
+          children: [
+            IconButton(
+              onPressed: _toggleEmojiPicker,
+              icon: Icon(
+                showEmojiPicker
+                    ? Icons.keyboard_alt_rounded
+                    : Icons.emoji_emotions_outlined,
+                color: _kPrimary,
+                size: 26,
               ),
-            ],
-          ),
-          child: Row(
-            children: [
-              IconButton(
-                onPressed: _toggleEmojiPicker,
-                icon: Icon(
-                  showEmojiPicker
-                      ? Icons.keyboard_alt_rounded
-                      : Icons.emoji_emotions_outlined,
-                  color: _kPrimary,
-                  size: 27,
+            ),
+            Expanded(
+              child: TextField(
+                controller: _messageController,
+                focusNode: _focusNode,
+                minLines: 1,
+                maxLines: 4,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => _sendMessage(),
+                decoration: const InputDecoration(
+                  hintText: 'Napiši sporočilo...',
+                  hintStyle: TextStyle(
+                    color: Color(0xFF9CA3AF),
+                    fontWeight: FontWeight.w500,
+                  ),
+                  border: InputBorder.none,
+                  isDense: true,
                 ),
               ),
-              Expanded(
-                child: TextField(
-                  controller: _messageController,
-                  focusNode: _focusNode,
-                  minLines: 1,
-                  maxLines: 4,
-                  textInputAction: TextInputAction.send,
-                  onTap: () {
-                    if (showEmojiPicker) {
-                      setState(() {
-                        showEmojiPicker = false;
-                      });
-                    }
-                  },
-                  onSubmitted: (_) => _sendMessage(),
-                  decoration: const InputDecoration(
-                    hintText: 'Napiši sporočilo...',
-                    hintStyle: TextStyle(
-                      color: Color(0xFF9CA3AF),
-                      fontWeight: FontWeight.w500,
-                    ),
-                    border: InputBorder.none,
+            ),
+            GestureDetector(
+              onTap: isSending ? null : _sendMessage,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [_kPrimary, _kViolet],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  borderRadius: BorderRadius.circular(19),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _kPrimary.withOpacity(0.35),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
-              ),
-              GestureDetector(
-                onTap: isSending ? null : _sendMessage,
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [_kPrimary, _kViolet],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _kPrimary.withOpacity(0.35),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: isSending
-                      ? const Padding(
-                          padding: EdgeInsets.all(14),
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2.2,
-                          ),
-                        )
-                      : const Icon(
-                          Icons.send_rounded,
+                child: isSending
+                    ? const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: CircularProgressIndicator(
                           color: Colors.white,
-                          size: 23,
+                          strokeWidth: 2.2,
                         ),
-                ),
+                      )
+                    : const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -564,17 +550,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   Widget _emojiPicker() {
     return SizedBox(
-      height: 280,
+      height: 245,
       child: EmojiPicker(
         onEmojiSelected: (category, emoji) {
           _addEmoji(emoji.emoji);
         },
         onBackspacePressed: _deleteEmojiOrChar,
         config: const Config(
-          height: 280,
+          height: 245,
           checkPlatformCompatibility: true,
           emojiViewConfig: EmojiViewConfig(
-            emojiSizeMax: 28,
+            emojiSizeMax: 26,
             columns: 7,
             backgroundColor: Colors.white,
           ),
@@ -592,6 +578,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             buttonIconColor: _kPrimary,
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _bottomChatArea() {
+    return SafeArea(
+      top: false,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [_inputBar(), if (showEmojiPicker) _emojiPicker()],
       ),
     );
   }
@@ -719,6 +715,67 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
   }
 
+  Widget _messagesBody() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('chats')
+          .doc(widget.chatId)
+          .collection('messages')
+          .orderBy('createdAt')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: _kPrimary),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Napaka: ${snapshot.error}',
+              style: const TextStyle(color: _kRed),
+            ),
+          );
+        }
+
+        final docs = snapshot.data?.docs ?? [];
+
+        if (docs.isEmpty) {
+          return _emptyChat();
+        }
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _markMessagesAsSeen();
+          _scrollToBottom();
+        });
+
+        int lastMyMessageIndex = -1;
+
+        for (int i = docs.length - 1; i >= 0; i--) {
+          if (docs[i].data()['senderId'] == currentUid) {
+            lastMyMessageIndex = i;
+            break;
+          }
+        }
+
+        return ListView.builder(
+          controller: _scrollController,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.fromLTRB(0, 22, 0, 18),
+          itemCount: docs.length,
+          itemBuilder: (context, index) {
+            return _messageBubble(
+              docs[index].data(),
+              isLastMyMessage: index == lastMyMessageIndex,
+              showDateChip: index == 0,
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (currentUid.isEmpty) {
@@ -732,77 +789,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       canPop: !showEmojiPicker,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop && showEmojiPicker) {
-          setState(() {
-            showEmojiPicker = false;
-          });
+          setState(() => showEmojiPicker = false);
         }
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: true,
         backgroundColor: _kBg,
         appBar: _chatHeader(),
         body: Column(
           children: [
-            Expanded(
-              child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                stream: FirebaseFirestore.instance
-                    .collection('chats')
-                    .doc(widget.chatId)
-                    .collection('messages')
-                    .orderBy('createdAt')
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(color: _kPrimary),
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        'Napaka: ${snapshot.error}',
-                        style: const TextStyle(color: _kRed),
-                      ),
-                    );
-                  }
-
-                  final docs = snapshot.data?.docs ?? [];
-
-                  if (docs.isEmpty) {
-                    return _emptyChat();
-                  }
-
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _markMessagesAsSeen();
-                    _scrollToBottom();
-                  });
-
-                  int lastMyMessageIndex = -1;
-
-                  for (int i = docs.length - 1; i >= 0; i--) {
-                    if (docs[i].data()['senderId'] == currentUid) {
-                      lastMyMessageIndex = i;
-                      break;
-                    }
-                  }
-
-                  return ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.fromLTRB(0, 22, 0, 18),
-                    itemCount: docs.length,
-                    itemBuilder: (context, index) {
-                      return _messageBubble(
-                        docs[index].data(),
-                        isLastMyMessage: index == lastMyMessageIndex,
-                        showDateChip: index == 0,
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-            _inputBar(),
-            if (showEmojiPicker) _emojiPicker(),
+            Expanded(child: _messagesBody()),
+            _bottomChatArea(),
           ],
         ),
       ),
