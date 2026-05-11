@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'create_collaboration_screen.dart';
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 const _kP = Color(0xFF4F46E5);
@@ -2388,20 +2389,17 @@ class _UserDetailScreenState extends State<UserDetailScreen>
                           ),
                   ),
                   GestureDetector(
-                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text(
-                          'Sporočila bodo kmalu na voljo!',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CreateCollaborationScreen(
+                            userData: d,
+                            skills: visibleSkills,
+                          ),
                         ),
-                        backgroundColor: _kP,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        margin: const EdgeInsets.all(16),
-                      ),
-                    ),
+                      );
+                    },
                     child: Container(
                       width: double.infinity,
                       height: 52,
@@ -2424,13 +2422,13 @@ class _UserDetailScreenState extends State<UserDetailScreen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.chat_bubble_outline_rounded,
+                            Icons.handshake_rounded,
                             color: Colors.white,
                             size: 18,
                           ),
                           SizedBox(width: 8),
                           Text(
-                            'Pošlji sporočilo',
+                            'Pošlji povabilo',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 15,

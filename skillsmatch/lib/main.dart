@@ -11,9 +11,7 @@ import 'screens/profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
   runApp(const SkillsMatchApp());
 }
 
@@ -36,6 +34,18 @@ class SkillsMatchApp extends StatelessWidget {
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
+
+  bool _isProfileCompleted(Map<String, dynamic>? data) {
+    if (data == null) return false;
+
+    if (data['profileCompleted'] == true) return true;
+
+    final ime = (data['ime'] ?? '').toString().trim();
+    final lokacija = (data['lokacija'] ?? '').toString().trim();
+    final vescine = data['vescine'] as List<dynamic>? ?? [];
+
+    return ime.isNotEmpty && lokacija.isNotEmpty && vescine.isNotEmpty;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,20 +72,13 @@ class AuthWrapper extends StatelessWidget {
               return const _LoadingScreen();
             }
 
-            if (profileSnapshot.hasError) {
-              return const LoginScreen();
-            }
-
             if (!profileSnapshot.hasData || !profileSnapshot.data!.exists) {
               return const ProfileScreen();
             }
 
             final data = profileSnapshot.data!.data();
 
-            final bool profileCompleted =
-                data != null && data['profileCompleted'] == true;
-
-            if (profileCompleted) {
+            if (_isProfileCompleted(data)) {
               return const MainNavigationScreen();
             }
 

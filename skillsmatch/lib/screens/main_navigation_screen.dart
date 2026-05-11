@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'my_profile_screen.dart';
 import 'users_list_screen.dart';
+import 'collaborations_screen.dart';
 
 const _kPrimary = Color(0xFF4F46E5);
 
@@ -24,6 +25,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   final List<_NavItem> items = const [
     _NavItem(icon: Icons.person_rounded, label: 'Profil'),
     _NavItem(icon: Icons.groups_rounded, label: 'Skupnost'),
+    _NavItem(icon: Icons.handshake_rounded, label: 'Sodelovanja'),
   ];
 
   @override
@@ -39,6 +41,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
         },
       ),
       const UsersListScreen(),
+      const CollaborationsScreen(),
     ];
 
     _tapCtrls = List.generate(
@@ -158,7 +161,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                                 color: selected
                                     ? Colors.white
                                     : Colors.white.withOpacity(0.55),
-                                fontSize: 11,
+                                fontSize: 10,
                                 fontWeight: selected
                                     ? FontWeight.w800
                                     : FontWeight.w600,
