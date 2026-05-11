@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'create_collaboration_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 const _kP = Color(0xFF4F46E5);
@@ -677,20 +678,196 @@ List<Color> _roleGrad(String r) {
   return [_kTs, _kBd];
 }
 
-int _score(Map<String, dynamic> data, List sk, String q, String f) {
-  int s = 42;
-  final ql = q.toLowerCase();
-  final loc = (data['lokacija'] ?? '').toString().toLowerCase();
-  final st = sk
-      .map((x) => '${x['naziv'] ?? ''} ${x['tip'] ?? ''}')
-      .join(' ')
-      .toLowerCase();
-  if (ql.isNotEmpty && st.contains(ql)) s += 30;
-  if (ql.isNotEmpty && loc.contains(ql)) s += 15;
-  if (f == 'Mentorji' && sk.any((x) => x['tip'] == 'Lahko učim druge')) s += 15;
-  if (f == 'Učenci' && sk.any((x) => x['tip'] == 'Želim se naučiti')) s += 15;
-  if (f == 'Vikend' && data['razpolozljivost'] == 'Vikend') s += 15;
-  return s.clamp(0, 100);
+class _MatchResult {
+  final int percent;
+  final List<String> reasons;
+
+  const _MatchResult({
+    required this.percent,
+    required this.reasons,
+  });
+}
+
+class _UserMatchItem {
+  final QueryDocumentSnapshot doc;
+  final _MatchResult match;
+
+  const _UserMatchItem({
+    required this.doc,
+    required this.match,
+  });
+}
+
+String _norm(dynamic v) {
+  return (v ?? '').toString().trim().toLowerCase();
+}
+
+List<Map<String, dynamic>> _skillsOf(Map<String, dynamic> data) {
+  final raw = data['vescine'];
+  if (raw is! List) return [];
+
+  return raw
+      .whereType<Map>()
+      .map((e) => Map<String, dynamic>.from(e))
+      .toList();
+}
+
+List<String> _skillNamesByType(List<Map<String, dynamic>> skills, String type) {
+  return skills
+      .where((s) => s['tip'] == type)
+      .map((s) => _norm(s['naziv']))
+      .where((s) => s.isNotEmpty)
+      .toList();
+}
+
+bool _similarSkill(String a, String b) {
+  if (a.isEmpty || b.isEmpty) return false;
+  if (a == b) return true;
+  if (a.contains(b) || b.contains(a)) return true;
+
+  final aw = a.split(RegExp(r'\s+')).where((x) => x.length > 2).toSet();
+  final bw = b.split(RegExp(r'\s+')).where((x) => x.length > 2).toSet();
+
+  return aw.intersection(bw).isNotEmpty;
+}
+
+String _prettySkill(String s) {
+  if (s.isEmpty) return s;
+  return s[0].toUpperCase() + s.substring(1);
+}
+
+_MatchResult _computeMatch({
+  required Map<String, dynamic> currentUser,
+  required Map<String, dynamic> otherUser,
+  required String query,
+  required String filter,
+}) {
+  double percent = 0;
+  final reasons = <String>[];
+
+  final mySkills = _skillsOf(currentUser);
+  final otherSkills = _showSkills(otherUser) ? _skillsOf(otherUser) : <Map<String, dynamic>>[];
+
+  final myCanTeach = _skillNamesByType(mySkills, 'Lahko učim druge');
+  final myWantLearn = _skillNamesByType(mySkills, 'Želim se naučiti');
+
+  final otherCanTeach = _skillNamesByType(otherSkills, 'Lahko učim druge');
+  final otherWantLearn = _skillNamesByType(otherSkills, 'Želim se naučiti');
+
+  final q = _norm(query);
+
+  // 1. Oni znaju ono što ja želim da naučim — do 30%
+  for (final wanted in myWantLearn) {
+    for (final offered in otherCanTeach) {
+      if (wanted == offered) {
+        percent += 15;
+        reasons.add('Uči: ${_prettySkill(offered)}');
+      } else if (_similarSkill(wanted, offered)) {
+        percent += 8;
+        reasons.add('Podobna veščina');
+      }
+    }
+  }
+
+  // 2. Ja znam ono što oni žele da nauče — do 20%
+  for (final mine in myCanTeach) {
+    for (final theirWanted in otherWantLearn) {
+      if (mine == theirWanted) {
+        percent += 10;
+        reasons.add('Ti pomagaš: ${_prettySkill(mine)}');
+      } else if (_similarSkill(mine, theirWanted)) {
+        percent += 6;
+        reasons.add('Možna izmenjava');
+      }
+    }
+  }
+
+  percent = percent.clamp(0, 50);
+
+  // 3. Vzajemna izmenjava — do 15%
+  final theyCanTeachMe = myWantLearn.any(
+    (w) => otherCanTeach.any((o) => _similarSkill(w, o)),
+  );
+
+  final iCanTeachThem = myCanTeach.any(
+    (m) => otherWantLearn.any((o) => _similarSkill(m, o)),
+  );
+
+  if (theyCanTeachMe && iCanTeachThem) {
+    percent += 15;
+    reasons.add('Vzajemna izmenjava');
+  }
+
+  // 4. Lokacija — do 15%
+  final myLocation = _norm(currentUser['lokacija']);
+  final otherLocation = _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
+
+  if (myLocation.isNotEmpty && otherLocation.isNotEmpty) {
+    if (myLocation == otherLocation) {
+      percent += 15;
+      reasons.add('Ista lokacija');
+    } else if (myLocation.contains(otherLocation) || otherLocation.contains(myLocation)) {
+      percent += 8;
+      reasons.add('Podobna lokacija');
+    }
+  }
+
+  // 5. Razpoložljivost — do 10%
+  final myAvailability = _norm(currentUser['razpolozljivost']);
+  final otherAvailability =
+      _showAvailability(otherUser) ? _norm(otherUser['razpolozljivost']) : '';
+
+  if (myAvailability.isNotEmpty &&
+      otherAvailability.isNotEmpty &&
+      myAvailability == otherAvailability) {
+    percent += 10;
+    reasons.add('Ista razpoložljivost');
+  }
+
+  // 6. Search bonus — do 10%
+  if (q.isNotEmpty) {
+    final otherName =
+        '${otherUser['ime'] ?? ''} ${otherUser['priimek'] ?? ''}'.toLowerCase();
+
+    final otherLocationText = _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
+    final otherDescription = _showDescription(otherUser) ? _norm(otherUser['opis']) : '';
+
+    final otherSkillText = otherSkills
+        .map((s) => '${s['naziv'] ?? ''} ${s['tip'] ?? ''} ${s['nivoZnanja'] ?? ''}')
+        .join(' ')
+        .toLowerCase();
+
+    if (otherSkillText.contains(q)) {
+      percent += 10;
+      reasons.add('Ujema se z iskanjem');
+    } else if (otherLocationText.contains(q) || otherName.contains(q)) {
+      percent += 6;
+      reasons.add('Ustreza iskanju');
+    } else if (otherDescription.contains(q)) {
+      percent += 4;
+      reasons.add('Podoben interes');
+    }
+  }
+
+  // 7. Filter bonus
+  if (filter == 'Mentorji' && otherCanTeach.isNotEmpty) {
+    percent += 5;
+  }
+
+  if (filter == 'Učenci' && otherWantLearn.isNotEmpty) {
+    percent += 5;
+  }
+
+  if (filter == 'Vikend' && otherAvailability == 'vikend') {
+    percent += 5;
+  }
+
+  final uniqueReasons = reasons.toSet().take(4).toList();
+
+  return _MatchResult(
+    percent: percent.round().clamp(0, 100),
+    reasons: uniqueReasons,
+  );
 }
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
@@ -813,27 +990,25 @@ class _UsersListScreenState extends State<UsersListScreen>
   String _activeSkill = '';
   bool _showX = false;
 
+
   late AnimationController _orbCtrl;
 
   @override
-  void initState() {
-    super.initState();
-    _orbCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 9),
-    )..repeat();
-    _searchCtrl.addListener(() {
-      final h = _searchCtrl.text.isNotEmpty;
-      if (h != _showX) setState(() => _showX = h);
-    });
-  }
+void initState() {
+  super.initState();
+
+  _orbCtrl = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 9),
+  )..repeat();
+}
 
   @override
   void dispose() {
-    _orbCtrl.dispose();
-    _searchCtrl.dispose();
-    super.dispose();
-  }
+  _orbCtrl.dispose();
+  _searchCtrl.dispose();
+  super.dispose();
+}
 
   void _search() {
     FocusManager.instance.primaryFocus?.unfocus();
@@ -841,25 +1016,25 @@ class _UsersListScreenState extends State<UsersListScreen>
   }
 
   void _clearAll() {
-    _searchCtrl.clear();
-    FocusManager.instance.primaryFocus?.unfocus();
-    setState(() {
-      _query = '';
-      _showX = false;
-      _activeSkill = '';
-      _filter = 'Vsi';
-    });
-  }
+  _searchCtrl.clear();
+  FocusManager.instance.primaryFocus?.unfocus();
+  setState(() {
+    _query = '';
+    _showX = false;
+    _activeSkill = '';
+    _filter = 'Vsi';
+  });
+}
 
   void _clear() {
-    _searchCtrl.clear();
-    FocusManager.instance.primaryFocus?.unfocus();
-    setState(() {
-      _query = '';
-      _showX = false;
-      _activeSkill = '';
-    });
-  }
+  _searchCtrl.clear();
+  FocusManager.instance.primaryFocus?.unfocus();
+  setState(() {
+    _query = '';
+    _showX = false;
+    _activeSkill = '';
+  });
+}
 
   bool _matches(Map<String, dynamic> data, List sk) {
     final q = _query.toLowerCase();
@@ -904,20 +1079,38 @@ class _UsersListScreenState extends State<UsersListScreen>
     return sOk && fOk;
   }
 
-  List<QueryDocumentSnapshot> _prepare(List<QueryDocumentSnapshot> docs) =>
-      docs.where((d) {
-        final data = d.data() as Map<String, dynamic>;
-        return _matches(data, data['vescine'] as List? ?? []);
-      }).toList()..sort((a, b) {
-        final da = a.data() as Map<String, dynamic>;
-        final db = b.data() as Map<String, dynamic>;
-        return _score(
-          db,
-          db['vescine'] as List? ?? [],
-          _query,
-          _filter,
-        ).compareTo(_score(da, da['vescine'] as List? ?? [], _query, _filter));
-      });
+  List<_UserMatchItem> _prepare(
+  List<QueryDocumentSnapshot> docs,
+  Map<String, dynamic> currentUser,
+  String currentUid,
+) {
+  final items = docs.where((d) {
+    final data = d.data() as Map<String, dynamic>;
+
+    final uidFromData = (data['uid'] ?? '').toString();
+
+    if (d.id == currentUid || uidFromData == currentUid) {
+      return false;
+    }
+
+    return _matches(data, data['vescine'] as List? ?? []);
+  }).map((d) {
+    final data = d.data() as Map<String, dynamic>;
+
+    final match = _computeMatch(
+      currentUser: currentUser,
+      otherUser: data,
+      query: _query,
+      filter: _filter,
+    );
+
+    return _UserMatchItem(doc: d, match: match);
+  }).toList();
+
+  items.sort((a, b) => b.match.percent.compareTo(a.match.percent));
+
+  return items;
+}
 
   // ── Header ─────────────────────────────────────────────────────────────────
   Widget _header(int total) => AnimatedBuilder(
@@ -1251,7 +1444,6 @@ class _UsersListScreenState extends State<UsersListScreen>
                       setState(() {
                         _activeSkill = nv;
                         _query = nv;
-                        _showX = nv.isNotEmpty;
                       });
                     },
                     child: AnimatedContainer(
@@ -1392,11 +1584,14 @@ class _UsersListScreenState extends State<UsersListScreen>
               const Icon(Icons.search_rounded, color: _kPL, size: 19),
               const SizedBox(width: 8),
               Expanded(
-                child: TextField(
+                  child: TextField(
                   controller: _searchCtrl,
                   textInputAction: TextInputAction.search,
                   onSubmitted: (_) => _search(),
-                  style: const TextStyle(fontSize: 14, color: _kTx),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: _kTx,
+                  ),
                   decoration: const InputDecoration(
                     hintText: 'Išči ime, lokacijo, veščino...',
                     hintStyle: TextStyle(
@@ -1407,14 +1602,26 @@ class _UsersListScreenState extends State<UsersListScreen>
                     contentPadding: EdgeInsets.symmetric(vertical: 13),
                   ),
                 ),
-              ),
-              if (_showX)
-                GestureDetector(
-                  onTap: _clear,
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Icon(Icons.close_rounded, size: 16, color: _kTs),
-                  ),
+                ),
+              ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _searchCtrl,
+                  builder: (_, value, __) {
+                    if (value.text.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+
+                    return GestureDetector(
+                      onTap: _clear,
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 16,
+                          color: _kTs,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               GestureDetector(
                 onTap: _search,
@@ -1561,11 +1768,12 @@ class _UsersListScreenState extends State<UsersListScreen>
   // ── User card ──────────────────────────────────────────────────────────────
   Widget _userCard(
     BuildContext ctx,
-    Map<String, dynamic> data,
-    List sk,
-    int sc,
-    int idx,
+  Map<String, dynamic> data,
+  List sk,
+  _MatchResult match,
+  int idx,
   ) {
+    final sc = match.percent;
     final role = _role(sk);
     final grad = _roleGrad(role);
     final roleC = _roleC(role);
@@ -1577,7 +1785,13 @@ class _UsersListScreenState extends State<UsersListScreen>
           ctx,
           MaterialPageRoute(
             builder: (_) =>
-                UserDetailScreen(data: data, skills: sk, score: sc, role: role),
+                UserDetailScreen(
+                data: data,
+                skills: sk,
+                score: sc,
+                role: role,
+                reasons: match.reasons,
+              ),
           ),
         );
       },
@@ -1802,6 +2016,42 @@ class _UsersListScreenState extends State<UsersListScreen>
                             ],
                           ),
                         ],
+                        if (match.reasons.isNotEmpty) ...[
+                        const SizedBox(height: 7),
+                        Wrap(
+                          spacing: 5,
+                          runSpacing: 5,
+                          children: match.reasons.take(3).map((r) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: _kG.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: _kG.withOpacity(0.18)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.check_circle_rounded,
+                                    size: 10,
+                                    color: _kG,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    r,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: _kG,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                         const SizedBox(height: 9),
                         Row(
                           children: [
@@ -1864,27 +2114,30 @@ class _UsersListScreenState extends State<UsersListScreen>
   );
 
   Widget _matchBadge(int sc) {
-    final (txt, col) = sc >= 75
-        ? ('Top match', _kG)
-        : sc >= 55
-        ? ('Dobro ujemanje', _kA)
-        : ('Osnovno', _kTs);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.auto_awesome_rounded, size: 11, color: col),
-        const SizedBox(width: 3),
-        Text(
-          txt,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
-            color: col,
-          ),
+  final (txt, col) = sc >= 85
+      ? ('Top match', _kG)
+      : sc >= 65
+      ? ('Dobro ujemanje', _kA)
+      : sc >= 40
+      ? ('Delno ujemanje', _kC)
+      : ('Osnovno', _kTs);
+
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(Icons.auto_awesome_rounded, size: 11, color: col),
+      const SizedBox(width: 3),
+      Text(
+        txt,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: col,
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
 
   // ── BUILD ──────────────────────────────────────────────────────────────────
   @override
@@ -1916,7 +2169,24 @@ class _UsersListScreenState extends State<UsersListScreen>
         }
 
         final all = snap.data!.docs;
-        final users = _prepare(all);
+        final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+        final currentDoc = all.where((d) {
+          final data = d.data() as Map<String, dynamic>;
+          return d.id == currentUid || (data['uid'] ?? '').toString() == currentUid;
+        }).toList();
+
+        if (currentDoc.isEmpty) {
+          return Column(
+            children: [
+              _header(all.length),
+              const Expanded(child: _EmptyCommunity()),
+            ],
+          );
+        }
+
+        final currentUser = currentDoc.first.data() as Map<String, dynamic>;
+        final users = _prepare(all, currentUser, currentUid);
 
         // ── Pull to refresh + list ──────────────────────────────────────────
         return RefreshIndicator(
@@ -1945,10 +2215,18 @@ class _UsersListScreenState extends State<UsersListScreen>
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate((ctx, i) {
-                      final data = users[i].data() as Map<String, dynamic>;
+                      final item = users[i];
+
+                      final data = item.doc.data() as Map<String, dynamic>;
                       final sk = data['vescine'] as List? ?? [];
-                      final sc = _score(data, sk, _query, _filter);
-                      return _userCard(ctx, data, sk, sc, i);
+
+                      return _userCard(
+                        ctx,
+                        data,
+                        sk,
+                        item.match,
+                        i,
+                      );
                     }, childCount: users.length),
                   ),
                 ),
@@ -1968,12 +2246,14 @@ class UserDetailScreen extends StatefulWidget {
   final List skills;
   final int score;
   final String role;
+  final List<String> reasons;
   const UserDetailScreen({
     super.key,
     required this.data,
     required this.skills,
     required this.score,
     required this.role,
+    required this.reasons,
   });
   @override
   State<UserDetailScreen> createState() => _UserDetailScreenState();
@@ -2229,6 +2509,51 @@ class _UserDetailScreenState extends State<UserDetailScreen>
                       ],
                     ),
                   ),
+                                    if (widget.reasons.isNotEmpty) ...[
+                    _section(
+                      'Razlogi ujemanja',
+                      Icons.psychology_rounded,
+                      _kG,
+                      child: Wrap(
+                        spacing: 7,
+                        runSpacing: 7,
+                        children: widget.reasons.map((r) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _kG.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: _kG.withOpacity(0.20),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: _kG,
+                                  size: 13,
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  r,
+                                  style: const TextStyle(
+                                    color: _kG,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
                   Row(
                     children: [
                       Expanded(
