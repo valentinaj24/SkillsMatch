@@ -633,6 +633,26 @@ Color _avatarColor(String s) {
   return s.isNotEmpty ? cols[s.codeUnitAt(0) % cols.length] : _kP;
 }
 
+Map<String, dynamic> _privacy(Map<String, dynamic> data) {
+  return Map<String, dynamic>.from(data['privacy'] ?? {});
+}
+
+bool _showLocation(Map<String, dynamic> data) {
+  return _privacy(data)['showLocation'] ?? true;
+}
+
+bool _showDescription(Map<String, dynamic> data) {
+  return _privacy(data)['showDescription'] ?? true;
+}
+
+bool _showAvailability(Map<String, dynamic> data) {
+  return _privacy(data)['showAvailability'] ?? true;
+}
+
+bool _showSkills(Map<String, dynamic> data) {
+  return _privacy(data)['showSkills'] ?? true;
+}
+
 String _role(List sk) {
   final t = sk.any((s) => s['tip'] == 'Lahko učim druge');
   final l = sk.any((s) => s['tip'] == 'Želim se naučiti');
@@ -842,29 +862,44 @@ class _UsersListScreenState extends State<UsersListScreen>
 
   bool _matches(Map<String, dynamic> data, List sk) {
     final q = _query.toLowerCase();
+
+    final visibleSkills = _showSkills(data) ? sk : [];
+
     final nm = '${data['ime'] ?? ''} ${data['priimek'] ?? ''}'.toLowerCase();
-    final loc = (data['lokacija'] ?? '').toString().toLowerCase();
-    final des = (data['opis'] ?? '').toString().toLowerCase();
-    final st = sk
+
+    final loc = _showLocation(data)
+        ? (data['lokacija'] ?? '').toString().toLowerCase()
+        : '';
+
+    final des = _showDescription(data)
+        ? (data['opis'] ?? '').toString().toLowerCase()
+        : '';
+
+    final st = visibleSkills
         .map(
           (s) =>
               '${s['naziv'] ?? ''} ${s['nivoZnanja'] ?? ''} ${s['tip'] ?? ''}',
         )
         .join(' ')
         .toLowerCase();
+
     final sOk =
         q.isEmpty ||
         nm.contains(q) ||
         loc.contains(q) ||
         des.contains(q) ||
         st.contains(q);
+
     final fOk =
         _filter == 'Vsi' ||
         (_filter == 'Mentorji' &&
-            sk.any((s) => s['tip'] == 'Lahko učim druge')) ||
+            visibleSkills.any((s) => s['tip'] == 'Lahko učim druge')) ||
         (_filter == 'Učenci' &&
-            sk.any((s) => s['tip'] == 'Želim se naučiti')) ||
-        (_filter == 'Vikend' && data['razpolozljivost'] == 'Vikend');
+            visibleSkills.any((s) => s['tip'] == 'Želim se naučiti')) ||
+        (_filter == 'Vikend' &&
+            _showAvailability(data) &&
+            data['razpolozljivost'] == 'Vikend');
+
     return sOk && fOk;
   }
 
@@ -1682,16 +1717,21 @@ class _UsersListScreenState extends State<UsersListScreen>
                           children: [
                             _pill(
                               Icons.location_on_rounded,
-                              data['lokacija'] ?? '—',
+                              _showLocation(data)
+                                  ? (data['lokacija'] ?? '—')
+                                  : 'Skrito',
                             ),
                             const SizedBox(width: 6),
                             _pill(
                               Icons.schedule_rounded,
-                              data['razpolozljivost'] ?? '—',
+                              _showAvailability(data)
+                                  ? (data['razpolozljivost'] ?? '—')
+                                  : 'Skrito',
                             ),
                           ],
                         ),
-                        if ((data['opis'] ?? '').toString().isNotEmpty) ...[
+                        if (_showDescription(data) &&
+                            (data['opis'] ?? '').toString().isNotEmpty) ...[
                           const SizedBox(height: 7),
                           Text(
                             data['opis'],
@@ -1962,6 +2002,12 @@ class _UserDetailScreenState extends State<UserDetailScreen>
     final sk = widget.skills;
     final sc = widget.score;
     final r = widget.role;
+    final showLocation = _showLocation(d);
+    final showDescription = _showDescription(d);
+    final showAvailability = _showAvailability(d);
+    final showSkills = _showSkills(d);
+
+    final visibleSkills = showSkills ? sk : [];
     return Scaffold(
       backgroundColor: _kBg,
       body: SingleChildScrollView(
@@ -2056,9 +2102,10 @@ class _UserDetailScreenState extends State<UserDetailScreen>
                                 ),
                               ),
                             ),
-                            if ((d['lokacija'] ?? '')
-                                .toString()
-                                .isNotEmpty) ...[
+                            if (showLocation &&
+                                (d['lokacija'] ?? '')
+                                    .toString()
+                                    .isNotEmpty) ...[
                               const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -2187,7 +2234,9 @@ class _UserDetailScreenState extends State<UserDetailScreen>
                         child: _infoCard(
                           Icons.schedule_rounded,
                           'Razpoložljivost',
-                          d['razpolozljivost'] ?? '—',
+                          showAvailability
+                              ? (d['razpolozljivost'] ?? '—')
+                              : 'Skrito',
                           _kP,
                         ),
                       ),
@@ -2196,7 +2245,7 @@ class _UserDetailScreenState extends State<UserDetailScreen>
                         child: _infoCard(
                           Icons.auto_awesome_rounded,
                           'Veščine',
-                          '${sk.length}',
+                          showSkills ? '${visibleSkills.length}' : 'Skrito',
                           _kV,
                         ),
                       ),
@@ -2208,7 +2257,9 @@ class _UserDetailScreenState extends State<UserDetailScreen>
                     Icons.description_outlined,
                     _kP,
                     child: Text(
-                      (d['opis'] ?? '').toString().isEmpty
+                      !showDescription
+                          ? 'Uporabnik je skril opis.'
+                          : (d['opis'] ?? '').toString().isEmpty
                           ? 'Ni opisa.'
                           : d['opis'],
                       style: const TextStyle(
@@ -2222,13 +2273,18 @@ class _UserDetailScreenState extends State<UserDetailScreen>
                     'Veščine',
                     Icons.auto_awesome_rounded,
                     _kV,
-                    child: sk.isEmpty
+                    child: !showSkills
+                        ? const Text(
+                            'Uporabnik je skril veščine.',
+                            style: TextStyle(color: _kTs, fontSize: 13),
+                          )
+                        : visibleSkills.isEmpty
                         ? const Text(
                             'Ni dodanih veščin.',
                             style: TextStyle(color: _kTs, fontSize: 13),
                           )
                         : Column(
-                            children: sk.asMap().entries.map((e) {
+                            children: visibleSkills.asMap().entries.map((e) {
                               final s = e.value;
                               final ct = s['tip'] == 'Lahko učim druge';
                               final ac = ct ? _kP : _kA;

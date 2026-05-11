@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_profile.dart';
 import 'main_navigation_screen.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 const _kPrimary = Color(0xFF4F46E5);
 const _kPrimaryDark = Color(0xFF312E81);
@@ -166,6 +168,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   final List<Skill> vescine = [];
   bool isSaving = false;
+  bool isGettingLocation = false;
 
   final _imeFN = FocusNode();
   final _priimekFN = FocusNode();
@@ -396,6 +399,61 @@ class _ProfileScreenState extends State<ProfileScreen>
       _snack('Napaka pri shranjevanju: $e', Colors.redAccent);
     } finally {
       if (mounted) setState(() => isSaving = false);
+    }
+  }
+
+  Future<void> uporabiTrenutnoLokacijo() async {
+    setState(() => isGettingLocation = true);
+
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+      if (!serviceEnabled) {
+        _snack('Lokacijske storitve niso omogočene.', Colors.orange);
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied) {
+        _snack('Dovoljenje za lokacijo je zavrnjeno.', Colors.orange);
+        return;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        _snack('Lokacija je trajno zavrnjena.', Colors.orange);
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      final places = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      if (places.isNotEmpty) {
+        final place = places.first;
+
+        final city = place.locality ?? '';
+        final country = place.country ?? '';
+
+        lokacijaController.text = '$city, $country';
+
+        _snack('Lokacija uspešno dodana.', _kPrimary);
+      }
+    } catch (e) {
+      _snack('Napaka pri pridobivanju lokacije.', Colors.redAccent);
+    } finally {
+      if (mounted) {
+        setState(() => isGettingLocation = false);
+      }
     }
   }
 
@@ -1094,6 +1152,45 @@ class _ProfileScreenState extends State<ProfileScreen>
                                         v == null || v.trim().isEmpty
                                         ? 'Vnesite lokacijo'
                                         : null,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton.icon(
+                                      onPressed: isGettingLocation
+                                          ? null
+                                          : uporabiTrenutnoLokacijo,
+                                      icon: isGettingLocation
+                                          ? const SizedBox(
+                                              width: 16,
+                                              height: 16,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.my_location_rounded,
+                                            ),
+                                      label: Text(
+                                        isGettingLocation
+                                            ? 'Pridobivanje lokacije...'
+                                            : 'Uporabi trenutno lokacijo',
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: _kPrimary,
+                                        side: const BorderSide(
+                                          color: _kPrimary,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 13,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                   const SizedBox(height: 14),
                                   _lbl('Razpoložljivost'),
