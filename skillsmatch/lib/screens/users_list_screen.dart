@@ -1114,188 +1114,188 @@ void initState() {
 
   // ── Header ─────────────────────────────────────────────────────────────────
   Widget _header(int total) => AnimatedBuilder(
-    animation: _orbCtrl,
-    builder: (_, __) {
-      final t = _orbCtrl.value * 2 * math.pi;
+          animation: _orbCtrl,
+          builder: (_, __) {
+            final t = _orbCtrl.value * 2 * math.pi;
 
-      return Container(
-        width: double.infinity,
-        height: 315,
-        padding: const EdgeInsets.fromLTRB(22, 50, 22, 24),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF1E1B4B),
-              Color(0xFF312E81),
-              Color(0xFF4F46E5),
-              Color(0xFF818CF8),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Positioned.fill(child: CustomPaint(painter: _OrbPainter(t))),
-
-            Positioned(
-              right: 0,
-              top: 14,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 13,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.white.withOpacity(0.22)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.people_alt_rounded,
-                      color: Colors.white,
-                      size: 14,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      '$total profilov',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
+            return Container(
+              width: double.infinity,
+              height: 315,
+              margin: EdgeInsets.zero,
+              padding: const EdgeInsets.fromLTRB(22, 42, 22, 24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFF1E1B4B),
+                    Color(0xFF312E81),
+                    Color(0xFF4F46E5),
+                    Color(0xFF818CF8),
                   ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ),
-            ),
-
-            Positioned(
-              top: 12,
-              left: 0,
-              right: 0,
-              child: SizedBox(
-                height: 175,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      width: 132,
-                      height: 132,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.06),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.14),
-                          width: 1.4,
-                        ),
-                      ),
-                    ),
-
-                    Transform.translate(
-                      offset: Offset(math.sin(t) * 48, math.cos(t) * 16),
-                      child: Icon(
-                        Icons.auto_awesome_rounded,
-                        color: Colors.white.withOpacity(0.80),
-                        size: 18,
-                      ),
-                    ),
-                    Transform.translate(
-                      offset: Offset(
-                        math.cos(t * 1.2) * 58,
-                        math.sin(t * 1.2) * 28,
-                      ),
-                      child: Container(
-                        width: 9,
-                        height: 9,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.75),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                    Transform.translate(
-                      offset: Offset(
-                        math.sin(t * 1.5) * -58,
-                        math.cos(t * 1.5) * 25,
-                      ),
-                      child: Icon(
-                        Icons.star_rounded,
-                        color: Colors.white.withOpacity(0.70),
-                        size: 15,
-                      ),
-                    ),
-                    Transform.translate(
-                      offset: Offset(
-                        math.cos(t * 1.8) * -45,
-                        math.sin(t * 1.8) * -34,
-                      ),
-                      child: Container(
-                        width: 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.65),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-
-                    Transform.translate(
-                      offset: Offset(0, math.sin(t) * 6),
-                      child: Transform.rotate(
-                        angle: math.sin(t) * 0.035,
-                        child: Image.asset(
-                          'assets/images/skupnost.png',
-                          width: 145,
-                          height: 145,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    ),
-                  ],
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(34),
+                  bottomRight: Radius.circular(34),
                 ),
-              ),
-            ),
-
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Column(
-                children: [
-                  const Text(
-                    'Skupnost',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 37,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -1,
-                      height: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Odkrij mentorje, učence in strokovnjake.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.84),
-                      fontSize: 14,
-                      height: 1.35,
-                    ),
+                boxShadow: [
+                  BoxShadow(
+                    color: _kP.withOpacity(0.28),
+                    blurRadius: 22,
+                    offset: const Offset(0, 10),
                   ),
                 ],
               ),
-            ),
-          ],
-        ),
-      );
-    },
-  );
+              child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(18),
+                    bottomLeft: Radius.circular(18),
+                  ),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(child: CustomPaint(painter: _OrbPainter(t))),
+
+                    Positioned(
+                      right: 0,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(30),
+                          border: Border.all(color: Colors.white.withOpacity(0.22)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.people_alt_rounded, color: Colors.white, size: 14),
+                            const SizedBox(width: 6),
+                            Text(
+                              '$total profilov',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    Positioned(
+                      top: 4,
+                      left: 0,
+                      right: 0,
+                      child: SizedBox(
+                        height: 175,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              width: 132,
+                              height: 132,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white.withOpacity(0.06),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.14),
+                                  width: 1.4,
+                                ),
+                              ),
+                            ),
+                            Transform.translate(
+                              offset: Offset(math.sin(t) * 48, math.cos(t) * 16),
+                              child: Icon(
+                                Icons.auto_awesome_rounded,
+                                color: Colors.white.withOpacity(0.80),
+                                size: 18,
+                              ),
+                            ),
+                            Transform.translate(
+                              offset: Offset(math.cos(t * 1.2) * 58, math.sin(t * 1.2) * 28),
+                              child: Container(
+                                width: 9,
+                                height: 9,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.75),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                            Transform.translate(
+                              offset: Offset(math.sin(t * 1.5) * -58, math.cos(t * 1.5) * 25),
+                              child: Icon(
+                                Icons.star_rounded,
+                                color: Colors.white.withOpacity(0.70),
+                                size: 15,
+                              ),
+                            ),
+                            Transform.translate(
+                              offset: Offset(math.cos(t * 1.8) * -45, math.sin(t * 1.8) * -34),
+                              child: Container(
+                                width: 7,
+                                height: 7,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.65),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                            Transform.translate(
+                              offset: Offset(0, math.sin(t) * 6),
+                              child: Transform.rotate(
+                                angle: math.sin(t) * 0.035,
+                                child: Image.asset(
+                                  'assets/images/skupnost.png',
+                                  width: 145,
+                                  height: 145,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: Column(
+                        children: [
+                          const Text(
+                            'Skupnost',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 37,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -1,
+                              height: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Odkrij mentorje, učence in strokovnjake.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.84),
+                              fontSize: 14,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
 
   // ── Community panel ────────────────────────────────────────────────────────
   Widget _communityPanel(List<QueryDocumentSnapshot> docs) {
@@ -1833,8 +1833,8 @@ void initState() {
                       end: Alignment.bottomCenter,
                     ),
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(18),
-                      bottomLeft: Radius.circular(18),
+                        bottomLeft: Radius.circular(34),
+                        bottomRight: Radius.circular(34),
                     ),
                   ),
                 ),

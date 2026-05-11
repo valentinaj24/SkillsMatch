@@ -958,17 +958,21 @@ class _EditProfileScreenState extends State<EditProfileScreen>
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 54, 20, 32),
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFF1E1B4B),
-            Color(0xFF3730A3),
-            Color(0xFF4F46E5),
-            Color(0xFF818CF8),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF1E1B4B),
+              Color(0xFF3730A3),
+              Color(0xFF4F46E5),
+              Color(0xFF818CF8),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(34),
+            bottomRight: Radius.circular(34),
+          ),
         ),
-      ),
       child: Stack(
         children: [
           Positioned.fill(
@@ -1153,10 +1157,10 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                       children: [
                         // ── Foto ─────────────────────────────────────────────
                         Transform.translate(
-                          offset: const Offset(0, -2),
+                          offset: const Offset(0, 12),
                           child: _photoCard(),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: 26),
 
                         // ── Osnovni podatki ───────────────────────────────────
                         _card(
