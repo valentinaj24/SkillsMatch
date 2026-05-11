@@ -288,30 +288,25 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _go() async {
-    if (!mounted) return;
+  if (!mounted) return;
 
-    final prefs = await SharedPreferences.getInstance();
+  final prefs = await SharedPreferences.getInstance();
 
-    // Ako želiš da se onboarding uvek prikazuje tokom testiranja,
-    // ostavi ovu liniju uključenu.
-    // Ako želiš da se onboarding prikaže samo prvi put, obriši ovu liniju.
-    await prefs.remove('onboarding_seen');
+  final seen = prefs.getBool('onboarding_seen') ?? false;
 
-    final seen = prefs.getBool('onboarding_seen') ?? false;
+  if (!mounted) return;
 
-    if (!mounted) return;
-
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => seen
-            ? widget.nextScreen
-            : OnboardingScreen(nextScreen: widget.nextScreen),
-        transitionsBuilder: (_, a, __, child) =>
-            FadeTransition(opacity: a, child: child),
-        transitionDuration: const Duration(milliseconds: 500),
-      ),
-    );
-  }
+  Navigator.of(context).pushReplacement(
+    PageRouteBuilder(
+      pageBuilder: (_, __, ___) => seen
+          ? widget.nextScreen
+          : OnboardingScreen(nextScreen: widget.nextScreen),
+      transitionsBuilder: (_, a, __, child) =>
+          FadeTransition(opacity: a, child: child),
+      transitionDuration: const Duration(milliseconds: 500),
+    ),
+  );
+}
 
   @override
   void dispose() {
