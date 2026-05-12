@@ -228,6 +228,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
+    final callerDoc = await FirebaseFirestore.instance
+    .collection('users')
+    .doc(currentUid)
+    .get();
+
+    debugPrint('✅ call from $currentUid (ime: ${callerDoc.data()?['ime']}) to $otherUid');
+
     if (!mounted) return;
 
     Navigator.push(
