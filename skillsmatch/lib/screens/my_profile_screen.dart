@@ -242,12 +242,21 @@ class _MyProfileScreenState extends State<MyProfileScreen>
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(20, 56, 20, 32),
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF1E1B4B), Color(0xFF3730A3),
-                     Color(0xFF4F46E5), Color(0xFF818CF8)],
-            begin: Alignment.topLeft, end: Alignment.bottomRight,
+            gradient: LinearGradient(
+              colors: [
+                Color(0xFF1E1B4B),
+                Color(0xFF3730A3),
+                Color(0xFF4F46E5),
+                Color(0xFF818CF8),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(34),
+              bottomRight: Radius.circular(34),
+            ),
           ),
-        ),
         child: Stack(children: [
           Positioned.fill(child: CustomPaint(
               painter: _OrbPainter(_orbCtrl.value * 2 * math.pi))),
@@ -255,43 +264,30 @@ class _MyProfileScreenState extends State<MyProfileScreen>
           Column(children: [
             // Top bar — back + logout
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(ctx),
-                  child: Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.14),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                          color: Colors.white.withOpacity(0.25))),
-                    child: const Icon(Icons.arrow_back_ios_new_rounded,
-                        color: Colors.white, size: 18),
-                  ),
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      onTap: () => _logout(ctx),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 9),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.13),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.22))),
+                        child: const Row(children: [
+                          Icon(Icons.logout_rounded,
+                              color: Colors.white, size: 17),
+                          SizedBox(width: 6),
+                          Text('Odjava', style: TextStyle(
+                              color: Colors.white, fontSize: 13,
+                              fontWeight: FontWeight.w600)),
+                        ]),
+                      ),
+                    ),
+                  ],
                 ),
-                GestureDetector(
-                  onTap: () => _logout(ctx),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 9),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.13),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: Colors.white.withOpacity(0.22))),
-                    child: const Row(children: [
-                      Icon(Icons.logout_rounded,
-                          color: Colors.white, size: 17),
-                      SizedBox(width: 6),
-                      Text('Odjava', style: TextStyle(
-                          color: Colors.white, fontSize: 13,
-                          fontWeight: FontWeight.w600)),
-                    ]),
-                  ),
-                ),
-              ],
-            ),
 
             const SizedBox(height: 20),
 
