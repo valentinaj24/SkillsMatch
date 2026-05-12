@@ -12,6 +12,7 @@ import 'screens/splash_onboarding.dart';
 import 'screens/profile_screen.dart';
 import 'accessibility/app_accessibility.dart';
 import 'accessibility/accessibility_wrapper.dart';
+import 'screens/auth_gate.dart';
 
 Future<void> _checkPermissions() async {
   var status = await Permission.bluetooth.request();
@@ -44,6 +45,8 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await AppAccessibility.instance.load();
+  await _checkPermissions();
+  await _initializeAndroidAudioSettings();
 
   runApp(const SkillsMatchApp());
 }
@@ -134,7 +137,7 @@ class SkillsMatchApp extends StatelessWidget {
                   AppAccessibility.instance.setFloatingVisible(true);
                 });
 
-                return const AuthWrapper();
+                return const AuthGate();
               },
             ),
           ),

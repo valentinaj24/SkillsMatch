@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import 'register_screen.dart';
+import 'auth_gate.dart';
 
 const _kPrimary = Color(0xFF4F46E5);
 const _kPrimaryDark = Color(0xFF312E81);
@@ -486,6 +487,12 @@ class _LoginScreenState extends State<LoginScreen>
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
+      );
+      if (!mounted) return;
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AuthGate()),
+        (route) => false,
       );
 
       if (!mounted) return;
