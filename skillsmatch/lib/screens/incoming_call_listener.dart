@@ -64,7 +64,7 @@ class _IncomingCallListenerState extends State<IncomingCallListener> {
   void _showIncomingCall(String docId, Map<String, dynamic>? data) {
     if (data == null) return;
     final callerName = data['callerName'] ?? 'Neznani klicatelj';
-    final isVideoCall = data['isVideoCall'] == true;   // ⚠️ Mora biti 'isVideoCall' u Firestore-u
+    final isVideoCall = data['isVideo'] == true;   // ⚠️ Mora biti 'isVideoCall' u Firestore-u
     final roomName = data['roomName'] as String? ?? '';
     final livekitUrl = data['livekitUrl'] as String? ?? 'wss://skillsmatch-i3o8zkcc.livekit.cloud';
 
