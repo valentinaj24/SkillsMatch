@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 const _kPrimary = Color(0xFF4F46E5);
 const _kViolet = Color(0xFF7C3AED);
@@ -123,9 +124,16 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   Future<void> _endCall() async {
-    await _room?.disconnect();
-    if (mounted) Navigator.pop(context);
-  }
+  try {
+    await FirebaseFirestore.instance
+        .collection('calls')
+        .doc(widget.roomName)
+        .update({'status': 'ended'});
+  } catch (_) {}
+
+  await _room?.disconnect();
+  if (mounted) Navigator.pop(context);
+}
 
   @override
   Widget build(BuildContext context) {

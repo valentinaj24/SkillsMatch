@@ -210,6 +210,21 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final token = body['token'].toString();
     const livekitUrl = 'wss://skillsmatch-i3o8zkcc.livekit.cloud';
 
+    // Obavijesti drugu osobu o pozivu
+    await FirebaseFirestore.instance
+        .collection('calls')
+        .doc(widget.chatId)
+        .set({
+      'callerId': currentUid,
+      'callerName': FirebaseAuth.instance.currentUser?.displayName ??
+          widget.otherUserName,
+      'receiverId': otherUid,
+      'isVideo': isVideo,
+      'status': 'ringing',
+      'roomName': widget.chatId,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
     if (!mounted) return;
 
     Navigator.push(
