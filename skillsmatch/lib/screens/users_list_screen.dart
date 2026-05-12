@@ -746,7 +746,8 @@ _MatchResult _computeMatch({
   final reasons = <String>[];
 
   final mySkills = _skillsOf(currentUser);
-  final otherSkills = _showSkills(otherUser) ? _skillsOf(otherUser) : <Map<String, dynamic>>[];
+  final otherSkills =
+      _showSkills(otherUser) ? _skillsOf(otherUser) : <Map<String, dynamic>>[];
 
   final myCanTeach = _skillNamesByType(mySkills, 'Lahko učim druge');
   final myWantLearn = _skillNamesByType(mySkills, 'Želim se naučiti');
@@ -756,35 +757,36 @@ _MatchResult _computeMatch({
 
   final q = _norm(query);
 
-  // 1. Oni znaju ono što ja želim da naučim — do 30%
+  // 1. Veščine — največ 50%
+  double skillScore = 0;
+
   for (final wanted in myWantLearn) {
     for (final offered in otherCanTeach) {
       if (wanted == offered) {
-        percent += 15;
+        skillScore += 35;
         reasons.add('Uči: ${_prettySkill(offered)}');
       } else if (_similarSkill(wanted, offered)) {
-        percent += 8;
+        skillScore += 22;
         reasons.add('Podobna veščina');
       }
     }
   }
 
-  // 2. Ja znam ono što oni žele da nauče — do 20%
   for (final mine in myCanTeach) {
     for (final theirWanted in otherWantLearn) {
       if (mine == theirWanted) {
-        percent += 10;
+        skillScore += 25;
         reasons.add('Ti pomagaš: ${_prettySkill(mine)}');
       } else if (_similarSkill(mine, theirWanted)) {
-        percent += 6;
+        skillScore += 15;
         reasons.add('Možna izmenjava');
       }
     }
   }
 
-  percent = percent.clamp(0, 50);
+  percent += skillScore.clamp(0, 50);
 
-  // 3. Vzajemna izmenjava — do 15%
+  // 2. Vzajemna izmenjava — 15%
   final theyCanTeachMe = myWantLearn.any(
     (w) => otherCanTeach.any((o) => _similarSkill(w, o)),
   );
@@ -798,21 +800,23 @@ _MatchResult _computeMatch({
     reasons.add('Vzajemna izmenjava');
   }
 
-  // 4. Lokacija — do 15%
+  // 3. Lokacija — največ 15%
   final myLocation = _norm(currentUser['lokacija']);
-  final otherLocation = _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
+  final otherLocation =
+      _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
 
   if (myLocation.isNotEmpty && otherLocation.isNotEmpty) {
     if (myLocation == otherLocation) {
       percent += 15;
       reasons.add('Ista lokacija');
-    } else if (myLocation.contains(otherLocation) || otherLocation.contains(myLocation)) {
+    } else if (myLocation.contains(otherLocation) ||
+        otherLocation.contains(myLocation)) {
       percent += 8;
       reasons.add('Podobna lokacija');
     }
   }
 
-  // 5. Razpoložljivost — do 10%
+  // 4. Razpoložljivost — 15%
   final myAvailability = _norm(currentUser['razpolozljivost']);
   final otherAvailability =
       _showAvailability(otherUser) ? _norm(otherUser['razpolozljivost']) : '';
@@ -820,46 +824,37 @@ _MatchResult _computeMatch({
   if (myAvailability.isNotEmpty &&
       otherAvailability.isNotEmpty &&
       myAvailability == otherAvailability) {
-    percent += 10;
+    percent += 15;
     reasons.add('Ista razpoložljivost');
   }
 
-  // 6. Search bonus — do 10%
+  // 5. Search bonus — največ 5%
   if (q.isNotEmpty) {
     final otherName =
-        '${otherUser['ime'] ?? ''} ${otherUser['priimek'] ?? ''}'.toLowerCase();
+        '${otherUser['ime'] ?? ''} ${otherUser['priimek'] ?? ''}'
+            .toLowerCase();
 
-    final otherLocationText = _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
-    final otherDescription = _showDescription(otherUser) ? _norm(otherUser['opis']) : '';
+    final otherLocationText =
+        _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
+    final otherDescription =
+        _showDescription(otherUser) ? _norm(otherUser['opis']) : '';
 
     final otherSkillText = otherSkills
-        .map((s) => '${s['naziv'] ?? ''} ${s['tip'] ?? ''} ${s['nivoZnanja'] ?? ''}')
+        .map((s) =>
+            '${s['naziv'] ?? ''} ${s['tip'] ?? ''} ${s['nivoZnanja'] ?? ''}')
         .join(' ')
         .toLowerCase();
 
     if (otherSkillText.contains(q)) {
-      percent += 10;
+      percent += 5;
       reasons.add('Ujema se z iskanjem');
     } else if (otherLocationText.contains(q) || otherName.contains(q)) {
-      percent += 6;
+      percent += 3;
       reasons.add('Ustreza iskanju');
     } else if (otherDescription.contains(q)) {
-      percent += 4;
+      percent += 2;
       reasons.add('Podoben interes');
     }
-  }
-
-  // 7. Filter bonus
-  if (filter == 'Mentorji' && otherCanTeach.isNotEmpty) {
-    percent += 5;
-  }
-
-  if (filter == 'Učenci' && otherWantLearn.isNotEmpty) {
-    percent += 5;
-  }
-
-  if (filter == 'Vikend' && otherAvailability == 'vikend') {
-    percent += 5;
   }
 
   final uniqueReasons = reasons.toSet().take(4).toList();
