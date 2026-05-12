@@ -224,6 +224,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       'isVideo': isVideo,
       'status': 'ringing',
       'roomName': widget.chatId,
+      'livekitUrl': 'wss://skillsmatch-i3o8zkcc.livekit.cloud',
       'createdAt': FieldValue.serverTimestamp(),
     });
 
