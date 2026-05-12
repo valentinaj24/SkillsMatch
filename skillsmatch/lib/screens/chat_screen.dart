@@ -171,6 +171,27 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         'lastMessageAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+      final otherUid = await _getOtherUserId();
+      print('OTHER UID ZA NOTIFIKACIJU: $otherUid');
+
+      if (otherUid != null) {
+        final response = await http.post(
+          Uri.parse(
+            'https://skillsmatchnotifications.onrender.com/send-notification',
+          ),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'receiverId': otherUid,
+            'title': 'Novo sporočilo',
+            'body': text,
+            'chatId': widget.chatId,
+            'senderId': currentUid,
+          }),
+        );
+
+        print('NOTIFICATION STATUS: ${response.statusCode}');
+        print('NOTIFICATION BODY: ${response.body}');
+      }
 
       _scrollToBottom();
     } catch (e) {
@@ -189,70 +210,73 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _startCall({required bool isVideo}) async {
-  final otherUid = await _getOtherUserId();
-  if (otherUid == null || !mounted) return;
+    final otherUid = await _getOtherUserId();
+    if (otherUid == null || !mounted) return;
 
-  try {
-    final response = await http.post(
-      Uri.parse('https://skillsmatch-server.onrender.com/token'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'roomName': widget.chatId,
-        'identity': currentUid,
-      }),
-    );
+    try {
+      final response = await http.post(
+        Uri.parse('https://skillsmatch-server.onrender.com/token'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'roomName': widget.chatId, 'identity': currentUid}),
+      );
 
-    if (response.statusCode != 200) {
-      throw Exception('Server greška: ${response.statusCode}');
-    }
+      if (response.statusCode != 200) {
+        throw Exception('Server greška: ${response.statusCode}');
+      }
 
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final token = body['token'].toString();
-    const livekitUrl = 'wss://skillsmatch-i3o8zkcc.livekit.cloud';
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final token = body['token'].toString();
+      const livekitUrl = 'wss://skillsmatch-i3o8zkcc.livekit.cloud';
 
-    // Obavijesti drugu osobu o pozivu
-    await FirebaseFirestore.instance
-        .collection('calls')
-        .doc(widget.chatId)
-        .set({
-      'callerId': currentUid,
-      'callerName': FirebaseAuth.instance.currentUser?.displayName?.isNotEmpty == true
-        ? FirebaseAuth.instance.currentUser!.displayName!
-        : (await FirebaseFirestore.instance.collection('users').doc(currentUid).get())
-            .data()?['ime'] ?? 'Neznani',
-      'receiverId': otherUid,
-      'isVideo': isVideo,
-      'status': 'ringing',
-      'roomName': widget.chatId,
-      'livekitUrl': 'wss://skillsmatch-i3o8zkcc.livekit.cloud',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+      // Obavijesti drugu osobu o pozivu
+      await FirebaseFirestore.instance
+          .collection('calls')
+          .doc(widget.chatId)
+          .set({
+            'callerId': currentUid,
+            'callerName':
+                FirebaseAuth.instance.currentUser?.displayName?.isNotEmpty ==
+                    true
+                ? FirebaseAuth.instance.currentUser!.displayName!
+                : (await FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(currentUid)
+                              .get())
+                          .data()?['ime'] ??
+                      'Neznani',
+            'receiverId': otherUid,
+            'isVideo': isVideo,
+            'status': 'ringing',
+            'roomName': widget.chatId,
+            'livekitUrl': 'wss://skillsmatch-i3o8zkcc.livekit.cloud',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CallScreen(
-          roomName: widget.chatId,
-          token: token,
-          livekitUrl: livekitUrl,
-          isVideoCall: isVideo,
-          otherUserName: widget.otherUserName,
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CallScreen(
+            roomName: widget.chatId,
+            token: token,
+            livekitUrl: livekitUrl,
+            isVideoCall: isVideo,
+            otherUserName: widget.otherUserName,
+          ),
         ),
-      ),
-    );
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Napaka pri klicu: $e'),
-        backgroundColor: _kRed,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Napaka pri klicu: $e'),
+          backgroundColor: _kRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
-}
 
   void _toggleEmojiPicker() {
     if (showEmojiPicker) {
