@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -35,6 +36,9 @@ class _CallScreenState extends State<CallScreen> {
   VideoTrack? _localVideoTrack;
   VideoTrack? _remoteVideoTrack;
 
+  // Ispravan tip za cancel funkciju koju vraća room.events.listen
+  Future<void> Function()? _cancelEvents;
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +47,7 @@ class _CallScreenState extends State<CallScreen> {
 
   @override
   void dispose() {
+    _cancelEvents?.call();   // Otkazujemo osluškivač
     _room?.disconnect();
     _room?.dispose();
     super.dispose();
@@ -60,17 +65,17 @@ class _CallScreenState extends State<CallScreen> {
   Future<void> _connectToRoom() async {
     final room = Room();
 
-    room.addListener(() {
-      if (!mounted) return;
-      setState(() {
-        for (final participant in room.remoteParticipants.values) {
-          for (final pub in participant.videoTrackPublications) {
-            if (pub.track != null) {
-              _remoteVideoTrack = pub.track as VideoTrack;
-            }
-          }
+    // Osluškuj događaje – ovo garantuje da ćemo dobiti remote video čim stigne
+    _cancelEvents = room.events.listen((event) {
+      if (event is TrackSubscribedEvent) {
+        final track = event.track;
+        if (track is RemoteVideoTrack) {
+          if (!mounted) return;
+          setState(() {
+            _remoteVideoTrack = track;
+          });
         }
-      });
+      }
     });
 
     try {
@@ -87,9 +92,11 @@ class _CallScreenState extends State<CallScreen> {
 
       if (widget.isVideoCall) {
         await room.localParticipant?.setCameraEnabled(true);
+        // Dohvati lokalni video track
         for (final pub in room.localParticipant!.videoTrackPublications) {
           if (pub.track != null) {
             _localVideoTrack = pub.track as VideoTrack;
+            break;
           }
         }
       }
@@ -124,24 +131,24 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   Future<void> _endCall() async {
-  try {
-    final callDoc = await FirebaseFirestore.instance
-        .collection('calls')
-        .doc(widget.roomName)
-        .get();
-    
-    // Samo update ako nije već ended
-    if (callDoc.exists && callDoc.data()?['status'] != 'ended') {
-      await FirebaseFirestore.instance
+    try {
+      final callDoc = await FirebaseFirestore.instance
           .collection('calls')
           .doc(widget.roomName)
-          .update({'status': 'ended'});
-    }
-  } catch (_) {}
+          .get();
+      
+      if (callDoc.exists && callDoc.data()?['status'] != 'ended') {
+        await FirebaseFirestore.instance
+            .collection('calls')
+            .doc(widget.roomName)
+            .update({'status': 'ended'});
+      }
+    } catch (_) {}
 
-  await _room?.disconnect();
-  if (mounted) Navigator.pop(context);
+    await _room?.disconnect();
+    if (mounted) Navigator.pop(context);
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
