@@ -294,6 +294,158 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
       await _updateStatus(docId, status);
     }
   }
+  Future<void> _openReviewDialog(String docId, Map<String, dynamic> data) async {
+  int rating = 0;
+  final commentController = TextEditingController();
+
+final requesterId = (data['requesterId'] ?? '').toString();
+final receiverId = (data['receiverId'] ?? '').toString();
+
+final otherUserId = requesterId == currentUid ? receiverId : requesterId;
+
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+            ),
+            title: const Text(
+              'Oceni sodelovanje',
+              style: TextStyle(
+                color: _kText,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        final selected = index < rating;
+
+                        return GestureDetector(
+                          onTap: () {
+                            setDialogState(() {
+                              rating = index + 1;
+                            });
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 2),
+                            child: AnimatedScale(
+                              duration: const Duration(milliseconds: 180),
+                              scale: selected ? 1.08 : 1,
+                              child: Icon(
+                                selected
+                                    ? Icons.star_rounded
+                                    : Icons.star_border_rounded,
+                                color: _kAmber,
+                                size: 30,
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: commentController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'Napiši kratek komentar...',
+                    hintStyle: const TextStyle(color: _kSub),
+                    filled: true,
+                    fillColor: const Color(0xFFF8F8FF),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: _kBorder),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: _kBorder),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: _kPrimary, width: 1.4),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text(
+                  'Prekliči',
+                  style: TextStyle(color: _kSub, fontWeight: FontWeight.bold),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: rating == 0
+                  ? null
+                  : () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _kAmber,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text(
+                  'Shrani',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  if (result == true) {
+  if (rating == 0) {
+    _showSnack('Najprej izberi število zvezdic.', color: _kRed);
+    return;
+  }
+
+  if (otherUserId.isEmpty) {
+    _showSnack('Napaka: uporabnik za oceno ni najden.', color: _kRed);
+    return;
+  }
+  final myDoc = await FirebaseFirestore.instance
+    .collection('users')
+    .doc(currentUid)
+    .get();
+
+final myData = myDoc.data() ?? {};
+
+final reviewerName =
+    '${myData['ime'] ?? ''} ${myData['priimek'] ?? ''}'.trim();
+
+  await FirebaseFirestore.instance
+      .collection('reviews')
+      .doc('${docId}_$currentUid')
+      .set({
+    'collaborationId': docId,
+    'reviewerId': currentUid,
+    'reviewerName': reviewerName.isEmpty ? 'Neznan uporabnik' : reviewerName,
+    'reviewedUserId': otherUserId,
+    'rating': rating,
+    'comment': commentController.text.trim(),
+    'createdAt': FieldValue.serverTimestamp(),
+  });
+
+  if (!mounted) return;
+  _showSnack('Ocena je shranjena.', color: _kGreen);
+}
+}
 
   void _showSnack(String text, {Color color = _kPrimary}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -922,6 +1074,27 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
               ),
             ),
           ],
+          if (status == 'completed') ...[
+                const SizedBox(height: 15),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _openReviewDialog(docId, data),
+                    icon: const Icon(Icons.star_rounded, size: 17),
+                    label: const Text('Oceni sodelovanje'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _kAmber,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
         ],
       ),
     );
