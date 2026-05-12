@@ -5,6 +5,12 @@ import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'call_screen.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import '../services/cloudinary_service.dart';
+import 'package:record/record.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:path_provider/path_provider.dart';
 
 const _kPrimary = Color(0xFF4F46E5);
 const _kViolet = Color(0xFF7C3AED);
@@ -34,6 +40,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
+  final ImagePicker _imagePicker = ImagePicker();
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  bool isRecording = false;
+  bool isUploadingVoice = false;
+
+  String? playingVoiceUrl;
+  bool isUploadingImage = false;
 
   bool isSending = false;
   bool showEmojiPicker = false;
@@ -81,6 +96,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
+  void _showErrorSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: _kRed,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Future<void> _setMyOnlineStatus(bool online) async {
     if (currentUid.isEmpty) return;
 
@@ -108,6 +133,150 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
 
     return null;
+  }
+
+  Future<void> _pickAndSendImage() async {
+    if (currentUid.isEmpty || isUploadingImage) return;
+
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
+
+    if (picked == null) return;
+
+    setState(() => isUploadingImage = true);
+
+    try {
+      final file = File(picked.path);
+
+      final imageUrl = await CloudinaryService.uploadChatImage(file);
+
+      final chatRef = FirebaseFirestore.instance
+          .collection('chats')
+          .doc(widget.chatId);
+
+      await chatRef.collection('messages').add({
+        'senderId': currentUid,
+        'type': 'image',
+        'text': '',
+        'mediaUrl': imageUrl,
+        'createdAt': FieldValue.serverTimestamp(),
+        'seen': false,
+        'seenAt': null,
+      });
+
+      await chatRef.set({
+        'lastMessage': '📷 Slika',
+        'lastMessageSenderId': currentUid,
+        'lastMessageSeen': false,
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      final otherUid = await _getOtherUserId();
+
+      if (otherUid != null) {
+        await http.post(
+          Uri.parse(
+            'https://skillsmatchnotifications.onrender.com/send-notification',
+          ),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'receiverId': otherUid,
+            'title': 'Novo sporočilo',
+            'body': '📷 Poslana je slika',
+            'chatId': widget.chatId,
+            'senderId': currentUid,
+          }),
+        );
+      }
+
+      _scrollToBottom();
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Napaka pri pošiljanju slike: $e'),
+          backgroundColor: _kRed,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => isUploadingImage = false);
+    }
+  }
+
+  Future<void> _toggleVoiceRecording() async {
+    if (isUploadingVoice) return;
+
+    if (isRecording) {
+      setState(() {
+        isRecording = false;
+        isUploadingVoice = true;
+      });
+
+      try {
+        final path = await _audioRecorder.stop();
+
+        if (path == null) return;
+
+        final voiceUrl = await CloudinaryService.uploadVoiceMessage(File(path));
+
+        final chatRef = FirebaseFirestore.instance
+            .collection('chats')
+            .doc(widget.chatId);
+
+        await chatRef.collection('messages').add({
+          'senderId': currentUid,
+          'type': 'voice',
+          'text': '',
+          'mediaUrl': voiceUrl,
+          'createdAt': FieldValue.serverTimestamp(),
+          'seen': false,
+          'seenAt': null,
+        });
+
+        await chatRef.set({
+          'lastMessage': '🎤 Glasovno sporočilo',
+          'lastMessageSenderId': currentUid,
+          'lastMessageSeen': false,
+          'lastMessageAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        _scrollToBottom();
+      } catch (e) {
+        _showErrorSnack('Napaka pri pošiljanju voice message.');
+      } finally {
+        if (mounted) {
+          setState(() {
+            isUploadingVoice = false;
+          });
+        }
+      }
+
+      return;
+    }
+
+    final hasPermission = await _audioRecorder.hasPermission();
+
+    if (!hasPermission) {
+      _showErrorSnack('Ni dovoljenja za mikrofon.');
+      return;
+    }
+
+    final dir = await getTemporaryDirectory();
+
+    final path =
+        '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+    await _audioRecorder.start(const RecordConfig(), path: path);
+
+    setState(() {
+      isRecording = true;
+    });
   }
 
   Future<void> _markMessagesAsSeen() async {
@@ -387,9 +556,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     required bool showDateChip,
   }) {
     final isMe = data['senderId'] == currentUid;
+    final type = (data['type'] ?? 'text').toString();
     final text = (data['text'] ?? '').toString();
+    final mediaUrl = (data['mediaUrl'] ?? '').toString();
     final seen = data['seen'] == true;
     final time = _formatTime(data['createdAt']);
+    final isPlayingThisVoice = playingVoiceUrl == mediaUrl;
 
     return Column(
       children: [
@@ -404,7 +576,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               bottom: 7,
             ),
             child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 13, 16, 11),
+              padding: type == 'image'
+                  ? const EdgeInsets.fromLTRB(7, 7, 7, 9)
+                  : const EdgeInsets.fromLTRB(16, 13, 16, 11),
               decoration: BoxDecoration(
                 gradient: isMe
                     ? const LinearGradient(
@@ -425,30 +599,88 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   bottomRight: Radius.circular(isMe ? 6 : 22),
                 ),
                 border: isMe ? null : Border.all(color: _kBorder),
-                boxShadow: [
-                  BoxShadow(
-                    color: isMe
-                        ? _kPrimary.withOpacity(0.22)
-                        : Colors.black.withOpacity(0.04),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
               ),
               child: Column(
                 crossAxisAlignment: isMe
                     ? CrossAxisAlignment.end
                     : CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    text,
-                    style: TextStyle(
-                      color: isMe ? Colors.white : _kText,
-                      fontSize: 15,
-                      height: 1.38,
-                      fontWeight: FontWeight.w700,
+                  if (type == 'image' && mediaUrl.isNotEmpty)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: Image.network(
+                        mediaUrl,
+                        width: 220,
+                        height: 220,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                  else if (type == 'voice' && mediaUrl.isNotEmpty)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        GestureDetector(
+                          onTap: () async {
+                            if (playingVoiceUrl == mediaUrl) {
+                              await _audioPlayer.stop();
+                              setState(() => playingVoiceUrl = null);
+                            } else {
+                              await _audioPlayer.stop();
+                              await _audioPlayer.play(UrlSource(mediaUrl));
+                              setState(() => playingVoiceUrl = mediaUrl);
+
+                              _audioPlayer.onPlayerComplete.listen((event) {
+                                if (mounted) {
+                                  setState(() => playingVoiceUrl = null);
+                                }
+                              });
+                            }
+                          },
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: isMe
+                                  ? Colors.white.withOpacity(0.20)
+                                  : _kPrimary.withOpacity(0.12),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              isPlayingThisVoice
+                                  ? Icons.stop_rounded
+                                  : Icons.play_arrow_rounded,
+                              color: isMe ? Colors.white : _kPrimary,
+                              size: 25,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Glasovno sporočilo',
+                          style: TextStyle(
+                            color: isMe ? Colors.white : _kText,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Icon(
+                          Icons.graphic_eq_rounded,
+                          color: isMe ? Colors.white70 : _kSub,
+                          size: 22,
+                        ),
+                      ],
+                    )
+                  else
+                    Text(
+                      text,
+                      style: TextStyle(
+                        color: isMe ? Colors.white : _kText,
+                        fontSize: 15,
+                        height: 1.38,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisSize: MainAxisSize.min,
@@ -557,7 +789,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         ],
       ),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(10, 6, 7, 6),
+        padding: const EdgeInsets.fromLTRB(6, 6, 7, 6),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(26),
@@ -571,6 +803,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         ),
         child: Row(
           children: [
+            IconButton(
+              onPressed: isUploadingImage ? null : _pickAndSendImage,
+              icon: isUploadingImage
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: _kPrimary,
+                      ),
+                    )
+                  : const Icon(Icons.image_rounded, color: _kPrimary, size: 25),
+            ),
             IconButton(
               onPressed: _toggleEmojiPicker,
               icon: Icon(
@@ -600,6 +845,23 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 ),
               ),
             ),
+            GestureDetector(
+              onTap: _toggleVoiceRecording,
+              child: Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: isRecording ? _kRed : _kPrimary.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(
+                  isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                  color: isRecording ? Colors.white : _kPrimary,
+                  size: 24,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
             GestureDetector(
               onTap: isSending ? null : _sendMessage,
               child: Container(
