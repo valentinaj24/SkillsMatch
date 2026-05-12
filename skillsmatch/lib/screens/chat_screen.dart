@@ -216,8 +216,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         .doc(widget.chatId)
         .set({
       'callerId': currentUid,
-      'callerName': FirebaseAuth.instance.currentUser?.displayName ??
-          widget.otherUserName,
+      'callerName': FirebaseAuth.instance.currentUser?.displayName?.isNotEmpty == true
+        ? FirebaseAuth.instance.currentUser!.displayName!
+        : (await FirebaseFirestore.instance.collection('users').doc(currentUid).get())
+            .data()?['ime'] ?? 'Neznani',
       'receiverId': otherUid,
       'isVideo': isVideo,
       'status': 'ringing',

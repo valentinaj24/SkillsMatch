@@ -125,16 +125,23 @@ class _CallScreenState extends State<CallScreen> {
 
   Future<void> _endCall() async {
   try {
-    await FirebaseFirestore.instance
+    final callDoc = await FirebaseFirestore.instance
         .collection('calls')
         .doc(widget.roomName)
-        .update({'status': 'ended'});
+        .get();
+    
+    // Samo update ako nije već ended
+    if (callDoc.exists && callDoc.data()?['status'] != 'ended') {
+      await FirebaseFirestore.instance
+          .collection('calls')
+          .doc(widget.roomName)
+          .update({'status': 'ended'});
+    }
   } catch (_) {}
 
   await _room?.disconnect();
   if (mounted) Navigator.pop(context);
-}
-
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
