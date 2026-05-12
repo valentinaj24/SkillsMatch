@@ -2,12 +2,35 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart' as webrtc;
 
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation_screen.dart';
 import 'screens/splash_onboarding.dart';
 import 'screens/profile_screen.dart';
+
+Future<void> _checkPermissions() async {
+  var status = await Permission.bluetooth.request();
+  if (status.isPermanentlyDenied) {
+    print('Bluetooth Permission disabled');
+  }
+  status = await Permission.bluetoothConnect.request();
+  if (status.isPermanentlyDenied) {
+    print('Bluetooth Connect Permission disabled');
+  }
+}
+
+Future<void> _initializeAndroidAudioSettings() async {
+  await webrtc.WebRTC.initialize(options: {
+    'androidAudioConfiguration':
+        webrtc.AndroidAudioConfiguration.communication.toMap(),
+  });
+  webrtc.Helper.setAndroidAudioConfiguration(
+    webrtc.AndroidAudioConfiguration.communication,
+  );
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

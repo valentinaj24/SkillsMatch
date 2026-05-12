@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'call_screen.dart';
 
 const _kPrimary = Color(0xFF4F46E5);
 const _kViolet = Color(0xFF7C3AED);
@@ -184,6 +187,54 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (mounted) setState(() => isSending = false);
     }
   }
+
+  Future<void> _startCall({required bool isVideo}) async {
+  final otherUid = await _getOtherUserId();
+  if (otherUid == null || !mounted) return;
+
+  try {
+    final response = await http.post(
+      Uri.parse('https://skillsmatch-server.onrender.com/token'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'roomName': widget.chatId,
+        'identity': currentUid,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Server greška: ${response.statusCode}');
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final token = body['token'].toString();
+    const livekitUrl = 'wss://skillsmatch-i3o8zkcc.livekit.cloud';
+
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CallScreen(
+          roomName: widget.chatId,
+          token: token,
+          livekitUrl: livekitUrl,
+          isVideoCall: isVideo,
+          otherUserName: widget.otherUserName,
+        ),
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Napaka pri klicu: $e'),
+        backgroundColor: _kRed,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+}
 
   void _toggleEmojiPicker() {
     if (showEmojiPicker) {
@@ -704,11 +755,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
         ),
         IconButton(
-          onPressed: () {},
+          onPressed: () => _startCall(isVideo: false),
           icon: const Icon(Icons.call_rounded, color: _kPrimary, size: 24),
         ),
         IconButton(
-          onPressed: () {},
+          onPressed: () => _startCall(isVideo: true),
           icon: const Icon(Icons.videocam_rounded, color: _kPrimary, size: 27),
         ),
       ],
