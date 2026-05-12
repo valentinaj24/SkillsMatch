@@ -475,7 +475,10 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                 ),
 
                 const SizedBox(height: 8),
-                _profileVerifiedBadge(FirebaseAuth.instance.currentUser?.uid ?? ''),
+                _profileVerifiedBadge(
+                  FirebaseAuth.instance.currentUser?.uid ?? '',
+                  data,
+                ),
 
                 const SizedBox(height: 10),
 
@@ -517,7 +520,7 @@ class _MyProfileScreenState extends State<MyProfileScreen>
       ),
     );
   }
-  Widget _profileVerifiedBadge(String userId) {
+  Widget _profileVerifiedBadge(String userId, Map<String, dynamic> userData) {
   if (userId.isEmpty) return const SizedBox.shrink();
 
   return StreamBuilder<QuerySnapshot>(
@@ -537,9 +540,14 @@ class _MyProfileScreenState extends State<MyProfileScreen>
       }
 
       final averageRating = total / docs.length;
-      final isVerified = averageRating >= 4.5 && docs.length >= 3;
+      final skills = userData['vescine'] as List? ?? [];
 
-      if (!isVerified) return const SizedBox.shrink();
+      final isMentor = skills.any(
+        (s) => s['tip'] == 'Lahko učim druge',
+      );
+
+      final isVerified = isMentor && averageRating >= 4.5 && docs.length >= 3;
+            if (!isVerified) return const SizedBox.shrink();
 
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
@@ -1414,7 +1422,7 @@ class _MyProfileScreenState extends State<MyProfileScreen>
     ),
   );
 
-  Widget _reviewsSummaryCard(String userId) {
+  Widget _reviewsSummaryCard(String userId, Map<String, dynamic> userData) {
   return StreamBuilder<QuerySnapshot>(
     stream: FirebaseFirestore.instance
         .collection('reviews')
@@ -1432,7 +1440,13 @@ class _MyProfileScreenState extends State<MyProfileScreen>
       final reviewCount = docs.length;
       final averageRating = reviewCount == 0 ? 0.0 : total / reviewCount;
 
-      final isVerifiedMentor = averageRating >= 4.5 && reviewCount >= 3;
+      final skills = userData['vescine'] as List? ?? [];
+
+      final isMentor = skills.any(
+        (s) => s['tip'] == 'Lahko učim druge',
+      );
+
+      final isVerifiedMentor = isMentor && averageRating >= 4.5 && reviewCount >= 3;
 
       return Container(
         width: double.infinity,
@@ -1697,7 +1711,7 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                           _completenessCard(data, vescine.length),
 
                           const SizedBox(height: 14),
-                          _reviewsSummaryCard(uid),
+                          _reviewsSummaryCard(uid, data),
 
                           const SizedBox(height: 14),
 

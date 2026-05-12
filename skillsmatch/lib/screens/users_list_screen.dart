@@ -973,7 +973,7 @@ class _AnimatedCommunityIconState extends State<_AnimatedCommunityIcon>
   }
 }
 
-  Widget _reviewBadge(String userId) {
+ Widget _reviewBadge(String userId, Map<String, dynamic> userData) {
   if (userId.isEmpty) {
     return const SizedBox.shrink();
   }
@@ -993,92 +993,72 @@ class _AnimatedCommunityIconState extends State<_AnimatedCommunityIcon>
       double total = 0;
 
       for (final doc in docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        total += (data['rating'] ?? 0).toDouble();
+        final reviewData = doc.data() as Map<String, dynamic>;
+        total += (reviewData['rating'] ?? 0).toDouble();
       }
 
       final avg = total / docs.length;
-      final isVerified = docs.length >= 3 && avg >= 4.5;
+
+      final skills = userData['vescine'] as List? ?? [];
+
+      final isMentor = skills.any(
+        (s) => s['tip'] == 'Lahko učim druge',
+      );
+
+      final isVerified =
+          isMentor &&
+          docs.length >= 3 &&
+          avg >= 4.5;
 
       return Container(
-          margin: const EdgeInsets.only(top: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 237, 242, 255),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color.fromARGB(255, 0, 0, 0).withOpacity(0.35),
+        margin: const EdgeInsets.only(top: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _kA.withOpacity(0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.star_rounded, color: _kA, size: 13),
+            const SizedBox(width: 4),
+            Text(
+              '${avg.toStringAsFixed(1)} (${docs.length})',
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: _kA,
+              ),
             ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.star_rounded,
-                color: Color(0xFFF59E0B),
-                size: 13,
-              ),
-
-              const SizedBox(width: 4),
-
-              Text(
-                '${avg.toStringAsFixed(1)} (${docs.length})',
-                style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFFD97706),
+            if (isVerified) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _kG,
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ),
-
-              if (isVerified) ...[
-                const SizedBox(width: 6),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFF10B981),
-                        Color(0xFF059669),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0xFF10B981).withOpacity(0.25),
-                        blurRadius: 6,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.verified_rounded,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.verified_rounded, color: Colors.white, size: 10),
+                    SizedBox(width: 3),
+                    Text(
+                      'VERIFIED',
+                      style: TextStyle(
                         color: Colors.white,
-                        size: 10,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
                       ),
-                      SizedBox(width: 3),
-                      Text(
-                        'VERIFIED',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.4,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ],
-          ),
-        );
+          ],
+        ),
+      );
     },
   );
 }
@@ -2126,7 +2106,7 @@ void initState() {
                                       ),
                                     ],
                                   ),
-                                  _reviewBadge((data['uid'] ?? data['docId'] ?? '').toString()),
+                                 _reviewBadge((data['uid'] ?? data['docId'] ?? '').toString(), data),
                                 ],
                               ),
                             ),
@@ -2600,7 +2580,7 @@ class _UserDetailScreenState extends State<UserDetailScreen>
                             letterSpacing: -0.3,
                           ),
                         ),
-                        _reviewBadge((d['uid'] ?? d['docId'] ?? '').toString()),
+                        _reviewBadge((d['uid'] ?? d['docId'] ?? '').toString(), d),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
