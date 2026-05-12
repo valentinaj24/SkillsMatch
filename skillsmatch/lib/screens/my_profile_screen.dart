@@ -474,6 +474,12 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                   ),
                 ),
 
+                const SizedBox(height: 8),
+                _profileVerifiedBadge(
+                  FirebaseAuth.instance.currentUser?.uid ?? '',
+                  data,
+                ),
+
                 const SizedBox(height: 10),
 
                 // Lokacija pill
@@ -514,6 +520,61 @@ class _MyProfileScreenState extends State<MyProfileScreen>
       ),
     );
   }
+  Widget _profileVerifiedBadge(String userId, Map<String, dynamic> userData) {
+  if (userId.isEmpty) return const SizedBox.shrink();
+
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance
+        .collection('reviews')
+        .where('reviewedUserId', isEqualTo: userId)
+        .snapshots(),
+    builder: (context, snapshot) {
+      final docs = snapshot.data?.docs ?? [];
+
+      if (docs.isEmpty) return const SizedBox.shrink();
+
+      double total = 0;
+      for (final doc in docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        total += (data['rating'] ?? 0).toDouble();
+      }
+
+      final averageRating = total / docs.length;
+      final skills = userData['vescine'] as List? ?? [];
+
+      final isMentor = skills.any(
+        (s) => s['tip'] == 'Lahko učim druge',
+      );
+
+      final isVerified = isMentor && averageRating >= 4.5 && docs.length >= 3;
+            if (!isVerified) return const SizedBox.shrink();
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+        decoration: BoxDecoration(
+          color: const Color(0xFF14B8A6),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: Colors.white.withOpacity(0.35)),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.verified_rounded, color: Colors.white, size: 16),
+            SizedBox(width: 6),
+            Text(
+              'Verified',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
 
   // ── Edit button ────────────────────────────────────────────────────────────
   Widget _editBtn(BuildContext ctx) => GestureDetector(
@@ -1361,6 +1422,187 @@ class _MyProfileScreenState extends State<MyProfileScreen>
     ),
   );
 
+  Widget _reviewsSummaryCard(String userId, Map<String, dynamic> userData) {
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance
+        .collection('reviews')
+        .where('reviewedUserId', isEqualTo: userId)
+        .snapshots(),
+    builder: (context, snapshot) {
+      final docs = snapshot.data?.docs ?? [];
+
+      double total = 0;
+      for (final doc in docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        total += (data['rating'] ?? 0).toDouble();
+      }
+
+      final reviewCount = docs.length;
+      final averageRating = reviewCount == 0 ? 0.0 : total / reviewCount;
+
+      final skills = userData['vescine'] as List? ?? [];
+
+      final isMentor = skills.any(
+        (s) => s['tip'] == 'Lahko učim druge',
+      );
+
+      final isVerifiedMentor = isMentor && averageRating >= 4.5 && reviewCount >= 3;
+
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _kCardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: _kBorder),
+          boxShadow: [
+            BoxShadow(
+              color: _kAmber.withOpacity(0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _sectionHdr('Moje ocene', Icons.star_rounded),
+            const SizedBox(height: 14),
+
+            Row(
+              children: [
+                const Icon(Icons.star_rounded, color: _kAmber, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  reviewCount == 0
+                      ? 'Še nimaš ocen'
+                      : '${averageRating.toStringAsFixed(1)} / 5.0',
+                  style: const TextStyle(
+                    color: _kText,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '($reviewCount)',
+                  style: const TextStyle(
+                    color: _kTextSub,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+
+            if (isVerifiedMentor) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: _kGreen.withOpacity(0.10),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: _kGreen.withOpacity(0.25)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.verified_rounded, color: _kGreen, size: 16),
+                    SizedBox(width: 6),
+                    Text(
+                      'Verified Mentor',
+                      style: TextStyle(
+                        color: _kGreen,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            if (docs.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              ...docs.take(5).map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                final rating = data['rating'] ?? 0;
+                final comment = (data['comment'] ?? '').toString();
+                final reviewerId = (data['reviewerId'] ?? '').toString();
+
+                return FutureBuilder<DocumentSnapshot>(
+                  future: FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(reviewerId)
+                      .get(),
+                  builder: (context, userSnap) {
+                    final userData = userSnap.data?.data() as Map<String, dynamic>?;
+
+                    final reviewerName = userData == null
+                        ? 'Neznan uporabnik'
+                        : '${userData['ime'] ?? ''} ${userData['priimek'] ?? ''}'.trim();
+
+                    return Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _kSurface,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: _kBorder),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            reviewerName.isEmpty ? 'Neznan uporabnik' : reviewerName,
+                            style: const TextStyle(
+                              color: _kText,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+
+                          Row(
+                        children: List.generate(5, (index) {
+                          return Icon(
+                            index < rating
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            color: _kAmber,
+                            size: 16,
+                          );
+                        }),
+                      ),
+                      if (comment.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          comment,
+                          style: const TextStyle(
+                            color: _kTextSub,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                             );
+            },
+          );
+        }),
+            ],
+          ],
+        ),
+      );
+    },
+  );
+}
+
+
+
   // ── BUILD ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
@@ -1469,6 +1711,9 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                           _completenessCard(data, vescine.length),
 
                           const SizedBox(height: 14),
+                          _reviewsSummaryCard(uid, data),
+
+                          const SizedBox(height: 14),
 
                           // ── Info kartice ─────────────────────────────────────
                           _infoCard(
@@ -1483,6 +1728,7 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                             razp,
                             _kViolet,
                           ),
+                          
 
                           const SizedBox(height: 6),
 

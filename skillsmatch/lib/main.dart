@@ -13,6 +13,7 @@ import 'screens/profile_screen.dart';
 import 'accessibility/app_accessibility.dart';
 import 'accessibility/accessibility_wrapper.dart';
 import 'screens/auth_gate.dart';
+import 'services/notification_service.dart';
 
 Future<void> _checkPermissions() async {
   var status = await Permission.bluetooth.request();
@@ -43,6 +44,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await NotificationService.init();
 
   await AppAccessibility.instance.load();
   await _checkPermissions();
@@ -176,6 +178,7 @@ class AuthWrapper extends StatelessWidget {
         }
 
         final user = authSnapshot.data!;
+        NotificationService.saveFcmToken();
 
         return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
           future: FirebaseFirestore.instance

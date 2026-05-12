@@ -973,6 +973,218 @@ class _AnimatedCommunityIconState extends State<_AnimatedCommunityIcon>
   }
 }
 
+ Widget _reviewBadge(String userId, Map<String, dynamic> userData) {
+  if (userId.isEmpty) {
+    return const SizedBox.shrink();
+  }
+
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance
+        .collection('reviews')
+        .where('reviewedUserId', isEqualTo: userId)
+        .snapshots(),
+    builder: (context, snapshot) {
+      final docs = snapshot.data?.docs ?? [];
+
+      if (docs.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      double total = 0;
+
+      for (final doc in docs) {
+        final reviewData = doc.data() as Map<String, dynamic>;
+        total += (reviewData['rating'] ?? 0).toDouble();
+      }
+
+      final avg = total / docs.length;
+
+      final skills = userData['vescine'] as List? ?? [];
+
+      final isMentor = skills.any(
+        (s) => s['tip'] == 'Lahko učim druge',
+      );
+
+      final isVerified =
+          isMentor &&
+          docs.length >= 3 &&
+          avg >= 4.5;
+
+      return Container(
+        margin: const EdgeInsets.only(top: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: _kA.withOpacity(0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.star_rounded, color: _kA, size: 13),
+            const SizedBox(width: 4),
+            Text(
+              '${avg.toStringAsFixed(1)} (${docs.length})',
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: _kA,
+              ),
+            ),
+            if (isVerified) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: _kG,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.verified_rounded, color: Colors.white, size: 10),
+                    SizedBox(width: 3),
+                    Text(
+                      'VERIFIED',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      );
+    },
+  );
+}
+Widget _reviewsList(String userId) {
+  if (userId.isEmpty) {
+    return const SizedBox.shrink();
+  }
+
+  return StreamBuilder<QuerySnapshot>(
+    stream: FirebaseFirestore.instance
+        .collection('reviews')
+        .where('reviewedUserId', isEqualTo: userId)
+        .snapshots(),
+    builder: (context, snapshot) {
+      final docs = snapshot.data?.docs ?? [];
+
+      if (docs.isEmpty) {
+        return const SizedBox.shrink();
+      }
+
+      return Container(
+  width: double.infinity,
+  margin: const EdgeInsets.only(bottom: 12),
+  padding: const EdgeInsets.all(16),
+  decoration: BoxDecoration(
+    color: _kW,
+    borderRadius: BorderRadius.circular(18),
+    border: Border.all(color: _kBd),
+  ),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [_kA, _kA.withOpacity(0.7)],
+              ),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: const Icon(
+              Icons.star_rounded,
+              color: Colors.white,
+              size: 15,
+            ),
+          ),
+          const SizedBox(width: 8),
+          const Text(
+            'Ocene in komentarji',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: _kTx,
+            ),
+          ),
+        ],
+      ),
+
+      const SizedBox(height: 12),
+
+      Column(
+        children: docs.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final rating = data['rating'] ?? 0;
+          final comment = (data['comment'] ?? '').toString();
+          final reviewerName = (data['reviewerName'] ?? 'Neznan uporabnik').toString();
+
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: _kSf,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: _kBd),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
+                      Text(
+                        reviewerName.isEmpty ? 'Neznan uporabnik' : reviewerName,
+                        style: const TextStyle(
+                          color: _kTx,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+
+                      Row(
+                        children: List.generate(5, (index) {
+                    return Icon(
+                      index < rating
+                          ? Icons.star_rounded
+                          : Icons.star_border_rounded,
+                      color: _kA,
+                      size: 17,
+                    );
+                  }),
+                ),
+                if (comment.isNotEmpty) ...[
+                  const SizedBox(height: 7),
+                  Text(
+                    comment,
+                    style: const TextStyle(
+                      color: _kTs,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    ],
+  ),
+);
+    },
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // USERS LIST SCREEN
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1085,7 +1297,10 @@ void initState() {
   String currentUid,
 ) {
   final items = docs.where((d) {
-    final data = d.data() as Map<String, dynamic>;
+    final data = {
+                    ...(d.data() as Map<String, dynamic>),
+                    'docId': d.id,
+                  };
 
     final uidFromData = (data['uid'] ?? '').toString();
 
@@ -1765,6 +1980,9 @@ void initState() {
     );
   }
 
+
+
+
   // ── User card ──────────────────────────────────────────────────────────────
   Widget _userCard(
     BuildContext ctx,
@@ -1888,6 +2106,7 @@ void initState() {
                                       ),
                                     ],
                                   ),
+                                 _reviewBadge((data['uid'] ?? data['docId'] ?? '').toString(), data),
                                 ],
                               ),
                             ),
@@ -2217,7 +2436,10 @@ void initState() {
                     delegate: SliverChildBuilderDelegate((ctx, i) {
                       final item = users[i];
 
-                      final data = item.doc.data() as Map<String, dynamic>;
+                      final data = {
+                        ...(item.doc.data() as Map<String, dynamic>),
+                        'docId': item.doc.id,
+                      };
                       final sk = data['vescine'] as List? ?? [];
 
                       return _userCard(
@@ -2358,6 +2580,7 @@ class _UserDetailScreenState extends State<UserDetailScreen>
                             letterSpacing: -0.3,
                           ),
                         ),
+                        _reviewBadge((d['uid'] ?? d['docId'] ?? '').toString(), d),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -2578,6 +2801,7 @@ class _UserDetailScreenState extends State<UserDetailScreen>
                     ],
                   ),
                   const SizedBox(height: 12),
+                  _reviewsList((d['uid'] ?? d['docId'] ?? '').toString()),
                   _section(
                     'Opis',
                     Icons.description_outlined,
