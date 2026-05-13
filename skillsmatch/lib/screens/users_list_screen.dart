@@ -757,16 +757,16 @@ _MatchResult _computeMatch({
 
   final q = _norm(query);
 
-  // 1. Veščine — največ 50%
+  // 1. Glavno ujemanje veščin
   double skillScore = 0;
 
   for (final wanted in myWantLearn) {
     for (final offered in otherCanTeach) {
       if (wanted == offered) {
-        skillScore += 35;
+        skillScore += 60;
         reasons.add('Uči: ${_prettySkill(offered)}');
       } else if (_similarSkill(wanted, offered)) {
-        skillScore += 22;
+        skillScore += 40;
         reasons.add('Podobna veščina');
       }
     }
@@ -775,18 +775,46 @@ _MatchResult _computeMatch({
   for (final mine in myCanTeach) {
     for (final theirWanted in otherWantLearn) {
       if (mine == theirWanted) {
-        skillScore += 25;
+        skillScore += 60;
         reasons.add('Ti pomagaš: ${_prettySkill(mine)}');
       } else if (_similarSkill(mine, theirWanted)) {
-        skillScore += 15;
+        skillScore += 40;
         reasons.add('Možna izmenjava');
       }
     }
   }
 
-  percent += skillScore.clamp(0, 50);
+  percent += skillScore.clamp(0, 75);
 
-  // 2. Vzajemna izmenjava — 15%
+  // 2. Lokacija
+  final myLocation = _norm(currentUser['lokacija']);
+  final otherLocation =
+      _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
+
+  if (myLocation.isNotEmpty && otherLocation.isNotEmpty) {
+    if (myLocation == otherLocation) {
+      percent += 12;
+      reasons.add('Ista lokacija');
+    } else if (myLocation.contains(otherLocation) ||
+        otherLocation.contains(myLocation)) {
+      percent += 7;
+      reasons.add('Podobna lokacija');
+    }
+  }
+
+  // 3. Razpoložljivost
+  final myAvailability = _norm(currentUser['razpolozljivost']);
+  final otherAvailability =
+      _showAvailability(otherUser) ? _norm(otherUser['razpolozljivost']) : '';
+
+  if (myAvailability.isNotEmpty &&
+      otherAvailability.isNotEmpty &&
+      myAvailability == otherAvailability) {
+    percent += 8;
+    reasons.add('Ista razpoložljivost');
+  }
+
+  // 4. Vzajemna izmenjava
   final theyCanTeachMe = myWantLearn.any(
     (w) => otherCanTeach.any((o) => _similarSkill(w, o)),
   );
@@ -796,39 +824,11 @@ _MatchResult _computeMatch({
   );
 
   if (theyCanTeachMe && iCanTeachThem) {
-    percent += 15;
+    percent += 5;
     reasons.add('Vzajemna izmenjava');
   }
 
-  // 3. Lokacija — največ 15%
-  final myLocation = _norm(currentUser['lokacija']);
-  final otherLocation =
-      _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
-
-  if (myLocation.isNotEmpty && otherLocation.isNotEmpty) {
-    if (myLocation == otherLocation) {
-      percent += 15;
-      reasons.add('Ista lokacija');
-    } else if (myLocation.contains(otherLocation) ||
-        otherLocation.contains(myLocation)) {
-      percent += 8;
-      reasons.add('Podobna lokacija');
-    }
-  }
-
-  // 4. Razpoložljivost — 15%
-  final myAvailability = _norm(currentUser['razpolozljivost']);
-  final otherAvailability =
-      _showAvailability(otherUser) ? _norm(otherUser['razpolozljivost']) : '';
-
-  if (myAvailability.isNotEmpty &&
-      otherAvailability.isNotEmpty &&
-      myAvailability == otherAvailability) {
-    percent += 15;
-    reasons.add('Ista razpoložljivost');
-  }
-
-  // 5. Search bonus — največ 5%
+  // 5. Bonus za iskanje
   if (q.isNotEmpty) {
     final otherName =
         '${otherUser['ime'] ?? ''} ${otherUser['priimek'] ?? ''}'
@@ -836,6 +836,7 @@ _MatchResult _computeMatch({
 
     final otherLocationText =
         _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
+
     final otherDescription =
         _showDescription(otherUser) ? _norm(otherUser['opis']) : '';
 
