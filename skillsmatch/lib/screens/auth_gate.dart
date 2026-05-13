@@ -5,7 +5,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_screen.dart';
 import 'main_navigation_screen.dart';
 import 'profile_screen.dart';
-import 'incoming_call_listener.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -61,9 +60,7 @@ class AuthGate extends StatelessWidget {
             final data = profileSnapshot.data!.data();
 
             if (_isProfileCompleted(data)) {
-              return IncomingCallListener(
-                child: MainNavigationScreen(),
-              );
+              return const MainNavigationScreen();
             }
 
             return const ProfileScreen();
