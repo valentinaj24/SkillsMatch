@@ -71,7 +71,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _markMessagesAsSeen();
       _scrollToBottom();
     });
+  
   }
+
+
 
   @override
   void dispose() {
@@ -379,79 +382,110 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _startCall({required bool isVideo}) async {
-    final otherUid = await _getOtherUserId();
-    if (otherUid == null || !mounted) return;
+  final otherUid = await _getOtherUserId();
+  if (otherUid == null || !mounted) return;
 
-    try {
-      final response = await http.post(
-        Uri.parse('https://skillsmatch-server.onrender.com/token'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'roomName': widget.chatId, 'identity': currentUid}),
-      );
+  // Pokaži loading
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => const Center(
+      child: CircularProgressIndicator(color: _kPrimary),
+    ),
+  );
 
-      if (response.statusCode != 200) {
-        throw Exception('Server greška: ${response.statusCode}');
-      }
+  try {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) throw Exception('Niste prijavljeni');
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      final token = body['token'].toString();
-      const livekitUrl = 'wss://skillsmatch-i3o8zkcc.livekit.cloud';
-
-      // Obavijesti drugu osobu o pozivu
-      await FirebaseFirestore.instance
-          .collection('calls')
-          .doc(widget.chatId)
-          .set({
-            'callerId': currentUid,
-            'callerName':
-                FirebaseAuth.instance.currentUser?.displayName?.isNotEmpty ==
-                    true
-                ? FirebaseAuth.instance.currentUser!.displayName!
-                : (await FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(currentUid)
-                              .get())
-                          .data()?['ime'] ??
-                      'Neznani',
-            'receiverId': otherUid,
-            'isVideo': isVideo,
-            'status': 'ringing',
-            'roomName': widget.chatId,
-            'livekitUrl': 'wss://skillsmatch-i3o8zkcc.livekit.cloud',
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-
+    // Dobavi ime callera
     final callerDoc = await FirebaseFirestore.instance
-    .collection('users')
-    .doc(currentUid)
-    .get();
+        .collection('users')
+        .doc(currentUid)
+        .get();
+    final callerName = callerDoc.data()?['ime'] ?? 'Nepoznat';
 
+    // Dobavi FCM token primaoca
+    final receiverDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(otherUid)
+        .get();
+    final receiverFcmToken = receiverDoc.data()?['fcmToken'];
 
-    if (!mounted) return;
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => CallScreen(
-            roomName: widget.chatId,
-            token: token,
-            livekitUrl: livekitUrl,
-            isVideoCall: isVideo,
-            otherUserName: widget.otherUserName,
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Napaka pri klicu: $e'),
-          backgroundColor: _kRed,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    if (receiverFcmToken == null) {
+      throw Exception('Korisnik nije dostupan za pozive');
     }
+
+    // POZOVI ISPRAVAN ENDPOINT - /call/initiate
+    final response = await http.post(
+      Uri.parse('https://skillsmatch-server.onrender.com/call/initiate'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'callerIdentity': currentUid,
+        'receiverIdentity': otherUid,
+        'receiverFcmToken': receiverFcmToken,
+        'callerName': callerName,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Server greška: ${response.statusCode}');
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final roomName = body['roomName'].toString();
+    final token = body['token'].toString();
+    final liveKitUrl = body['liveKitUrl'].toString();
+    final callId = body['callId'].toString();
+
+    // Sačuvaj poziv u Firestore (opciono - za istoriju)
+    await FirebaseFirestore.instance
+        .collection('calls')
+        .doc(callId)
+        .set({
+          'callId': callId,
+          'callerId': currentUid,
+          'callerName': callerName,
+          'receiverId': otherUid,
+          'receiverName': widget.otherUserName,
+          'isVideo': isVideo,
+          'status': 'ringing',
+          'roomName': roomName,
+          'livekitUrl': liveKitUrl,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+    // Sakrij loading
+    if (mounted) Navigator.pop(context);
+
+    // Otvori CallScreen za callera
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CallScreen(
+          roomName: roomName,
+          token: token,
+          livekitUrl: liveKitUrl,
+          isVideoCall: isVideo,
+          otherUserName: widget.otherUserName,
+        ),
+      ),
+    );
+  } catch (e) {
+    // Sakrij loading
+    if (mounted) Navigator.pop(context);
+    
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Napaka pri klicu: $e'),
+        backgroundColor: _kRed,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
+}
 
   void _toggleEmojiPicker() {
     if (showEmojiPicker) {

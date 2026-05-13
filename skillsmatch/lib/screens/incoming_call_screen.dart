@@ -1,12 +1,10 @@
 // lib/screens/incoming_call_screen.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
-import 'package:vibration/vibration.dart';
-import 'call_screen.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:skillsmatch/services/call_service.dart';
-
+import 'call_screen.dart';
 
 class IncomingCallScreen extends StatefulWidget {
   final String callId;
@@ -33,10 +31,11 @@ class IncomingCallScreen extends StatefulWidget {
 class _IncomingCallScreenState extends State<IncomingCallScreen>
     with SingleTickerProviderStateMixin {
   Timer? _ringtoneTimer;
+  Timer? _autoDeclineTimer;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
   
-  // Kreiraj instancu FlutterRingtonePlayer
+  // Instanca FlutterRingtonePlayer
   final FlutterRingtonePlayer _ringtonePlayer = FlutterRingtonePlayer();
 
   @override
@@ -55,39 +54,45 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
     // Zvono i vibracija
     _startRinging();
-    
-    // Auto-odbijanje nakon 30s
-    Timer(const Duration(seconds: 30), () {
-      if (mounted) _declineCall();
-    });
   }
 
   @override
   void dispose() {
     _stopRinging();
+    _autoDeclineTimer?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
 
-  
-
-void _startRinging() async {
-  try {
-    await _ringtonePlayer.playRingtone(
-      looping: true,
-      volume: 0.7,
-      asAlarm: false,
+  void _startRinging() async {
+    try {
+      await _ringtonePlayer.playRingtone(
+        looping: true,
+        volume: 0.7,
+        asAlarm: false,
+      );
+    } catch (e) {
+      print('Greška pri reprodukciji zvona: $e');
+    }
+    
+    // Koristi HapticFeedback umesto Vibration paketa
+    // Periodično vibriraj dok zvoni
+    _ringtoneTimer = Timer.periodic(
+      const Duration(milliseconds: 1000), 
+      (timer) {
+        if (mounted) {
+          HapticFeedback.heavyImpact();
+        } else {
+          timer.cancel();
+        }
+      },
     );
-  } catch (e) {
-    print('Greška pri reprodukciji zvona: $e');
+    
+    // Auto-odbijanje nakon 30s
+    _autoDeclineTimer = Timer(const Duration(seconds: 30), () {
+      if (mounted) _declineCall();
+    });
   }
-  
-  // Jednostavna vibracija koristeći HapticFeedback
-  Timer.periodic(const Duration(milliseconds: 1000), (timer) {
-    HapticFeedback.heavyImpact();
-    if (!mounted) timer.cancel();
-  });
-}
 
   void _stopRinging() {
     try {
@@ -95,9 +100,8 @@ void _startRinging() async {
     } catch (e) {
       print('Greška pri zaustavljanju zvona: $e');
     }
-    
-    Vibration.cancel();
     _ringtoneTimer?.cancel();
+    _autoDeclineTimer?.cancel();
   }
 
   void _acceptCall() {
@@ -118,13 +122,13 @@ void _startRinging() async {
   }
 
   void _declineCall() {
-  _stopRinging();
-  
-  // Pošalji decline na server
-  CallService.declineCall(callId: widget.callId);
-  
-  Navigator.pop(context);
-}
+    _stopRinging();
+    
+    // Pošalji decline na server
+    CallService.declineCall(callId: widget.callId);
+    
+    Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -225,7 +229,6 @@ void _startRinging() async {
                     color: const Color(0xFF22C55E),
                     label: 'Prihvati',
                     onTap: _acceptCall,
-                    pulse: true,
                   ),
                 ],
               ),
@@ -243,7 +246,6 @@ void _startRinging() async {
     required Color color,
     required String label,
     required VoidCallback onTap,
-    bool pulse = false,
   }) {
     return GestureDetector(
       onTap: onTap,

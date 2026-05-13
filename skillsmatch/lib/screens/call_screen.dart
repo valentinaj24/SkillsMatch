@@ -36,8 +36,8 @@ class _CallScreenState extends State<CallScreen> {
   VideoTrack? _localVideoTrack;
   VideoTrack? _remoteVideoTrack;
 
-  // Ispravan tip za cancel funkciju koju vraća room.events.listen
-  Future<void> Function()? _cancelEvents;
+  // ✅ ISPRAVAN TIP: void Function()? umesto Future<void> Function()?
+  void Function()? _cancelEvents;
 
   @override
   void initState() {
@@ -65,7 +65,7 @@ class _CallScreenState extends State<CallScreen> {
   Future<void> _connectToRoom() async {
     final room = Room();
 
-    // Osluškuj događaje – ovo garantuje da ćemo dobiti remote video čim stigne
+    // ✅ room.events.listen vraća void Function(), ne Future<void> Function()
     _cancelEvents = room.events.listen((event) {
       if (event is TrackSubscribedEvent) {
         final track = event.track;
