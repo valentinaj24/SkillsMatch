@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:skillsmatch/services/call_service.dart';
 import 'call_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:skillsmatch/services/call_notification_service.dart';
 
 class IncomingCallScreen extends StatefulWidget {
   final String callId;
@@ -54,10 +56,38 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
     // Zvono i vibracija
     _startRinging();
+
+    _listenToCallStatus();
+
   }
+
+  StreamSubscription? _callStatusSubscription;
+
+  void _listenToCallStatus() {
+  _callStatusSubscription = FirebaseFirestore.instance
+      .collection('calls')
+      .doc(widget.callId)
+      .snapshots()
+      .listen((doc) {
+    if (!mounted) return;
+    
+    final status = doc.data()?['status'] ?? '';
+    
+    // Ako je caller prekinuo poziv
+    if (status == 'ended' || status == 'declined') {
+      _stopRinging();
+      CallNotificationService.cancelCallNotification(widget.callId);
+      
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    }
+  });
+}
 
   @override
   void dispose() {
+    _callStatusSubscription?.cancel();
     _stopRinging();
     _autoDeclineTimer?.cancel();
     _pulseController.dispose();
@@ -106,6 +136,14 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
   void _acceptCall() {
     _stopRinging();
+
+    CallNotificationService.cancelCallNotification(widget.callId);
+
+     FirebaseFirestore.instance
+      .collection('calls')
+      .doc(widget.callId)
+      .update({'status': 'answered'});
+
     
     Navigator.pushReplacement(
       context,
@@ -123,6 +161,14 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
   void _declineCall() {
     _stopRinging();
+
+    CallNotificationService.cancelCallNotification(widget.callId);
+
+    FirebaseFirestore.instance
+      .collection('calls')
+      .doc(widget.callId)
+      .update({'status': 'declined'});
+
     
     // Pošalji decline na server
     CallService.declineCall(callId: widget.callId);

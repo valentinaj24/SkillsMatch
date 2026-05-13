@@ -2,6 +2,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'call_notification_service.dart';
 
 class CallService {
   
@@ -68,6 +69,8 @@ class CallService {
           'callerFcmToken': callerFcmToken,
         }),
       );
+      CallNotificationService.cancelCallNotification(callId);
+
     } catch (e) {
       print('Greška pri odbijanju poziva: $e');
     }

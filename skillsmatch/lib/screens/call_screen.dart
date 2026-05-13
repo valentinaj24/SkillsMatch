@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:livekit_client/livekit_client.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/call_notification_service.dart';
 
 const _kPrimary = Color(0xFF4F46E5);
 const _kViolet = Color(0xFF7C3AED);
@@ -131,23 +132,25 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   Future<void> _endCall() async {
-    try {
-      final callDoc = await FirebaseFirestore.instance
-          .collection('calls')
-          .doc(widget.roomName)
-          .get();
-      
-      if (callDoc.exists && callDoc.data()?['status'] != 'ended') {
-        await FirebaseFirestore.instance
-            .collection('calls')
-            .doc(widget.roomName)
-            .update({'status': 'ended'});
-      }
-    } catch (_) {}
-
-    await _room?.disconnect();
-    if (mounted) Navigator.pop(context);
+  try {
+    // Ažuriraj status u Firestore
+    await FirebaseFirestore.instance
+        .collection('calls')
+        .doc(widget.roomName) // roomName se koristi kao callId?
+        .update({
+          'status': 'ended',
+          'endedAt': FieldValue.serverTimestamp(),
+        });
+    
+    // Otkaži notifikaciju ako postoji
+    await CallNotificationService.cancelCallNotification(widget.roomName);
+  } catch (e) {
+    print('Greška pri ažuriranju statusa: $e');
   }
+
+  await _room?.disconnect();
+  if (mounted) Navigator.pop(context);
+}
 
   @override
   Widget build(BuildContext context) {

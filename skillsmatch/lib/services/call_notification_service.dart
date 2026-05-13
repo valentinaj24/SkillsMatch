@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:skillsmatch/accessibility/app_accessibility.dart';
 import 'package:skillsmatch/screens/incoming_call_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:typed_data';
+
 
 // ─── Background handler ───────────────────────────────────────────────────────
 @pragma('vm:entry-point')
@@ -24,13 +27,24 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       ),
     );
     
+    // ✅ KLJUČNO: Koristi poseban channel za full-screen
+    const AndroidNotificationChannel callChannel = AndroidNotificationChannel(
+      'incoming_calls',
+      'Incoming Calls',
+      description: 'Incoming video/audio call notifications',
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+      enableLights: true,
+    );
+    
     final callId = message.data['callId'] ?? '';
     final callerName = message.data['callerName'] ?? 'Nepoznat';
     final roomName = message.data['roomName'] ?? '';
     final receiverToken = message.data['receiverToken'] ?? '';
     final liveKitUrl = message.data['liveKitUrl'] ?? '';
     
-    final androidDetails = AndroidNotificationDetails(
+   final androidDetails = AndroidNotificationDetails(
       'incoming_calls',
       'Incoming Calls',
       channelDescription: 'Incoming video/audio call notifications',
@@ -42,6 +56,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       enableVibration: true,
       ongoing: true,
       autoCancel: false,
+      visibility: NotificationVisibility.public,
+      // ✅ Dodaj ovo za full-screen
+      additionalFlags: Int32List.fromList([4]), // FLAG_SHOW_WHEN_LOCKED
     );
     
     // ✅ Za verziju 20.1.0 - koristi named parametre
@@ -176,16 +193,20 @@ class CallNotificationService {
       enableVibration: true,
       ongoing: true,
       autoCancel: false,
+      visibility: NotificationVisibility.public,
+      additionalFlags: Int32List.fromList([4]), 
       actions: [
         const AndroidNotificationAction(
           'decline_call',
           'Odbij',
           cancelNotification: true,
+          showsUserInterface: true, 
         ),
         const AndroidNotificationAction(
           'accept_call',
           'Prihvati',
           cancelNotification: true,
+          showsUserInterface: true,
         ),
       ],
     );
@@ -204,6 +225,8 @@ class CallNotificationService {
     // ✅ Za verziju 20.1.0 - koristi named parametar 'id'
     await _localNotifications.cancel(id: callId.hashCode);
   }
+
+  
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
   static String _buildPayload(Map<String, dynamic> data) {
@@ -238,7 +261,29 @@ class CallNotificationService {
   }
 
   static void _handleNotificationTap(String payload) {
-    final data = parsePayload(payload);
+  final data = parsePayload(payload);
+  final callId = data['callId'] ?? '';
+  
+  // Prvo otkaži notifikaciju
+  cancelCallNotification(callId);
+  
+  // Proveri status poziva u Firestore-u
+  FirebaseFirestore.instance
+      .collection('calls')
+      .doc(callId)
+      .get()
+      .then((doc) {
+    if (!doc.exists) return;
+    
+    final status = doc.data()?['status'] ?? '';
+    
+    // Ako je poziv već završen ili odbijen, ne otvaraj ekran
+    if (status == 'ended' || status == 'declined' || status == 'missed') {
+      print('Poziv $callId je već završen (status: $status)');
+      return;
+    }
+    
+    // Inače otvori IncomingCallScreen
     final navigatorKey = AppAccessibility.instance.navigatorKey;
     final context = navigatorKey.currentContext;
     if (context == null) return;
@@ -254,5 +299,6 @@ class CallNotificationService {
         ),
       ),
     );
-  }
+  });
+}
 }

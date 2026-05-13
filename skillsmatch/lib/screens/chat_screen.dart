@@ -385,6 +385,25 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final otherUid = await _getOtherUserId();
   if (otherUid == null || !mounted) return;
 
+  final existingCall = await FirebaseFirestore.instance
+      .collection('calls')
+      .where('callerId', whereIn: [currentUid, otherUid])
+      .where('receiverId', whereIn: [currentUid, otherUid])
+      .where('status', whereIn: ['ringing', 'answered'])
+      .get();
+
+  if (existingCall.docs.isNotEmpty) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Već postoji aktivan poziv'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+    return;
+  }
+
   // Pokaži loading
   showDialog(
     context: context,
