@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
+import 'activity_analytics_screen.dart';
 
 // ─── Color System ──────────────────────────────────────────────────────────────
 const _kPrimary = Color(0xFF4F46E5);
@@ -619,6 +620,84 @@ class _MyProfileScreenState extends State<MyProfileScreen>
     ),
   );
 
+  Widget _analyticsCard(BuildContext ctx) => GestureDetector(
+  onTap: () {
+    Navigator.push(
+      ctx,
+      MaterialPageRoute(builder: (_) => const ActivityAnalyticsScreen()),
+    );
+  },
+  child: Container(
+    width: double.infinity,
+    margin: const EdgeInsets.only(bottom: 14),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Color(0xFF1E1B4B), Color(0xFF4F46E5)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(22),
+      boxShadow: [
+        BoxShadow(
+          color: _kPrimary.withOpacity(0.25),
+          blurRadius: 16,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.white.withOpacity(0.22)),
+          ),
+          child: const Icon(
+            Icons.analytics_rounded,
+            color: Colors.white,
+            size: 24,
+          ),
+        ),
+        const SizedBox(width: 14),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Aktivnost in analitika',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Pregled zgodovine sodelovanj, srečanj in napredka.',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Icon(
+          Icons.arrow_forward_ios_rounded,
+          color: Colors.white70,
+          size: 16,
+        ),
+      ],
+    ),
+  ),
+);
+
   // ── Info card ──────────────────────────────────────────────────────────────
   Widget _infoCard(IconData icon, String title, String text, Color accent) =>
       Container(
@@ -1104,28 +1183,30 @@ class _MyProfileScreenState extends State<MyProfileScreen>
   }
 
   // ── Illustrated banner ─────────────────────────────────────────────────────
-  Widget _illustratedBanner(BuildContext ctx) {
-    return Container(
-      width: double.infinity,
-      height: 160,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E1B4B), Color(0xFF3730A3), Color(0xFF4F46E5)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: _kPrimary.withOpacity(0.3),
-            blurRadius: 18,
-            offset: const Offset(0, 7),
-          ),
-        ],
+Widget _illustratedBanner(BuildContext ctx) {
+  return Container(
+    width: double.infinity,
+    height: 160,
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: [Color(0xFF1E1B4B), Color(0xFF3730A3), Color(0xFF4F46E5)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
       ),
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: [
+        BoxShadow(
+          color: _kPrimary.withOpacity(0.3),
+          blurRadius: 18,
+          offset: const Offset(0, 7),
+        ),
+      ],
+    ),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(24),
       child: Stack(
+        clipBehavior: Clip.hardEdge,
         children: [
-          // Dekorativni krogi v ozadju
           Positioned(
             right: -20,
             top: -20,
@@ -1151,19 +1232,18 @@ class _MyProfileScreenState extends State<MyProfileScreen>
             ),
           ),
           Positioned(
-            left: -15,
-            bottom: -15,
+            left: -28,
+            bottom: -28,
             child: Container(
-              width: 80,
-              height: 80,
+              width: 90,
+              height: 90,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _kViolet.withOpacity(0.25),
+                color: _kViolet.withOpacity(0.18),
               ),
             ),
           ),
 
-          // Ilustracija — stilizovane figure
           Positioned(
             right: 16,
             top: 0,
@@ -1171,7 +1251,6 @@ class _MyProfileScreenState extends State<MyProfileScreen>
             child: _networkIllustration(),
           ),
 
-          // Tekst
           Positioned(
             left: 20,
             top: 24,
@@ -1258,10 +1337,10 @@ class _MyProfileScreenState extends State<MyProfileScreen>
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
-  // Majhna SVG-like ilustracija omrežja
   Widget _networkIllustration() {
     return SizedBox(
       width: 130,
@@ -1713,6 +1792,8 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                           const SizedBox(height: 14),
                           _reviewsSummaryCard(uid, data),
 
+                          
+
                           const SizedBox(height: 14),
 
                           // ── Info kartice ─────────────────────────────────────
@@ -1746,7 +1827,12 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                               (e) => _skillCard(e.value, e.key),
                             ),
 
-                          const SizedBox(height: 20),
+                            const SizedBox(height: 14),
+                          _analyticsCard(ctx),
+
+                          const SizedBox(height: 10),
+
+
 
                           // ── Illustrated banner ────────────────────────────────
                           _illustratedBanner(ctx),
