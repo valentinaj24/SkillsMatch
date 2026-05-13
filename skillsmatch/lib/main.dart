@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart' as webrtc;
@@ -14,6 +15,7 @@ import 'accessibility/app_accessibility.dart';
 import 'accessibility/accessibility_wrapper.dart';
 import 'screens/auth_gate.dart';
 import 'services/notification_service.dart';
+import 'services/call_notification_service.dart';
 
 Future<void> _checkPermissions() async {
   var status = await Permission.bluetooth.request();
@@ -44,7 +46,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await NotificationService.init();
+  
+  // Inicijalizuj oba servisa
+  await NotificationService.init();           // za obične notifikacije
+  await CallNotificationService.init();       // za pozive
+  
+  // Postavi background handler za FCM
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   await AppAccessibility.instance.load();
   await _checkPermissions();
@@ -178,6 +186,8 @@ class AuthWrapper extends StatelessWidget {
         }
 
         final user = authSnapshot.data!;
+        
+        // Sačuvaj FCM token čim se user uloguje
         NotificationService.saveFcmToken();
 
         return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(

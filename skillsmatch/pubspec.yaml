@@ -30,6 +30,8 @@ dependencies:
   audioplayers: ^6.5.1
   path_provider: ^2.1.5
   flutter_local_notifications: ^20.1.0
+  flutter_ringtone_player: ^4.0.0
+  vibration: ^1.8.4
 
 dev_dependencies:
   flutter_test:
