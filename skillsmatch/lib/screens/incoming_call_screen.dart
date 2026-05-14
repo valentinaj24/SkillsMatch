@@ -1,4 +1,3 @@
-// lib/screens/incoming_call_screen.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -36,54 +35,42 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   Timer? _autoDeclineTimer;
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-  
-  // Instanca FlutterRingtonePlayer
+  StreamSubscription? _callStatusSubscription;
+
   final FlutterRingtonePlayer _ringtonePlayer = FlutterRingtonePlayer();
 
   @override
   void initState() {
     super.initState();
-    
-    // Pulse animacija za avatar
+
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    
+
     _pulseAnimation = Tween<double>(begin: 0.95, end: 1.05).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
 
-    // Zvono i vibracija
     _startRinging();
-
     _listenToCallStatus();
-
   }
 
-  StreamSubscription? _callStatusSubscription;
-
   void _listenToCallStatus() {
-  _callStatusSubscription = FirebaseFirestore.instance
-      .collection('calls')
-      .doc(widget.callId)
-      .snapshots()
-      .listen((doc) {
-    if (!mounted) return;
-    
-    final status = doc.data()?['status'] ?? '';
-    
-    // Ako je caller prekinuo poziv
-    if (status == 'ended' || status == 'declined') {
-      _stopRinging();
-      CallNotificationService.cancelCallNotification(widget.callId);
-      
-      if (mounted) {
-        Navigator.pop(context);
+    _callStatusSubscription = FirebaseFirestore.instance
+        .collection('calls')
+        .doc(widget.callId)
+        .snapshots()
+        .listen((doc) {
+      if (!mounted) return;
+      final status = doc.data()?['status'] ?? '';
+      if (status == 'ended' || status == 'declined') {
+        _stopRinging();
+        CallNotificationService.cancelCallNotification(widget.callId);
+        if (mounted) Navigator.pop(context);
       }
-    }
-  });
-}
+    });
+  }
 
   @override
   void dispose() {
@@ -104,11 +91,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
     } catch (e) {
       print('Greška pri reprodukciji zvona: $e');
     }
-    
-    // Koristi HapticFeedback umesto Vibration paketa
-    // Periodično vibriraj dok zvoni
+
     _ringtoneTimer = Timer.periodic(
-      const Duration(milliseconds: 1000), 
+      const Duration(milliseconds: 1000),
       (timer) {
         if (mounted) {
           HapticFeedback.heavyImpact();
@@ -117,8 +102,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
         }
       },
     );
-    
-    // Auto-odbijanje nakon 30s
+
     _autoDeclineTimer = Timer(const Duration(seconds: 30), () {
       if (mounted) _declineCall();
     });
@@ -136,15 +120,15 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
   void _acceptCall() {
     _stopRinging();
+    _callStatusSubscription?.cancel(); // ne reaguj na vlastite promjene
 
     CallNotificationService.cancelCallNotification(widget.callId);
 
-     FirebaseFirestore.instance
-      .collection('calls')
-      .doc(widget.callId)
-      .update({'status': 'answered'});
+    FirebaseFirestore.instance
+        .collection('calls')
+        .doc(widget.callId)
+        .update({'status': 'answered'});
 
-    
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
@@ -152,8 +136,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           roomName: widget.roomName,
           token: widget.receiverToken,
           livekitUrl: widget.liveKitUrl,
-          isVideoCall: widget.isVideoCall,
+          isVideoCall: widget.isVideoCall, // ✅ proslijeđen tip poziva
           otherUserName: widget.callerName,
+          callId: widget.callId,           // ✅ proslijeđen callId
         ),
       ),
     );
@@ -161,18 +146,17 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
   void _declineCall() {
     _stopRinging();
+    _callStatusSubscription?.cancel();
 
     CallNotificationService.cancelCallNotification(widget.callId);
 
     FirebaseFirestore.instance
-      .collection('calls')
-      .doc(widget.callId)
-      .update({'status': 'declined'});
+        .collection('calls')
+        .doc(widget.callId)
+        .update({'status': 'declined'});
 
-    
-    // Pošalji decline na server
     CallService.declineCall(callId: widget.callId);
-    
+
     Navigator.pop(context);
   }
 
@@ -185,8 +169,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Spacer(flex: 2),
-            
-            // Caller info
+
             Text(
               widget.isVideoCall ? '📹 Video poziv' : '📞 Glasovni poziv',
               style: const TextStyle(
@@ -195,9 +178,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 fontWeight: FontWeight.w500,
               ),
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             Text(
               widget.callerName,
               style: const TextStyle(
@@ -207,9 +190,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
               ),
               textAlign: TextAlign.center,
             ),
-            
+
             const SizedBox(height: 8),
-            
+
             const Text(
               'Dolazni poziv...',
               style: TextStyle(
@@ -217,10 +200,9 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 fontSize: 16,
               ),
             ),
-            
+
             const Spacer(flex: 1),
-            
-            // Pulsirajući avatar
+
             AnimatedBuilder(
               animation: _pulseAnimation,
               builder: (context, child) => Transform.scale(
@@ -252,24 +234,20 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 ),
               ),
             ),
-            
+
             const Spacer(flex: 2),
-            
-            // Accept / Decline dugmići
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 40),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  // Decline
                   _actionButton(
                     icon: Icons.call_end_rounded,
                     color: const Color(0xFFEF4444),
                     label: 'Odbij',
                     onTap: _declineCall,
                   ),
-                  
-                  // Accept
                   _actionButton(
                     icon: Icons.call_rounded,
                     color: const Color(0xFF22C55E),
@@ -279,7 +257,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
                 ],
               ),
             ),
-            
+
             const Spacer(flex: 1),
           ],
         ),

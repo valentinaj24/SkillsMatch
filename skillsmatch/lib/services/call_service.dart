@@ -45,6 +45,7 @@ class CallService {
         'receiverIdentity': receiverId,
         'receiverFcmToken': receiverFcmToken,
         'callerName': callerName,
+        'isVideoCall': isVideoCall,
       }),
     );
 

@@ -19,7 +19,6 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     const DarwinInitializationSettings iosSettings = 
         DarwinInitializationSettings();
     
-    // ✅ Za verziju 20.1.0 - koristi named parametar 'settings'
     await flutterLocalNotificationsPlugin.initialize(
       settings: const InitializationSettings(
         android: androidSettings,
@@ -27,7 +26,6 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       ),
     );
     
-    // ✅ KLJUČNO: Koristi poseban channel za full-screen
     const AndroidNotificationChannel callChannel = AndroidNotificationChannel(
       'incoming_calls',
       'Incoming Calls',
@@ -43,7 +41,8 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     final roomName = message.data['roomName'] ?? '';
     final receiverToken = message.data['receiverToken'] ?? '';
     final liveKitUrl = message.data['liveKitUrl'] ?? '';
-    
+    final isVideoCall = message.data['isVideoCall'] == 'true' || message.data['isVideoCall'] == true;
+
    final androidDetails = AndroidNotificationDetails(
       'incoming_calls',
       'Incoming Calls',
@@ -57,17 +56,15 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       ongoing: true,
       autoCancel: false,
       visibility: NotificationVisibility.public,
-      // ✅ Dodaj ovo za full-screen
-      additionalFlags: Int32List.fromList([4]), // FLAG_SHOW_WHEN_LOCKED
+      additionalFlags: Int32List.fromList([4, 128]), 
     );
     
-    // ✅ Za verziju 20.1.0 - koristi named parametre
     await flutterLocalNotificationsPlugin.show(
       id: callId.hashCode,
-      title: '📞 Dolazni poziv',
+      title: isVideoCall ? '📹 Dolazni video poziv' : '📞 Dolazni poziv',
       body: callerName,
       notificationDetails: NotificationDetails(android: androidDetails),
-      payload: '${callId}|${callerName}|${roomName}|${receiverToken}|${liveKitUrl}',
+      payload: '${callId}|${callerName}|${roomName}|${receiverToken}|${liveKitUrl}|${isVideoCall}',
     );
   }
 }
@@ -103,7 +100,6 @@ class CallNotificationService {
     const DarwinInitializationSettings iosSettings = 
         DarwinInitializationSettings();
 
-    // ✅ Za verziju 20.1.0 - koristi named parametre
     await _localNotifications.initialize(
       settings: const InitializationSettings(
         android: androidSettings,
@@ -147,6 +143,8 @@ class CallNotificationService {
     final roomName = data['roomName'] ?? '';
     final receiverToken = data['receiverToken'] ?? '';
     final liveKitUrl = data['liveKitUrl'] ?? '';
+    // ✅ FIX 1: čitamo isVideoCall
+    final isVideoCall = data['isVideoCall'] == 'true' || data['isVideoCall'] == true;
     
     final navigatorKey = AppAccessibility.instance.navigatorKey;
     final context = navigatorKey.currentContext;
@@ -160,6 +158,7 @@ class CallNotificationService {
           roomName: roomName,
           receiverToken: receiverToken,
           liveKitUrl: liveKitUrl,
+          isVideoCall: isVideoCall, // ✅ FIX 1: prosljeđujemo tip poziva
         ),
       ),
     );
@@ -172,6 +171,7 @@ class CallNotificationService {
     required String roomName,
     required String receiverToken,
     required String liveKitUrl,
+    bool isVideoCall = true, // ✅ FIX 1: novi parametar
   }) async {
     final payload = _buildPayloadFromParts(
       callId: callId,
@@ -179,6 +179,7 @@ class CallNotificationService {
       roomName: roomName,
       receiverToken: receiverToken,
       liveKitUrl: liveKitUrl,
+      isVideoCall: isVideoCall, // ✅ FIX 1
     );
 
     final androidDetails = AndroidNotificationDetails(
@@ -194,7 +195,8 @@ class CallNotificationService {
       ongoing: true,
       autoCancel: false,
       visibility: NotificationVisibility.public,
-      additionalFlags: Int32List.fromList([4]), 
+      // ✅ FIX 2: FLAG_SHOW_WHEN_LOCKED (4) + FLAG_TURN_SCREEN_ON (128)
+      additionalFlags: Int32List.fromList([4, 128]),
       actions: [
         const AndroidNotificationAction(
           'decline_call',
@@ -211,10 +213,9 @@ class CallNotificationService {
       ],
     );
 
-    // ✅ Za verziju 20.1.0 - koristi named parametre
     await _localNotifications.show(
       id: callId.hashCode,
-      title: '📞 Dolazni poziv',
+      title: isVideoCall ? '📹 Dolazni video poziv' : '📞 Dolazni poziv',
       body: callerName,
       notificationDetails: NotificationDetails(android: androidDetails),
       payload: payload,
@@ -222,11 +223,8 @@ class CallNotificationService {
   }
 
   static Future<void> cancelCallNotification(String callId) async {
-    // ✅ Za verziju 20.1.0 - koristi named parametar 'id'
     await _localNotifications.cancel(id: callId.hashCode);
   }
-
-  
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
   static String _buildPayload(Map<String, dynamic> data) {
@@ -236,6 +234,8 @@ class CallNotificationService {
       roomName: data['roomName'] ?? '',
       receiverToken: data['receiverToken'] ?? '',
       liveKitUrl: data['liveKitUrl'] ?? '',
+      // ✅ FIX 1: čitamo isVideoCall
+      isVideoCall: data['isVideoCall'] == 'true' || data['isVideoCall'] == true,
     );
   }
 
@@ -245,8 +245,10 @@ class CallNotificationService {
     required String roomName,
     required String receiverToken,
     required String liveKitUrl,
+    bool isVideoCall = true, // ✅ FIX 1
   }) {
-    return '$callId|$callerName|$roomName|$receiverToken|$liveKitUrl';
+    // ✅ FIX 1: dodajemo isVideoCall na kraj payloada
+    return '$callId|$callerName|$roomName|$receiverToken|$liveKitUrl|$isVideoCall';
   }
 
   static Map<String, String> parsePayload(String payload) {
@@ -257,48 +259,52 @@ class CallNotificationService {
       'roomName': parts.length > 2 ? parts[2] : '',
       'receiverToken': parts.length > 3 ? parts[3] : '',
       'liveKitUrl': parts.length > 4 ? parts[4] : '',
+      // ✅ FIX 1: parsiramo isVideoCall (default 'true' za stare payloade)
+      'isVideoCall': parts.length > 5 ? parts[5] : 'true',
     };
   }
 
   static void _handleNotificationTap(String payload) {
-  final data = parsePayload(payload);
-  final callId = data['callId'] ?? '';
-  
-  // Prvo otkaži notifikaciju
-  cancelCallNotification(callId);
-  
-  // Proveri status poziva u Firestore-u
-  FirebaseFirestore.instance
-      .collection('calls')
-      .doc(callId)
-      .get()
-      .then((doc) {
-    if (!doc.exists) return;
+    final data = parsePayload(payload);
+    final callId = data['callId'] ?? '';
     
-    final status = doc.data()?['status'] ?? '';
+    // Prvo otkaži notifikaciju
+    cancelCallNotification(callId);
     
-    // Ako je poziv već završen ili odbijen, ne otvaraj ekran
-    if (status == 'ended' || status == 'declined' || status == 'missed') {
-      print('Poziv $callId je već završen (status: $status)');
-      return;
-    }
-    
-    // Inače otvori IncomingCallScreen
-    final navigatorKey = AppAccessibility.instance.navigatorKey;
-    final context = navigatorKey.currentContext;
-    if (context == null) return;
+    // Proveri status poziva u Firestore-u
+    FirebaseFirestore.instance
+        .collection('calls')
+        .doc(callId)
+        .get()
+        .then((doc) {
+      if (!doc.exists) return;
+      
+      final status = doc.data()?['status'] ?? '';
+      
+      if (status == 'ended' || status == 'declined' || status == 'missed') {
+        print('Poziv $callId je već završen (status: $status)');
+        return;
+      }
+      
+      // ✅ FIX 1: čitamo isVideoCall iz payloada
+      final isVideoCall = data['isVideoCall'] == 'true';
 
-    navigatorKey.currentState?.push(
-      MaterialPageRoute(
-        builder: (_) => IncomingCallScreen(
-          callId: data['callId']!,
-          callerName: data['callerName']!,
-          roomName: data['roomName']!,
-          receiverToken: data['receiverToken']!,
-          liveKitUrl: data['liveKitUrl']!,
+      final navigatorKey = AppAccessibility.instance.navigatorKey;
+      final context = navigatorKey.currentContext;
+      if (context == null) return;
+
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (_) => IncomingCallScreen(
+            callId: data['callId']!,
+            callerName: data['callerName']!,
+            roomName: data['roomName']!,
+            receiverToken: data['receiverToken']!,
+            liveKitUrl: data['liveKitUrl']!,
+            isVideoCall: isVideoCall, // ✅ FIX 1
+          ),
         ),
-      ),
-    );
-  });
-}
+      );
+    });
+  }
 }

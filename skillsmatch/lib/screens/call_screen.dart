@@ -15,6 +15,8 @@ class CallScreen extends StatefulWidget {
   final String livekitUrl;
   final bool isVideoCall;
   final String otherUserName;
+  // ✅ FIX: callId je odvojen od roomName
+  final String callId;
 
   const CallScreen({
     super.key,
@@ -23,6 +25,7 @@ class CallScreen extends StatefulWidget {
     required this.livekitUrl,
     required this.isVideoCall,
     required this.otherUserName,
+    required this.callId,
   });
 
   @override
@@ -37,21 +40,58 @@ class _CallScreenState extends State<CallScreen> {
   VideoTrack? _localVideoTrack;
   VideoTrack? _remoteVideoTrack;
 
-  // ✅ ISPRAVAN TIP: void Function()? umesto Future<void> Function()?
   void Function()? _cancelEvents;
+
+  // ✅ FIX: Firestore listener koji prati kad drugi korisnik završi poziv
+  StreamSubscription? _callStatusSubscription;
 
   @override
   void initState() {
     super.initState();
     _requestPermissionsAndConnect();
+    _listenToCallStatus();
   }
 
   @override
   void dispose() {
-    _cancelEvents?.call();   // Otkazujemo osluškivač
+    _callStatusSubscription?.cancel();
+    _cancelEvents?.call();
     _room?.disconnect();
     _room?.dispose();
     super.dispose();
+  }
+
+  // ✅ FIX: sluša Firestore — ako drugi korisnik postavi 'ended', zatvori ekran
+  void _listenToCallStatus() {
+    _callStatusSubscription = FirebaseFirestore.instance
+        .collection('calls')
+        .doc(widget.callId)
+        .snapshots()
+        .listen((doc) {
+      if (!mounted) return;
+      final status = doc.data()?['status'] ?? '';
+      if (status == 'ended') {
+        _hangUpLocally();
+      }
+    });
+  }
+
+  // Samo lokalno prekida poziv bez pisanja u Firestore (drugi je već napisao)
+  Future<void> _hangUpLocally() async {
+    _callStatusSubscription?.cancel();
+    _cancelEvents?.call();
+    await _room?.disconnect();
+    if (mounted) {
+      // Prikaži poruku da je drugi korisnik prekinuo
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Poziv je završen'),
+          backgroundColor: Colors.black54,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      Navigator.pop(context);
+    }
   }
 
   Future<void> _requestPermissionsAndConnect() async {
@@ -66,7 +106,6 @@ class _CallScreenState extends State<CallScreen> {
   Future<void> _connectToRoom() async {
     final room = Room();
 
-    // ✅ room.events.listen vraća void Function(), ne Future<void> Function()
     _cancelEvents = room.events.listen((event) {
       if (event is TrackSubscribedEvent) {
         final track = event.track;
@@ -93,7 +132,6 @@ class _CallScreenState extends State<CallScreen> {
 
       if (widget.isVideoCall) {
         await room.localParticipant?.setCameraEnabled(true);
-        // Dohvati lokalni video track
         for (final pub in room.localParticipant!.videoTrackPublications) {
           if (pub.track != null) {
             _localVideoTrack = pub.track as VideoTrack;
@@ -132,25 +170,28 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   Future<void> _endCall() async {
-  try {
-    // Ažuriraj status u Firestore
-    await FirebaseFirestore.instance
-        .collection('calls')
-        .doc(widget.roomName) // roomName se koristi kao callId?
-        .update({
-          'status': 'ended',
-          'endedAt': FieldValue.serverTimestamp(),
-        });
-    
-    // Otkaži notifikaciju ako postoji
-    await CallNotificationService.cancelCallNotification(widget.roomName);
-  } catch (e) {
-    print('Greška pri ažuriranju statusa: $e');
-  }
+    // Otkaži listener odmah da ne reagujemo na sopstvenu promjenu
+    _callStatusSubscription?.cancel();
 
-  await _room?.disconnect();
-  if (mounted) Navigator.pop(context);
-}
+    try {
+      // ✅ FIX: koristimo widget.callId, ne widget.roomName
+      await FirebaseFirestore.instance
+          .collection('calls')
+          .doc(widget.callId)
+          .update({
+            'status': 'ended',
+            'endedAt': FieldValue.serverTimestamp(),
+          });
+
+      await CallNotificationService.cancelCallNotification(widget.callId);
+    } catch (e) {
+      print('Greška pri ažuriranju statusa: $e');
+    }
+
+    _cancelEvents?.call();
+    await _room?.disconnect();
+    if (mounted) Navigator.pop(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +200,6 @@ class _CallScreenState extends State<CallScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Remote video ili voice background
             if (widget.isVideoCall && _remoteVideoTrack != null)
               Positioned.fill(
                 child: VideoTrackRenderer(_remoteVideoTrack!),
@@ -167,7 +207,6 @@ class _CallScreenState extends State<CallScreen> {
             else
               _voiceBackground(),
 
-            // Lokalni video (mali, gore desno)
             if (widget.isVideoCall && _localVideoTrack != null)
               Positioned(
                 top: 16,
@@ -180,7 +219,6 @@ class _CallScreenState extends State<CallScreen> {
                 ),
               ),
 
-            // Control buttons
             Positioned(
               bottom: 40,
               left: 0,

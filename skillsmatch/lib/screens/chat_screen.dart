@@ -455,6 +455,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         'receiverIdentity': otherUid,
         'receiverFcmToken': receiverFcmToken,
         'callerName': callerName,
+        'isVideoCall': isVideo, // ✅ FIX: šaljemo tip poziva serveru
       }),
     );
 
@@ -499,6 +500,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           livekitUrl: liveKitUrl,
           isVideoCall: isVideo,
           otherUserName: widget.otherUserName,
+          callId: callId, // ✅ FIX: proslijeđujemo callId
         ),
       ),
     );
