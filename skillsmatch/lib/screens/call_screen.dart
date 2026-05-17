@@ -15,7 +15,6 @@ class CallScreen extends StatefulWidget {
   final String livekitUrl;
   final bool isVideoCall;
   final String otherUserName;
-  // ✅ FIX: callId je odvojen od roomName
   final String callId;
 
   const CallScreen({
@@ -42,7 +41,6 @@ class _CallScreenState extends State<CallScreen> {
 
   void Function()? _cancelEvents;
 
-  // ✅ FIX: Firestore listener koji prati kad drugi korisnik završi poziv
   StreamSubscription? _callStatusSubscription;
 
   @override
@@ -61,7 +59,7 @@ class _CallScreenState extends State<CallScreen> {
     super.dispose();
   }
 
-  // ✅ FIX: sluša Firestore — ako drugi korisnik postavi 'ended', zatvori ekran
+  // Sluša Firestore — ako drugi korisnik postavi 'ended' ili 'declined', zatvori ekran
   void _listenToCallStatus() {
     _callStatusSubscription = FirebaseFirestore.instance
         .collection('calls')
@@ -70,7 +68,7 @@ class _CallScreenState extends State<CallScreen> {
         .listen((doc) {
       if (!mounted) return;
       final status = doc.data()?['status'] ?? '';
-      if (status == 'ended') {
+      if (status == 'ended' || status == 'declined') {
         _hangUpLocally();
       }
     });
@@ -174,7 +172,6 @@ class _CallScreenState extends State<CallScreen> {
     _callStatusSubscription?.cancel();
 
     try {
-      // ✅ FIX: koristimo widget.callId, ne widget.roomName
       await FirebaseFirestore.instance
           .collection('calls')
           .doc(widget.callId)
