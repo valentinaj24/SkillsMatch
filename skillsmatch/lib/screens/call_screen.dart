@@ -40,8 +40,13 @@ class _CallScreenState extends State<CallScreen> {
   VideoTrack? _remoteVideoTrack;
 
   void Function()? _cancelEvents;
+  bool _speakerEnabled = false;
 
   StreamSubscription? _callStatusSubscription;
+
+  // ─── Tajmer trajanja poziva ───────────────────────────────────────────────
+  Timer? _durationTimer;
+  int _secondsElapsed = 0;
 
   @override
   void initState() {
@@ -53,13 +58,29 @@ class _CallScreenState extends State<CallScreen> {
   @override
   void dispose() {
     _callStatusSubscription?.cancel();
+    _durationTimer?.cancel();
     _cancelEvents?.call();
     _room?.disconnect();
     _room?.dispose();
     super.dispose();
   }
 
-  // Sluša Firestore — ako drugi korisnik postavi 'ended' ili 'declined', zatvori ekran
+  void _startDurationTimer() {
+    _durationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _secondsElapsed++);
+    });
+  }
+
+  String get _formattedDuration {
+    final h = _secondsElapsed ~/ 3600;
+    final m = (_secondsElapsed % 3600) ~/ 60;
+    final s = _secondsElapsed % 60;
+    if (h > 0) {
+      return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    }
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
   void _listenToCallStatus() {
     _callStatusSubscription = FirebaseFirestore.instance
         .collection('calls')
@@ -68,19 +89,19 @@ class _CallScreenState extends State<CallScreen> {
         .listen((doc) {
       if (!mounted) return;
       final status = doc.data()?['status'] ?? '';
-      if (status == 'ended' || status == 'declined') {
+      if (status == 'ended') {
         _hangUpLocally();
       }
     });
   }
 
-  // Samo lokalno prekida poziv bez pisanja u Firestore (drugi je već napisao)
   Future<void> _hangUpLocally() async {
     _callStatusSubscription?.cancel();
+    _durationTimer?.cancel();
     _cancelEvents?.call();
+    await Hardware.instance.setSpeakerphoneOn(false);
     await _room?.disconnect();
     if (mounted) {
-      // Prikaži poruku da je drugi korisnik prekinuo
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Poziv je završen'),
@@ -143,6 +164,7 @@ class _CallScreenState extends State<CallScreen> {
           _room = room;
           _connected = true;
         });
+        _startDurationTimer(); // Pokreni tajmer čim se uspješno povežemo
       }
     } catch (e) {
       if (mounted) {
@@ -167,9 +189,14 @@ class _CallScreenState extends State<CallScreen> {
     await _room?.localParticipant?.setCameraEnabled(_cameraEnabled);
   }
 
+  Future<void> _toggleSpeaker() async {
+    setState(() => _speakerEnabled = !_speakerEnabled);
+    await Hardware.instance.setSpeakerphoneOn(_speakerEnabled);
+  }
+
   Future<void> _endCall() async {
-    // Otkaži listener odmah da ne reagujemo na sopstvenu promjenu
     _callStatusSubscription?.cancel();
+    _durationTimer?.cancel();
 
     try {
       await FirebaseFirestore.instance
@@ -178,6 +205,7 @@ class _CallScreenState extends State<CallScreen> {
           .update({
             'status': 'ended',
             'endedAt': FieldValue.serverTimestamp(),
+            'durationSeconds': _secondsElapsed,
           });
 
       await CallNotificationService.cancelCallNotification(widget.callId);
@@ -186,6 +214,7 @@ class _CallScreenState extends State<CallScreen> {
     }
 
     _cancelEvents?.call();
+    await Hardware.instance.setSpeakerphoneOn(false);
     await _room?.disconnect();
     if (mounted) Navigator.pop(context);
   }
@@ -213,6 +242,32 @@ class _CallScreenState extends State<CallScreen> {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: VideoTrackRenderer(_localVideoTrack!),
+                ),
+              ),
+
+            // ─── Trajanje poziva (video call - overlay na vrhu) ─────────────
+            if (widget.isVideoCall && _connected)
+              Positioned(
+                top: 16,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black45,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      _formattedDuration,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
                 ),
               ),
 
@@ -273,11 +328,14 @@ class _CallScreenState extends State<CallScreen> {
               ),
             ),
             const SizedBox(height: 10),
+            // ─── Trajanje / status (glasovni poziv) ────────────────────────
             Text(
-              _connected ? 'Klic v teku...' : 'Povezovanje...',
-              style: const TextStyle(
-                color: Colors.white54,
-                fontSize: 16,
+              _connected ? _formattedDuration : 'Povezovanje...',
+              style: TextStyle(
+                color: _connected ? Colors.white70 : Colors.white54,
+                fontSize: 18,
+                fontWeight: _connected ? FontWeight.w600 : FontWeight.w400,
+                letterSpacing: _connected ? 1.2 : 0,
               ),
             ),
           ],
@@ -294,6 +352,12 @@ class _CallScreenState extends State<CallScreen> {
           icon: _micEnabled ? Icons.mic_rounded : Icons.mic_off_rounded,
           color: _micEnabled ? Colors.white24 : _kRed,
           onTap: _toggleMic,
+        ),
+        const SizedBox(width: 20),
+        _circleButton(
+          icon: _speakerEnabled ? Icons.volume_up_rounded : Icons.volume_down_rounded,
+          color: _speakerEnabled ? _kPrimary : Colors.white24,
+          onTap: _toggleSpeaker,
         ),
         const SizedBox(width: 20),
         if (widget.isVideoCall) ...[
