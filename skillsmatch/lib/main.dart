@@ -16,6 +16,10 @@ import 'accessibility/accessibility_wrapper.dart';
 import 'screens/auth_gate.dart';
 import 'services/notification_service.dart';
 import 'services/call_notification_service.dart';
+import 'theme/app_colors.dart';
+
+// ─── Global theme notifier ────────────────────────────────────────────────────
+final themeModeNotifier = ValueNotifier<ThemeMode>(ThemeMode.system);
 
 Future<void> _checkPermissions() async {
   var status = await Permission.bluetooth.request();
@@ -66,7 +70,9 @@ class SkillsMatchApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeModeNotifier,
+      builder: (context, _, __) => AnimatedBuilder(
       animation: AppAccessibility.instance,
       builder: (context, _) {
         final senior = AppAccessibility.instance.seniorMode;
@@ -79,7 +85,52 @@ class SkillsMatchApp extends StatelessWidget {
 
           builder: (context, child) {
             return AccessibilityWrapper(
-              child: child ?? const SizedBox.shrink(),
+              child: Stack(
+                children: [
+                  child ?? const SizedBox.shrink(),
+                  // ── Dark mode toggle (gornji lijevi ugao, svi ekrani) ──
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 10,
+                    left: 16,
+                    child: ValueListenableBuilder<ThemeMode>(
+                      valueListenable: themeModeNotifier,
+                      builder: (_, mode, __) {
+                        final isDark = mode == ThemeMode.dark;
+                        return GestureDetector(
+                          onTap: () => themeModeNotifier.value =
+                              isDark ? ThemeMode.light : ThemeMode.dark,
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? const Color(0xFF252438)
+                                  : Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.18),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              isDark
+                                  ? Icons.wb_sunny_rounded
+                                  : Icons.nightlight_round,
+                              size: 18,
+                              color: isDark
+                                  ? const Color(0xFFFBBF24)
+                                  : const Color(0xFF4F46E5),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
             );
           },
 
@@ -140,6 +191,49 @@ class SkillsMatchApp extends StatelessWidget {
             ),
           ),
 
+           darkTheme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF4F46E5),
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+            brightness: Brightness.dark,
+
+            textTheme: senior
+                ? ThemeData.dark().textTheme.copyWith(
+                    bodySmall: ThemeData.dark().textTheme.bodySmall?.copyWith(fontSize: 16),
+                    bodyMedium: ThemeData.dark().textTheme.bodyMedium?.copyWith(fontSize: 20),
+                    bodyLarge: ThemeData.dark().textTheme.bodyLarge?.copyWith(fontSize: 22),
+                    titleSmall: ThemeData.dark().textTheme.titleSmall?.copyWith(fontSize: 20),
+                    titleMedium: ThemeData.dark().textTheme.titleMedium?.copyWith(fontSize: 24),
+                    titleLarge: ThemeData.dark().textTheme.titleLarge?.copyWith(fontSize: 30),
+                    headlineSmall: ThemeData.dark().textTheme.headlineSmall?.copyWith(fontSize: 34),
+                    headlineMedium: ThemeData.dark().textTheme.headlineMedium?.copyWith(fontSize: 38),
+                  )
+                : ThemeData.dark().textTheme,
+
+            inputDecorationTheme: InputDecorationTheme(
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: senior ? 22 : 16,
+              ),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                minimumSize: Size.fromHeight(senior ? 66 : 50),
+                textStyle: TextStyle(fontSize: senior ? 20 : 15, fontWeight: FontWeight.bold),
+              ),
+            ),
+            outlinedButtonTheme: OutlinedButtonThemeData(
+              style: OutlinedButton.styleFrom(
+                minimumSize: Size.fromHeight(senior ? 64 : 48),
+                textStyle: TextStyle(fontSize: senior ? 19 : 14, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+
+          themeMode: themeModeNotifier.value,
+
           home: SplashScreen(
             nextScreen: Builder(
               builder: (context) {
@@ -153,7 +247,8 @@ class SkillsMatchApp extends StatelessWidget {
           ),
         );
       },
-    );
+    ), // AnimatedBuilder
+    ); // ValueListenableBuilder
   }
 }
 
@@ -223,9 +318,9 @@ class _LoadingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFFF0F0FF),
-      body: Center(child: CircularProgressIndicator(color: Color(0xFF4F46E5))),
+    return Scaffold(
+      backgroundColor: context.kBg,
+      body: const Center(child: CircularProgressIndicator(color: kPrimary)),
     );
   }
 }

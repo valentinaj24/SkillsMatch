@@ -4,8 +4,11 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'create_collaboration_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../theme/app_colors.dart';
+import '../widgets/dark_mode_toggle.dart';
 
-// ─── Colors ───────────────────────────────────────────────────────────────────
+
+// ─── Brand / Accent Colors (stay the same) ──────────────────────────────────
 const _kP = Color(0xFF4F46E5);
 const _kPD = Color(0xFF312E81);
 const _kPL = Color(0xFF818CF8);
@@ -13,14 +16,22 @@ const _kV = Color(0xFF7C3AED);
 const _kC = Color(0xFF0891B2);
 const _kG = Color(0xFF059669);
 const _kA = Color(0xFFD97706);
-const _kSf = Color(0xFFF5F5FF);
-const _kW = Color(0xFFFFFFFF);
-const _kBg = Color(0xFFF0F0FF);
-const _kBd = Color(0xFFE2E8F0);
-const _kTx = Color(0xFF1E1B4B);
-const _kTs = Color(0xFF6B7280);
 
-// ─── Orb painter ──────────────────────────────────────────────────────────────
+// ─── Constant header gradient (same as in my_profile_screen.dart) ───────────
+const _headerGradientColors = [
+  Color(0xFF1E1B4B),
+  Color(0xFF3730A3),
+  Color(0xFF4F46E5),
+  Color(0xFF818CF8),
+];
+
+List<Color> _matchScoreGradient(int sc) {
+  if (sc >= 70) return [_kG, _kG.withOpacity(0.7)];
+  if (sc >= 55) return [_kA, _kA.withOpacity(0.7)];
+  return [Colors.white60, Colors.white60];
+}
+
+// ─── Orb painter (unchanged) ────────────────────────────────────────────────
 class _OrbPainter extends CustomPainter {
   final double t;
   _OrbPainter(this.t);
@@ -46,12 +57,11 @@ class _OrbPainter extends CustomPainter {
       );
     }
   }
-
   @override
   bool shouldRepaint(_OrbPainter o) => o.t != t;
 }
 
-// ─── Shimmer ──────────────────────────────────────────────────────────────────
+// ─── Shimmer (updated for dark mode) ────────────────────────────────────────
 class _Shimmer extends StatefulWidget {
   final Widget child;
   const _Shimmer({required this.child});
@@ -59,8 +69,7 @@ class _Shimmer extends StatefulWidget {
   State<_Shimmer> createState() => _ShimmerState();
 }
 
-class _ShimmerState extends State<_Shimmer>
-    with SingleTickerProviderStateMixin {
+class _ShimmerState extends State<_Shimmer> with SingleTickerProviderStateMixin {
   late AnimationController _c;
   @override
   void initState() {
@@ -70,32 +79,31 @@ class _ShimmerState extends State<_Shimmer>
       duration: const Duration(milliseconds: 1300),
     )..repeat();
   }
-
   @override
   void dispose() {
     _c.dispose();
     super.dispose();
   }
-
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _c,
-    builder: (_, child) => ShaderMask(
-      blendMode: BlendMode.srcATop,
-      shaderCallback: (b) => LinearGradient(
-        stops: const [0.0, 0.4, 0.6, 1.0],
-        colors: const [
-          Color(0xFFE8E8F0),
-          Color(0xFFF5F5FF),
-          Colors.white,
-          Color(0xFFE8E8F0),
-        ],
-        transform: _SlideTx(_c.value),
-      ).createShader(b),
-      child: child,
-    ),
-    child: widget.child,
-  );
+  Widget build(BuildContext context) {
+    final isDark = context.isDark;
+    final shimmerColors = isDark
+        ? [const Color(0xFF2A2A3E), const Color(0xFF3A3A52), const Color(0xFF4A4A62), const Color(0xFF2A2A3E)]
+        : [const Color(0xFFE8E8F0), const Color(0xFFF5F5FF), Colors.white, const Color(0xFFE8E8F0)];
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, child) => ShaderMask(
+        blendMode: BlendMode.srcATop,
+        shaderCallback: (b) => LinearGradient(
+          stops: const [0.0, 0.4, 0.6, 1.0],
+          colors: shimmerColors,
+          transform: _SlideTx(_c.value),
+        ).createShader(b),
+        child: child,
+      ),
+      child: widget.child,
+    );
+  }
 }
 
 class _SlideTx extends GradientTransform {
@@ -106,16 +114,18 @@ class _SlideTx extends GradientTransform {
       Matrix4.translationValues(bounds.width * 2 * (v - 0.5), 0, 0);
 }
 
-Widget _skBox({double? w, double h = 14, double r = 8}) => Container(
-  width: w,
-  height: h,
-  decoration: BoxDecoration(
-    color: const Color(0xFFE8E8F0),
-    borderRadius: BorderRadius.circular(r),
-  ),
-);
+Widget _skBox({double? w, double h = 14, double r = 8}) {
+  return Container(
+    width: w,
+    height: h,
+    decoration: BoxDecoration(
+      color: const Color(0xFFE8E8F0),
+      borderRadius: BorderRadius.circular(r),
+    ),
+  );
+}
 
-// ─── Skeleton card ────────────────────────────────────────────────────────────
+// ─── Skeleton card ──────────────────────────────────────────────────────────
 class _SkeletonCard extends StatelessWidget {
   const _SkeletonCard();
   @override
@@ -123,9 +133,9 @@ class _SkeletonCard extends StatelessWidget {
     child: Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: _kW,
+        color: context.kCardBg,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _kBd),
+        border: Border.all(color: context.kBorder),
       ),
       child: IntrinsicHeight(
         child: Row(
@@ -213,12 +223,12 @@ class _SkeletonCard extends StatelessWidget {
   );
 }
 
-// ─── Skeleton screen ──────────────────────────────────────────────────────────
+// ─── Skeleton screen ────────────────────────────────────────────────────────
 class _SkeletonScreen extends StatelessWidget {
   const _SkeletonScreen();
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: _kBg,
+    backgroundColor: context.kBg,
     body: SingleChildScrollView(
       physics: const NeverScrollableScrollPhysics(),
       child: Column(
@@ -226,9 +236,11 @@ class _SkeletonScreen extends StatelessWidget {
           _Shimmer(
             child: Container(
               height: 158,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color(0xFFDDD8F8), Color(0xFFEAE8FB)],
+                  colors: context.isDark
+                      ? [const Color(0xFF252438), const Color(0xFF3A3A52)]
+                      : [const Color(0xFFDDD8F8), const Color(0xFFEAE8FB)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -240,9 +252,9 @@ class _SkeletonScreen extends StatelessWidget {
               margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: _kW,
+                color: context.kCardBg,
                 borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: _kBd),
+                border: Border.all(color: context.kBorder),
               ),
               child: Column(
                 children: [
@@ -260,7 +272,7 @@ class _SkeletonScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                  Divider(height: 1, color: context.kBorder),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 7,
@@ -307,7 +319,7 @@ class _SkeletonScreen extends StatelessWidget {
   );
 }
 
-// ─── Empty search state ───────────────────────────────────────────────────────
+// ─── Empty search state (theme‑aware) ───────────────────────────────────────
 class _EmptySearch extends StatefulWidget {
   final VoidCallback onClear;
   const _EmptySearch({required this.onClear});
@@ -321,16 +333,13 @@ class _EmptySearchState extends State<_EmptySearch>
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(seconds: 3))
-      ..repeat();
+    _c = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
   }
-
   @override
   void dispose() {
     _c.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) => Padding(
     padding: const EdgeInsets.all(24),
@@ -342,9 +351,9 @@ class _EmptySearchState extends State<_EmptySearch>
       child: Container(
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: _kW,
+          color: context.kCardBg,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: _kBd),
+          border: Border.all(color: context.kBorder),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
@@ -355,7 +364,6 @@ class _EmptySearchState extends State<_EmptySearch>
         ),
         child: Column(
           children: [
-            // Animirana ikona
             AnimatedBuilder(
               animation: _c,
               builder: (_, __) {
@@ -387,7 +395,7 @@ class _EmptySearchState extends State<_EmptySearch>
                               height: 66,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
-                                color: _kSf,
+                                color: context.kSurface,
                                 border: Border.all(color: _kP, width: 2.5),
                               ),
                             ),
@@ -435,50 +443,35 @@ class _EmptySearchState extends State<_EmptySearch>
               },
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Ni rezultatov',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: _kTx,
+                color: context.kText,
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Poskusi drugačno iskanje\nali počisti aktiven filter.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: _kTs, fontSize: 13, height: 1.5),
+              style: TextStyle(color: context.kTextSub, fontSize: 13, height: 1.5),
             ),
             const SizedBox(height: 20),
             GestureDetector(
               onTap: widget.onClear,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [_kP, _kV],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
+                  gradient: const LinearGradient(colors: [_kP, _kV]),
                   borderRadius: BorderRadius.circular(14),
                   boxShadow: [
-                    BoxShadow(
-                      color: _kP.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
+                    BoxShadow(color: _kP.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4)),
                   ],
                 ),
                 child: const Text(
                   'Počisti filtre',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -489,7 +482,7 @@ class _EmptySearchState extends State<_EmptySearch>
   );
 }
 
-// ─── Empty community state ────────────────────────────────────────────────────
+// ─── Empty community state (theme‑aware) ────────────────────────────────────
 class _EmptyCommunity extends StatefulWidget {
   const _EmptyCommunity();
   @override
@@ -502,16 +495,13 @@ class _EmptyCommunityState extends State<_EmptyCommunity>
   @override
   void initState() {
     super.initState();
-    _c = AnimationController(vsync: this, duration: const Duration(seconds: 4))
-      ..repeat();
+    _c = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
   }
-
   @override
   void dispose() {
     _c.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) => Center(
     child: Padding(
@@ -545,38 +535,28 @@ class _EmptyCommunityState extends State<_EmptyCommunity>
                     Container(
                       width: 96,
                       height: 96,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         gradient: LinearGradient(
-                          colors: [Color(0xFFEEF2FF), Color(0xFFF5F3FF)],
+                          colors: context.isDark
+                              ? [const Color(0xFF1A1933), const Color(0xFF252438)]
+                              : [const Color(0xFFEEF2FF), const Color(0xFFF5F3FF)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                       ),
                     ),
-                    const Icon(
-                      Icons.people_outline_rounded,
-                      color: _kPL,
-                      size: 44,
-                    ),
+                    Icon(Icons.people_outline_rounded, color: _kPL, size: 44),
                     Transform.translate(
                       offset: Offset(30, -30 + math.cos(t * 1.3) * 4),
                       child: Container(
                         width: 24,
                         height: 24,
-                        decoration: BoxDecoration(
+                        decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [_kP, _kV],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                          gradient: LinearGradient(colors: [_kP, _kV]),
                         ),
-                        child: const Icon(
-                          Icons.add_rounded,
-                          color: Colors.white,
-                          size: 14,
-                        ),
+                        child: const Icon(Icons.add_rounded, color: Colors.white, size: 14),
                       ),
                     ),
                     Transform.translate(
@@ -591,19 +571,15 @@ class _EmptyCommunityState extends State<_EmptyCommunity>
                 ),
               ),
               const SizedBox(height: 18),
-              const Text(
+              Text(
                 'Skupnost je prazna',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: _kTx,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: context.kText),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Ko uporabniki ustvarijo profil,\nbodo prikazani tukaj.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: _kTs, fontSize: 13, height: 1.5),
+                style: TextStyle(color: context.kTextSub, fontSize: 13, height: 1.5),
               ),
             ],
           );
@@ -613,7 +589,7 @@ class _EmptyCommunityState extends State<_EmptyCommunity>
   );
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Helpers (unchanged) ────────────────────────────────────────────────────
 String _inits(Map<String, dynamic> d) {
   final a = (d['ime'] ?? '').toString();
   final b = (d['priimek'] ?? '').toString();
@@ -624,13 +600,8 @@ String _heroTag(Map<String, dynamic> d) =>
     'usr-${d['uid'] ?? d['ime'] ?? ''}-${d['priimek'] ?? ''}';
 Color _avatarColor(String s) {
   final cols = [
-    _kP,
-    _kV,
-    _kC,
-    _kG,
-    _kA,
-    const Color(0xFFDB2777),
-    const Color(0xFF0284C7),
+    _kP, _kV, _kC, _kG, _kA,
+    const Color(0xFFDB2777), const Color(0xFF0284C7),
   ];
   return s.isNotEmpty ? cols[s.codeUnitAt(0) % cols.length] : _kP;
 }
@@ -642,15 +613,12 @@ Map<String, dynamic> _privacy(Map<String, dynamic> data) {
 bool _showLocation(Map<String, dynamic> data) {
   return _privacy(data)['showLocation'] ?? true;
 }
-
 bool _showDescription(Map<String, dynamic> data) {
   return _privacy(data)['showDescription'] ?? true;
 }
-
 bool _showAvailability(Map<String, dynamic> data) {
   return _privacy(data)['showAvailability'] ?? true;
 }
-
 bool _showSkills(Map<String, dynamic> data) {
   return _privacy(data)['showSkills'] ?? true;
 }
@@ -675,45 +643,33 @@ List<Color> _roleGrad(String r) {
   if (r.contains('Mentor') && r.contains('Učenec')) return [_kP, _kV];
   if (r.contains('Mentor')) return [_kP, _kPL];
   if (r.contains('Učenec')) return [_kA, const Color(0xFFF59E0B)];
-  return [_kTs, _kBd];
+  return [const Color(0xFF6B7280), const Color(0xFF9CA3AF)];
 }
 
 class _MatchResult {
   final int percent;
   final List<String> reasons;
-
-  const _MatchResult({
-    required this.percent,
-    required this.reasons,
-  });
+  const _MatchResult({required this.percent, required this.reasons});
 }
 
 class _UserMatchItem {
   final QueryDocumentSnapshot doc;
   final _MatchResult match;
-
-  const _UserMatchItem({
-    required this.doc,
-    required this.match,
-  });
+  const _UserMatchItem({required this.doc, required this.match});
 }
 
-String _norm(dynamic v) {
-  return (v ?? '').toString().trim().toLowerCase();
-}
+String _norm(dynamic v) => (v ?? '').toString().trim().toLowerCase();
 
 List<Map<String, dynamic>> _skillsOf(Map<String, dynamic> data) {
   final raw = data['vescine'];
   if (raw is! List) return [];
-
-  return raw
-      .whereType<Map>()
-      .map((e) => Map<String, dynamic>.from(e))
-      .toList();
+  return raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
 }
 
-List<String> _skillNamesByType(List<Map<String, dynamic>> skills, String type) {
+List<String> _skillNamesByType(List<dynamic> skills, String type) {
   return skills
+      .whereType<Map<dynamic, dynamic>>()
+      .map((s) => Map<String, dynamic>.from(s))
       .where((s) => s['tip'] == type)
       .map((s) => _norm(s['naziv']))
       .where((s) => s.isNotEmpty)
@@ -724,10 +680,8 @@ bool _similarSkill(String a, String b) {
   if (a.isEmpty || b.isEmpty) return false;
   if (a == b) return true;
   if (a.contains(b) || b.contains(a)) return true;
-
   final aw = a.split(RegExp(r'\s+')).where((x) => x.length > 2).toSet();
   final bw = b.split(RegExp(r'\s+')).where((x) => x.length > 2).toSet();
-
   return aw.intersection(bw).isNotEmpty;
 }
 
@@ -746,18 +700,14 @@ _MatchResult _computeMatch({
   final reasons = <String>[];
 
   final mySkills = _skillsOf(currentUser);
-  final otherSkills =
-      _showSkills(otherUser) ? _skillsOf(otherUser) : <Map<String, dynamic>>[];
+  final otherSkills = _showSkills(otherUser) ? _skillsOf(otherUser) : [];
 
   final myCanTeach = _skillNamesByType(mySkills, 'Lahko učim druge');
   final myWantLearn = _skillNamesByType(mySkills, 'Želim se naučiti');
-
   final otherCanTeach = _skillNamesByType(otherSkills, 'Lahko učim druge');
   final otherWantLearn = _skillNamesByType(otherSkills, 'Želim se naučiti');
 
   final q = _norm(query);
-
-  // 1. Glavno ujemanje veščin
   double skillScore = 0;
 
   for (final wanted in myWantLearn) {
@@ -786,66 +736,40 @@ _MatchResult _computeMatch({
 
   percent += skillScore.clamp(0, 75);
 
-  // 2. Lokacija
   final myLocation = _norm(currentUser['lokacija']);
-  final otherLocation =
-      _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
-
+  final otherLocation = _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
   if (myLocation.isNotEmpty && otherLocation.isNotEmpty) {
     if (myLocation == otherLocation) {
       percent += 12;
       reasons.add('Ista lokacija');
-    } else if (myLocation.contains(otherLocation) ||
-        otherLocation.contains(myLocation)) {
+    } else if (myLocation.contains(otherLocation) || otherLocation.contains(myLocation)) {
       percent += 7;
       reasons.add('Podobna lokacija');
     }
   }
 
-  // 3. Razpoložljivost
   final myAvailability = _norm(currentUser['razpolozljivost']);
-  final otherAvailability =
-      _showAvailability(otherUser) ? _norm(otherUser['razpolozljivost']) : '';
-
-  if (myAvailability.isNotEmpty &&
-      otherAvailability.isNotEmpty &&
-      myAvailability == otherAvailability) {
+  final otherAvailability = _showAvailability(otherUser) ? _norm(otherUser['razpolozljivost']) : '';
+  if (myAvailability.isNotEmpty && otherAvailability.isNotEmpty && myAvailability == otherAvailability) {
     percent += 8;
     reasons.add('Ista razpoložljivost');
   }
 
-  // 4. Vzajemna izmenjava
-  final theyCanTeachMe = myWantLearn.any(
-    (w) => otherCanTeach.any((o) => _similarSkill(w, o)),
-  );
-
-  final iCanTeachThem = myCanTeach.any(
-    (m) => otherWantLearn.any((o) => _similarSkill(m, o)),
-  );
-
+  final theyCanTeachMe = myWantLearn.any((w) => otherCanTeach.any((o) => _similarSkill(w, o)));
+  final iCanTeachThem = myCanTeach.any((m) => otherWantLearn.any((o) => _similarSkill(m, o)));
   if (theyCanTeachMe && iCanTeachThem) {
     percent += 5;
     reasons.add('Vzajemna izmenjava');
   }
 
-  // 5. Bonus za iskanje
   if (q.isNotEmpty) {
-    final otherName =
-        '${otherUser['ime'] ?? ''} ${otherUser['priimek'] ?? ''}'
-            .toLowerCase();
-
-    final otherLocationText =
-        _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
-
-    final otherDescription =
-        _showDescription(otherUser) ? _norm(otherUser['opis']) : '';
-
+    final otherName = '${otherUser['ime'] ?? ''} ${otherUser['priimek'] ?? ''}'.toLowerCase();
+    final otherLocationText = _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
+    final otherDescription = _showDescription(otherUser) ? _norm(otherUser['opis']) : '';
     final otherSkillText = otherSkills
-        .map((s) =>
-            '${s['naziv'] ?? ''} ${s['tip'] ?? ''} ${s['nivoZnanja'] ?? ''}')
+        .map((s) => '${s['naziv'] ?? ''} ${s['tip'] ?? ''} ${s['nivoZnanja'] ?? ''}')
         .join(' ')
         .toLowerCase();
-
     if (otherSkillText.contains(q)) {
       percent += 5;
       reasons.add('Ujema se z iskanjem');
@@ -859,14 +783,10 @@ _MatchResult _computeMatch({
   }
 
   final uniqueReasons = reasons.toSet().take(4).toList();
-
-  return _MatchResult(
-    percent: percent.round().clamp(0, 100),
-    reasons: uniqueReasons,
-  );
+  return _MatchResult(percent: percent.round().clamp(0, 100), reasons: uniqueReasons);
 }
 
-// ─── Avatar ───────────────────────────────────────────────────────────────────
+// ─── Avatar (unchanged) ─────────────────────────────────────────────────────
 class _Av extends StatelessWidget {
   final Map<String, dynamic> data;
   final double sz, rad;
@@ -880,137 +800,45 @@ class _Av extends StatelessWidget {
       width: sz,
       height: sz,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [col, col.withOpacity(0.7)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: LinearGradient(colors: [col, col.withOpacity(0.7)]),
         borderRadius: BorderRadius.circular(rad),
-        boxShadow: [
-          BoxShadow(
-            color: col.withOpacity(0.28),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: col.withOpacity(0.28), blurRadius: 8, offset: const Offset(0, 3))],
       ),
       child: url.isNotEmpty
           ? ClipRRect(
               borderRadius: BorderRadius.circular(rad),
-              child: Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _txt(ini),
-              ),
+              child: Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _txt(ini)),
             )
           : _txt(ini),
     );
   }
-
   Widget _txt(String i) => Center(
-    child: Text(
-      i,
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: sz * 0.32,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
+    child: Text(i, style: TextStyle(color: Colors.white, fontSize: sz * 0.32, fontWeight: FontWeight.bold)),
   );
 }
 
-class _AnimatedCommunityIcon extends StatefulWidget {
-  const _AnimatedCommunityIcon();
-
-  @override
-  State<_AnimatedCommunityIcon> createState() => _AnimatedCommunityIconState();
-}
-
-class _AnimatedCommunityIconState extends State<_AnimatedCommunityIcon>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (_, __) {
-        final t = _controller.value * 2 * math.pi;
-
-        return Transform.translate(
-          offset: Offset(0, math.sin(t) * 4),
-          child: Transform.scale(
-            scale: 1 + math.sin(t) * 0.04,
-            child: Image.asset(
-              'assets/images/skupnost.png',
-              width: 160,
-              height: 160,
-              fit: BoxFit.contain,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
- Widget _reviewBadge(String userId, Map<String, dynamic> userData) {
-  if (userId.isEmpty) {
-    return const SizedBox.shrink();
-  }
-
+// ─── Review Badge (theme‑aware) ─────────────────────────────────────────────
+Widget _reviewBadge(String userId, Map<String, dynamic> userData, BuildContext context) {
+  if (userId.isEmpty) return const SizedBox.shrink();
   return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance
-        .collection('reviews')
-        .where('reviewedUserId', isEqualTo: userId)
-        .snapshots(),
+    stream: FirebaseFirestore.instance.collection('reviews').where('reviewedUserId', isEqualTo: userId).snapshots(),
     builder: (context, snapshot) {
       final docs = snapshot.data?.docs ?? [];
-
-      if (docs.isEmpty) {
-        return const SizedBox.shrink();
-      }
-
+      if (docs.isEmpty) return const SizedBox.shrink();
       double total = 0;
-
       for (final doc in docs) {
         final reviewData = doc.data() as Map<String, dynamic>;
         total += (reviewData['rating'] ?? 0).toDouble();
       }
-
       final avg = total / docs.length;
-
       final skills = userData['vescine'] as List? ?? [];
-
-      final isMentor = skills.any(
-        (s) => s['tip'] == 'Lahko učim druge',
-      );
-
-      final isVerified =
-          isMentor &&
-          docs.length >= 3 &&
-          avg >= 4.5;
-
+      final isMentor = skills.any((s) => s['tip'] == 'Lahko učim druge');
+      final isVerified = isMentor && docs.length >= 3 && avg >= 4.5;
       return Container(
         margin: const EdgeInsets.only(top: 6),
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFBEB),
+          color: context.isDark ? const Color(0xFF1F1A0F) : const Color(0xFFFFFBEB),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: _kA.withOpacity(0.35)),
         ),
@@ -1019,35 +847,18 @@ class _AnimatedCommunityIconState extends State<_AnimatedCommunityIcon>
           children: [
             const Icon(Icons.star_rounded, color: _kA, size: 13),
             const SizedBox(width: 4),
-            Text(
-              '${avg.toStringAsFixed(1)} (${docs.length})',
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: _kA,
-              ),
-            ),
+            Text('${avg.toStringAsFixed(1)} (${docs.length})', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: _kA)),
             if (isVerified) ...[
               const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _kG,
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                decoration: BoxDecoration(color: _kG, borderRadius: BorderRadius.circular(20)),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.verified_rounded, color: Colors.white, size: 10),
                     SizedBox(width: 3),
-                    Text(
-                      'VERIFIED',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 8,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
+                    Text('VERIFIED', style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900)),
                   ],
                 ),
               ),
@@ -1058,131 +869,81 @@ class _AnimatedCommunityIconState extends State<_AnimatedCommunityIcon>
     },
   );
 }
-Widget _reviewsList(String userId) {
-  if (userId.isEmpty) {
-    return const SizedBox.shrink();
-  }
 
+Widget _reviewsList(String userId, BuildContext context) {
+  if (userId.isEmpty) return const SizedBox.shrink();
   return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance
-        .collection('reviews')
-        .where('reviewedUserId', isEqualTo: userId)
-        .snapshots(),
+    stream: FirebaseFirestore.instance.collection('reviews').where('reviewedUserId', isEqualTo: userId).snapshots(),
     builder: (context, snapshot) {
       final docs = snapshot.data?.docs ?? [];
-
-      if (docs.isEmpty) {
-        return const SizedBox.shrink();
-      }
-
+      if (docs.isEmpty) return const SizedBox.shrink();
       return Container(
-  width: double.infinity,
-  margin: const EdgeInsets.only(bottom: 12),
-  padding: const EdgeInsets.all(16),
-  decoration: BoxDecoration(
-    color: _kW,
-    borderRadius: BorderRadius.circular(18),
-    border: Border.all(color: _kBd),
-  ),
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Row(
-        children: [
-          Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [_kA, _kA.withOpacity(0.7)],
-              ),
-              borderRadius: BorderRadius.circular(9),
-            ),
-            child: const Icon(
-              Icons.star_rounded,
-              color: Colors.white,
-              size: 15,
-            ),
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Ocene in komentarji',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: _kTx,
-            ),
-          ),
-        ],
-      ),
-
-      const SizedBox(height: 12),
-
-      Column(
-        children: docs.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          final rating = data['rating'] ?? 0;
-          final comment = (data['comment'] ?? '').toString();
-          final reviewerName = (data['reviewerName'] ?? 'Neznan uporabnik').toString();
-
-          return Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: _kSf,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _kBd),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-             children: [
-                      Text(
-                        reviewerName.isEmpty ? 'Neznan uporabnik' : reviewerName,
-                        style: const TextStyle(
-                          color: _kTx,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-
-                      Row(
-                        children: List.generate(5, (index) {
-                    return Icon(
-                      index < rating
-                          ? Icons.star_rounded
-                          : Icons.star_border_rounded,
-                      color: _kA,
-                      size: 17,
-                    );
-                  }),
+        width: double.infinity,
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: context.kCardBg,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: context.kBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(gradient: LinearGradient(colors: [_kA, _kA.withOpacity(0.7)]), borderRadius: BorderRadius.circular(9)),
+                  child: const Icon(Icons.star_rounded, color: Colors.white, size: 15),
                 ),
-                if (comment.isNotEmpty) ...[
-                  const SizedBox(height: 7),
-                  Text(
-                    comment,
-                    style: const TextStyle(
-                      color: _kTs,
-                      fontSize: 13,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
+                const SizedBox(width: 8),
+                Text('Ocene in komentarji', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: context.kText)),
               ],
             ),
-          );
-        }).toList(),
-      ),
-    ],
-  ),
-);
+            const SizedBox(height: 12),
+            Column(
+              children: docs.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                final rating = data['rating'] ?? 0;
+                final comment = (data['comment'] ?? '').toString();
+                final reviewerName = (data['reviewerName'] ?? 'Neznan uporabnik').toString();
+                return Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: context.kSurface,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: context.kBorder),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(reviewerName.isEmpty ? 'Neznan uporabnik' : reviewerName,
+                          style: TextStyle(color: context.kText, fontSize: 13, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      Row(children: List.generate(5, (index) {
+                        return Icon(index < rating ? Icons.star_rounded : Icons.star_border_rounded, color: _kA, size: 17);
+                      })),
+                      if (comment.isNotEmpty) ...[
+                        const SizedBox(height: 7),
+                        Text(comment, style: TextStyle(color: context.kTextSub, fontSize: 13, height: 1.4)),
+                      ],
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      );
     },
   );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// USERS LIST SCREEN
+// USERS LIST SCREEN (main)
 // ═══════════════════════════════════════════════════════════════════════════════
 class UsersListScreen extends StatefulWidget {
   const UsersListScreen({super.key});
@@ -1190,33 +951,26 @@ class UsersListScreen extends StatefulWidget {
   State<UsersListScreen> createState() => _UsersListScreenState();
 }
 
-class _UsersListScreenState extends State<UsersListScreen>
-    with SingleTickerProviderStateMixin {
+class _UsersListScreenState extends State<UsersListScreen> with SingleTickerProviderStateMixin {
   final _searchCtrl = TextEditingController();
   String _query = '';
   String _filter = 'Vsi';
   String _activeSkill = '';
   bool _showX = false;
-
-
   late AnimationController _orbCtrl;
 
   @override
-void initState() {
-  super.initState();
-
-  _orbCtrl = AnimationController(
-    vsync: this,
-    duration: const Duration(seconds: 9),
-  )..repeat();
-}
+  void initState() {
+    super.initState();
+    _orbCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 9))..repeat();
+  }
 
   @override
   void dispose() {
-  _orbCtrl.dispose();
-  _searchCtrl.dispose();
-  super.dispose();
-}
+    _orbCtrl.dispose();
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
   void _search() {
     FocusManager.instance.primaryFocus?.unfocus();
@@ -1224,291 +978,165 @@ void initState() {
   }
 
   void _clearAll() {
-  _searchCtrl.clear();
-  FocusManager.instance.primaryFocus?.unfocus();
-  setState(() {
-    _query = '';
-    _showX = false;
-    _activeSkill = '';
-    _filter = 'Vsi';
-  });
-}
+    _searchCtrl.clear();
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _query = '';
+      _showX = false;
+      _activeSkill = '';
+      _filter = 'Vsi';
+    });
+  }
 
   void _clear() {
-  _searchCtrl.clear();
-  FocusManager.instance.primaryFocus?.unfocus();
-  setState(() {
-    _query = '';
-    _showX = false;
-    _activeSkill = '';
-  });
-}
+    _searchCtrl.clear();
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _query = '';
+      _showX = false;
+      _activeSkill = '';
+    });
+  }
 
   bool _matches(Map<String, dynamic> data, List sk) {
     final q = _query.toLowerCase();
-
     final visibleSkills = _showSkills(data) ? sk : [];
-
     final nm = '${data['ime'] ?? ''} ${data['priimek'] ?? ''}'.toLowerCase();
-
-    final loc = _showLocation(data)
-        ? (data['lokacija'] ?? '').toString().toLowerCase()
-        : '';
-
-    final des = _showDescription(data)
-        ? (data['opis'] ?? '').toString().toLowerCase()
-        : '';
-
-    final st = visibleSkills
-        .map(
-          (s) =>
-              '${s['naziv'] ?? ''} ${s['nivoZnanja'] ?? ''} ${s['tip'] ?? ''}',
-        )
-        .join(' ')
-        .toLowerCase();
-
-    final sOk =
-        q.isEmpty ||
-        nm.contains(q) ||
-        loc.contains(q) ||
-        des.contains(q) ||
-        st.contains(q);
-
-    final fOk =
-        _filter == 'Vsi' ||
-        (_filter == 'Mentorji' &&
-            visibleSkills.any((s) => s['tip'] == 'Lahko učim druge')) ||
-        (_filter == 'Učenci' &&
-            visibleSkills.any((s) => s['tip'] == 'Želim se naučiti')) ||
-        (_filter == 'Vikend' &&
-            _showAvailability(data) &&
-            data['razpolozljivost'] == 'Vikend');
-
+    final loc = _showLocation(data) ? (data['lokacija'] ?? '').toString().toLowerCase() : '';
+    final des = _showDescription(data) ? (data['opis'] ?? '').toString().toLowerCase() : '';
+    final st = visibleSkills.map((s) => '${s['naziv'] ?? ''} ${s['nivoZnanja'] ?? ''} ${s['tip'] ?? ''}').join(' ').toLowerCase();
+    final sOk = q.isEmpty || nm.contains(q) || loc.contains(q) || des.contains(q) || st.contains(q);
+    final fOk = _filter == 'Vsi' ||
+        (_filter == 'Mentorji' && visibleSkills.any((s) => s['tip'] == 'Lahko učim druge')) ||
+        (_filter == 'Učenci' && visibleSkills.any((s) => s['tip'] == 'Želim se naučiti')) ||
+        (_filter == 'Vikend' && _showAvailability(data) && data['razpolozljivost'] == 'Vikend');
     return sOk && fOk;
   }
 
-  List<_UserMatchItem> _prepare(
-  List<QueryDocumentSnapshot> docs,
-  Map<String, dynamic> currentUser,
-  String currentUid,
-) {
-  final items = docs.where((d) {
-    final data = {
-                    ...(d.data() as Map<String, dynamic>),
-                    'docId': d.id,
-                  };
+  List<_UserMatchItem> _prepare(List<QueryDocumentSnapshot> docs, Map<String, dynamic> currentUser, String currentUid) {
+    final items = docs.where((d) {
+      final data = {...(d.data() as Map<String, dynamic>), 'docId': d.id};
+      final uidFromData = (data['uid'] ?? '').toString();
+      if (d.id == currentUid || uidFromData == currentUid) return false;
+      return _matches(data, data['vescine'] as List? ?? []);
+    }).map((d) {
+      final data = d.data() as Map<String, dynamic>;
+      final match = _computeMatch(currentUser: currentUser, otherUser: data, query: _query, filter: _filter);
+      return _UserMatchItem(doc: d, match: match);
+    }).toList();
+    items.sort((a, b) => b.match.percent.compareTo(a.match.percent));
+    return items;
+  }
 
-    final uidFromData = (data['uid'] ?? '').toString();
-
-    if (d.id == currentUid || uidFromData == currentUid) {
-      return false;
-    }
-
-    return _matches(data, data['vescine'] as List? ?? []);
-  }).map((d) {
-    final data = d.data() as Map<String, dynamic>;
-
-    final match = _computeMatch(
-      currentUser: currentUser,
-      otherUser: data,
-      query: _query,
-      filter: _filter,
-    );
-
-    return _UserMatchItem(doc: d, match: match);
-  }).toList();
-
-  items.sort((a, b) => b.match.percent.compareTo(a.match.percent));
-
-  return items;
-}
-
-  // ── Header ─────────────────────────────────────────────────────────────────
+  // ── Header (constant gradient, same as my_profile_screen.dart) ────────────
   Widget _header(int total) => AnimatedBuilder(
-          animation: _orbCtrl,
-          builder: (_, __) {
-            final t = _orbCtrl.value * 2 * math.pi;
-
-            return Container(
-              width: double.infinity,
-              height: 315,
-              margin: EdgeInsets.zero,
-              padding: const EdgeInsets.fromLTRB(22, 42, 22, 24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF1E1B4B),
-                    Color(0xFF312E81),
-                    Color(0xFF4F46E5),
-                    Color(0xFF818CF8),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(34),
-                  bottomRight: Radius.circular(34),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: _kP.withOpacity(0.28),
-                    blurRadius: 22,
-                    offset: const Offset(0, 10),
+    animation: _orbCtrl,
+    builder: (_, __) {
+      final t = _orbCtrl.value * 2 * math.pi;
+      return Container(
+        width: double.infinity,
+        height: 315,
+        padding: const EdgeInsets.fromLTRB(22, 42, 22, 24),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: _headerGradientColors,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.only(bottomLeft: Radius.circular(34), bottomRight: Radius.circular(34)),
+          boxShadow: [BoxShadow(color: _kP, blurRadius: 22, offset: Offset(0, 10))],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(topLeft: Radius.circular(18), bottomLeft: Radius.circular(18)),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(child: CustomPaint(painter: _OrbPainter(t))),
+              Positioned(
+                right: 0,
+                top: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: Colors.white.withOpacity(0.22)),
                   ),
-                ],
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.people_alt_rounded, color: Colors.white, size: 14),
+                      const SizedBox(width: 6),
+                      Text('$total profilov', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
               ),
-              child: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(18),
-                    bottomLeft: Radius.circular(18),
-                  ),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned.fill(child: CustomPaint(painter: _OrbPainter(t))),
-
-                    Positioned(
-                      right: 0,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+              Positioned(
+                top: 4,
+                left: 0,
+                right: 0,
+                child: SizedBox(
+                  height: 175,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: 132,
+                        height: 132,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(30),
-                          border: Border.all(color: Colors.white.withOpacity(0.22)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.people_alt_rounded, color: Colors.white, size: 14),
-                            const SizedBox(width: 6),
-                            Text(
-                              '$total profilov',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                          shape: BoxShape.circle,
+                          color: Colors.white.withOpacity(0.06),
+                          border: Border.all(color: Colors.white.withOpacity(0.14), width: 1.4),
                         ),
                       ),
-                    ),
-
-                    Positioned(
-                      top: 4,
-                      left: 0,
-                      right: 0,
-                      child: SizedBox(
-                        height: 175,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Container(
-                              width: 132,
-                              height: 132,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white.withOpacity(0.06),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.14),
-                                  width: 1.4,
-                                ),
-                              ),
-                            ),
-                            Transform.translate(
-                              offset: Offset(math.sin(t) * 48, math.cos(t) * 16),
-                              child: Icon(
-                                Icons.auto_awesome_rounded,
-                                color: Colors.white.withOpacity(0.80),
-                                size: 18,
-                              ),
-                            ),
-                            Transform.translate(
-                              offset: Offset(math.cos(t * 1.2) * 58, math.sin(t * 1.2) * 28),
-                              child: Container(
-                                width: 9,
-                                height: 9,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.75),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                            Transform.translate(
-                              offset: Offset(math.sin(t * 1.5) * -58, math.cos(t * 1.5) * 25),
-                              child: Icon(
-                                Icons.star_rounded,
-                                color: Colors.white.withOpacity(0.70),
-                                size: 15,
-                              ),
-                            ),
-                            Transform.translate(
-                              offset: Offset(math.cos(t * 1.8) * -45, math.sin(t * 1.8) * -34),
-                              child: Container(
-                                width: 7,
-                                height: 7,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.65),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ),
-                            Transform.translate(
-                              offset: Offset(0, math.sin(t) * 6),
-                              child: Transform.rotate(
-                                angle: math.sin(t) * 0.035,
-                                child: Image.asset(
-                                  'assets/images/skupnost.png',
-                                  width: 145,
-                                  height: 145,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                            ),
-                          ],
+                      Transform.translate(
+                        offset: Offset(math.sin(t) * 48, math.cos(t) * 16),
+                        child: Icon(Icons.auto_awesome_rounded, color: Colors.white.withOpacity(0.80), size: 18),
+                      ),
+                      Transform.translate(
+                        offset: Offset(math.cos(t * 1.2) * 58, math.sin(t * 1.2) * 28),
+                        child: Container(width: 9, height: 9, decoration: BoxDecoration(color: Colors.white.withOpacity(0.75), shape: BoxShape.circle)),
+                      ),
+                      Transform.translate(
+                        offset: Offset(math.sin(t * 1.5) * -58, math.cos(t * 1.5) * 25),
+                        child: Icon(Icons.star_rounded, color: Colors.white.withOpacity(0.70), size: 15),
+                      ),
+                      Transform.translate(
+                        offset: Offset(math.cos(t * 1.8) * -45, math.sin(t * 1.8) * -34),
+                        child: Container(width: 7, height: 7, decoration: BoxDecoration(color: Colors.white.withOpacity(0.65), shape: BoxShape.circle)),
+                      ),
+                      Transform.translate(
+                        offset: Offset(0, math.sin(t) * 6),
+                        child: Transform.rotate(
+                          angle: math.sin(t) * 0.035,
+                          child: Image.asset('assets/images/skupnost.png', width: 145, height: 145, fit: BoxFit.contain),
                         ),
                       ),
-                    ),
-
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: Column(
-                        children: [
-                          const Text(
-                            'Skupnost',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 37,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -1,
-                              height: 1,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Odkrij mentorje, učence in strokovnjake.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.84),
-                              fontSize: 14,
-                              height: 1.35,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Column(
+                  children: [
+                    const Text('Skupnost', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 37, fontWeight: FontWeight.w900, letterSpacing: -1, height: 1)),
+                    const SizedBox(height: 10),
+                    Text('Odkrij mentorje, učence in strokovnjake.', textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withOpacity(0.84), fontSize: 14, height: 1.35)),
                   ],
                 ),
               ),
-            );
-          },
-        );
+            ],
+          ),
+        ),
+      );
+    },
+  );
 
-  // ── Community panel ────────────────────────────────────────────────────────
+  // ── Community panel (theme‑aware) ────────────────────────────────────────
   Widget _communityPanel(List<QueryDocumentSnapshot> docs) {
     int mentorji = 0, ucenci = 0, vikend = 0;
     final Map<String, int> freq = {};
@@ -1523,24 +1151,15 @@ void initState() {
         if (n.isNotEmpty) freq[n] = (freq[n] ?? 0) + 1;
       }
     }
-    final topSkills =
-        (freq.entries.toList()..sort((a, b) => b.value.compareTo(a.value)))
-            .take(14)
-            .toList();
+    final topSkills = (freq.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).take(14).toList();
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       decoration: BoxDecoration(
-        color: _kW,
+        color: context.kCardBg,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _kBd),
-        boxShadow: [
-          BoxShadow(
-            color: _kP.withOpacity(0.07),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: context.kBorder),
+        boxShadow: [BoxShadow(color: _kP.withOpacity(0.07), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1549,19 +1168,9 @@ void initState() {
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Row(
               children: [
-                _statTile(
-                  '${docs.length}',
-                  'Skupaj',
-                  Icons.groups_rounded,
-                  _kP,
-                ),
+                _statTile('${docs.length}', 'Skupaj', Icons.groups_rounded, _kP),
                 _divider(),
-                _statTile(
-                  '$mentorji',
-                  'Mentorji',
-                  Icons.workspace_premium_rounded,
-                  _kV,
-                ),
+                _statTile('$mentorji', 'Mentorji', Icons.workspace_premium_rounded, _kV),
                 _divider(),
                 _statTile('$ucenci', 'Učenci', Icons.school_rounded, _kC),
                 _divider(),
@@ -1570,10 +1179,7 @@ void initState() {
             ),
           ),
           if (topSkills.isNotEmpty) ...[
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: Divider(height: 1, color: Color(0xFFF1F5F9)),
-            ),
+            Padding(padding: const EdgeInsets.fromLTRB(16, 14, 16, 0), child: Divider(height: 1, color: context.kBorder)),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Row(
@@ -1581,43 +1187,13 @@ void initState() {
                   Container(
                     width: 24,
                     height: 24,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [_kP, _kV],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(7),
-                    ),
-                    child: const Icon(
-                      Icons.tag_rounded,
-                      color: Colors.white,
-                      size: 13,
-                    ),
+                    decoration: const BoxDecoration(gradient: LinearGradient(colors: [_kP, _kV]), borderRadius: BorderRadius.all(Radius.circular(7))),
+                    child: const Icon(Icons.tag_rounded, color: Colors.white, size: 13),
                   ),
                   const SizedBox(width: 7),
-                  const Expanded(
-                    child: Text(
-                      'Priljubljene veščine',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: _kTx,
-                      ),
-                    ),
-                  ),
+                  Expanded(child: Text('Priljubljene veščine', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: context.kText))),
                   if (_activeSkill.isNotEmpty)
-                    GestureDetector(
-                      onTap: _clear,
-                      child: const Text(
-                        'Počisti ×',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFFEF4444),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                    GestureDetector(onTap: _clear, child: const Text('Počisti ×', style: TextStyle(fontSize: 12, color: Color(0xFFEF4444), fontWeight: FontWeight.w600))),
                 ],
               ),
             ),
@@ -1630,90 +1206,36 @@ void initState() {
                   final name = e.key;
                   final cnt = e.value;
                   final sel = _activeSkill == name;
-                  final allC = [
-                    _kP,
-                    _kV,
-                    _kC,
-                    _kG,
-                    _kA,
-                    const Color(0xFFDB2777),
-                    const Color(0xFF0284C7),
-                    const Color(0xFF0D9488),
-                  ];
+                  final allC = [_kP, _kV, _kC, _kG, _kA, const Color(0xFFDB2777), const Color(0xFF0284C7), const Color(0xFF0D9488)];
                   final col = allC[name.hashCode.abs() % allC.length];
-                  final fs = cnt >= 3
-                      ? 13.0
-                      : cnt == 2
-                      ? 12.0
-                      : 11.0;
+                  final fs = cnt >= 3 ? 13.0 : cnt == 2 ? 12.0 : 11.0;
                   return GestureDetector(
                     onTap: () {
                       HapticFeedback.selectionClick();
                       final nv = sel ? '' : name;
                       _searchCtrl.text = nv;
                       FocusManager.instance.primaryFocus?.unfocus();
-                      setState(() {
-                        _activeSkill = nv;
-                        _query = nv;
-                      });
+                      setState(() { _activeSkill = nv; _query = nv; });
                     },
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: cnt >= 3 ? 12 : 9,
-                        vertical: cnt >= 3 ? 6 : 4,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: cnt >= 3 ? 12 : 9, vertical: cnt >= 3 ? 6 : 4),
                       decoration: BoxDecoration(
-                        color: sel ? col : _kSf,
+                        color: sel ? col : context.kSurface,
                         borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                          color: sel ? col : col.withOpacity(0.28),
-                          width: sel ? 0 : 1.2,
-                        ),
-                        boxShadow: sel
-                            ? [
-                                BoxShadow(
-                                  color: col.withOpacity(0.25),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                            : [],
+                        border: Border.all(color: sel ? col : col.withOpacity(0.28), width: sel ? 0 : 1.2),
+                        boxShadow: sel ? [BoxShadow(color: col.withOpacity(0.25), blurRadius: 6, offset: const Offset(0, 2))] : [],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            name,
-                            style: TextStyle(
-                              fontSize: fs,
-                              fontWeight: sel
-                                  ? FontWeight.bold
-                                  : FontWeight.w500,
-                              color: sel ? Colors.white : col,
-                            ),
-                          ),
+                          Text(name, style: TextStyle(fontSize: fs, fontWeight: sel ? FontWeight.bold : FontWeight.w500, color: sel ? Colors.white : col)),
                           if (cnt > 1) ...[
                             const SizedBox(width: 4),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 1,
-                              ),
-                              decoration: BoxDecoration(
-                                color: sel
-                                    ? Colors.white.withOpacity(0.25)
-                                    : col.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              child: Text(
-                                '$cnt',
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.bold,
-                                  color: sel ? Colors.white : col,
-                                ),
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(color: sel ? Colors.white.withOpacity(0.25) : col.withOpacity(0.12), borderRadius: BorderRadius.circular(5)),
+                              child: Text('$cnt', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: sel ? Colors.white : col)),
                             ),
                           ],
                         ],
@@ -1725,10 +1247,7 @@ void initState() {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              child: Text(
-                'Dotakni se veščine za iskanje',
-                style: TextStyle(fontSize: 11, color: _kTs.withOpacity(0.7)),
-              ),
+              child: Text('Dotakni se veščine za iskanje', style: TextStyle(fontSize: 11, color: context.kTextSub.withOpacity(0.7))),
             ),
           ],
           const SizedBox(height: 16),
@@ -1737,40 +1256,20 @@ void initState() {
     );
   }
 
-  Widget _statTile(String val, String lbl, IconData icon, Color col) =>
-      Expanded(
-        child: Column(
-          children: [
-            Icon(icon, color: col, size: 16),
-            const SizedBox(height: 4),
-            Text(
-              val,
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-                color: col,
-              ),
-            ),
-            Text(
-              lbl,
-              style: const TextStyle(
-                fontSize: 9,
-                color: _kTs,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      );
-
-  Widget _divider() => Container(
-    width: 1,
-    height: 36,
-    margin: const EdgeInsets.symmetric(horizontal: 4),
-    color: _kBd,
+  Widget _statTile(String val, String lbl, IconData icon, Color col) => Expanded(
+    child: Column(
+      children: [
+        Icon(icon, color: col, size: 16),
+        const SizedBox(height: 4),
+        Text(val, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: col)),
+        Text(lbl, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w500, color: _kTs)),
+      ],
+    ),
   );
 
-  // ── Search panel ───────────────────────────────────────────────────────────
+  Widget _divider() => Container(width: 1, height: 36, margin: const EdgeInsets.symmetric(horizontal: 4), color: context.kBorder);
+
+  // ── Search panel (theme‑aware) ───────────────────────────────────────────
   Widget _searchPanel(int count) => Padding(
     padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
     child: Column(
@@ -1778,16 +1277,10 @@ void initState() {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: _kW,
+            color: context.kCardBg,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: _kBd, width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: _kP.withOpacity(0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            border: Border.all(color: context.kBorder, width: 1.2),
+            boxShadow: [BoxShadow(color: _kP.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, 3))],
           ),
           child: Row(
             children: [
@@ -1795,76 +1288,40 @@ void initState() {
               const Icon(Icons.search_rounded, color: _kPL, size: 19),
               const SizedBox(width: 8),
               Expanded(
-                  child: TextField(
+                child: TextField(
                   controller: _searchCtrl,
                   textInputAction: TextInputAction.search,
                   onSubmitted: (_) => _search(),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: _kTx,
-                  ),
+                  style: TextStyle(fontSize: 14, color: context.kText),
                   decoration: const InputDecoration(
                     hintText: 'Išči ime, lokacijo, veščino...',
-                    hintStyle: TextStyle(
-                      color: Color(0xFFCBD5E1),
-                      fontSize: 13,
-                    ),
+                    hintStyle: TextStyle(color: Color(0xFFCBD5E1), fontSize: 13),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(vertical: 13),
                   ),
                 ),
-                ),
+              ),
               ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _searchCtrl,
-                  builder: (_, value, __) {
-                    if (value.text.isEmpty) {
-                      return const SizedBox.shrink();
-                    }
-
-                    return GestureDetector(
-                      onTap: _clear,
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Icon(
-                          Icons.close_rounded,
-                          size: 16,
-                          color: _kTs,
-                        ),
-                      ),
-                    );
-                  },
-                ),
+                valueListenable: _searchCtrl,
+                builder: (_, value, __) {
+                  if (value.text.isEmpty) return const SizedBox.shrink();
+                  return GestureDetector(
+                    onTap: _clear,
+                    child: const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Icon(Icons.close_rounded, size: 16, color: _kTs)),
+                  );
+                },
+              ),
               GestureDetector(
                 onTap: _search,
                 child: Container(
                   margin: const EdgeInsets.all(5),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [_kP, _kV],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    gradient: const LinearGradient(colors: [_kP, _kV]),
                     borderRadius: BorderRadius.circular(10),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _kP.withOpacity(0.28),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    boxShadow: [BoxShadow(color: _kP.withOpacity(0.28), blurRadius: 6, offset: const Offset(0, 2))],
                   ),
-                  child: const Text(
-                    'Išči',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: const Text('Išči', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -1888,45 +1345,18 @@ void initState() {
         const SizedBox(height: 10),
         Row(
           children: [
-            Text(
-              '$count ${count == 1 ? 'rezultat' : 'rezultatov'}',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: _kTs,
-              ),
-            ),
+            Text('$count ${count == 1 ? 'rezultat' : 'rezultatov'}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: _kTs)),
             if (_query.isNotEmpty) ...[
               const SizedBox(width: 6),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(
-                  color: _kP.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  '"$_query"',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: _kP,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                decoration: BoxDecoration(color: _kP.withOpacity(0.08), borderRadius: BorderRadius.circular(6)),
+                child: Text('"$_query"', style: const TextStyle(fontSize: 10, color: _kP, fontWeight: FontWeight.w600)),
               ),
             ],
             const Spacer(),
             if (_query.isNotEmpty || _filter != 'Vsi')
-              GestureDetector(
-                onTap: _clearAll,
-                child: const Text(
-                  'Počisti vse',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFFEF4444),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+              GestureDetector(onTap: _clearAll, child: const Text('Počisti vse', style: TextStyle(fontSize: 11, color: Color(0xFFEF4444), fontWeight: FontWeight.w600))),
           ],
         ),
       ],
@@ -1944,49 +1374,25 @@ void initState() {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
         decoration: BoxDecoration(
-          color: sel ? col : _kW,
+          color: sel ? col : context.kCardBg,
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: sel ? col : _kBd, width: sel ? 0 : 1.2),
-          boxShadow: sel
-              ? [
-                  BoxShadow(
-                    color: col.withOpacity(0.22),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : [],
+          border: Border.all(color: sel ? col : context.kBorder, width: sel ? 0 : 1.2),
+          boxShadow: sel ? [BoxShadow(color: col.withOpacity(0.22), blurRadius: 6, offset: const Offset(0, 2))] : [],
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 13, color: sel ? Colors.white : _kTs),
+            Icon(icon, size: 13, color: sel ? Colors.white : context.kTextSub),
             const SizedBox(width: 5),
-            Text(
-              lbl,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: sel ? Colors.white : _kTs,
-              ),
-            ),
+            Text(lbl, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: sel ? Colors.white : context.kTextSub)),
           ],
         ),
       ),
     );
   }
 
-
-
-
-  // ── User card ──────────────────────────────────────────────────────────────
-  Widget _userCard(
-    BuildContext ctx,
-  Map<String, dynamic> data,
-  List sk,
-  _MatchResult match,
-  int idx,
-  ) {
+  // ── User card (theme‑aware) ──────────────────────────────────────────────
+  Widget _userCard(BuildContext ctx, Map<String, dynamic> data, List sk, _MatchResult match, int idx) {
     final sc = match.percent;
     final role = _role(sk);
     final grad = _roleGrad(role);
@@ -1995,44 +1401,20 @@ void initState() {
     return GestureDetector(
       onTap: () {
         HapticFeedback.lightImpact();
-        Navigator.push(
-          ctx,
-          MaterialPageRoute(
-            builder: (_) =>
-                UserDetailScreen(
-                data: data,
-                skills: sk,
-                score: sc,
-                role: role,
-                reasons: match.reasons,
-              ),
-          ),
-        );
+        Navigator.push(ctx, MaterialPageRoute(builder: (_) => UserDetailScreen(data: data, skills: sk, score: sc, role: role, reasons: match.reasons)));
       },
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0, end: 1),
         duration: Duration(milliseconds: 200 + idx * 40),
         curve: Curves.easeOutCubic,
-        builder: (_, v, child) => Opacity(
-          opacity: v,
-          child: Transform.translate(
-            offset: Offset(0, 10 * (1 - v)),
-            child: child,
-          ),
-        ),
+        builder: (_, v, child) => Opacity(opacity: v, child: Transform.translate(offset: Offset(0, 10 * (1 - v)), child: child)),
         child: Container(
           margin: const EdgeInsets.only(bottom: 10),
           decoration: BoxDecoration(
-            color: _kW,
+            color: ctx.kCardBg,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: _kBd),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
+            border: Border.all(color: ctx.kBorder),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 3))],
           ),
           child: IntrinsicHeight(
             child: Row(
@@ -2041,15 +1423,8 @@ void initState() {
                 Container(
                   width: 4,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: grad,
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                    ),
-                    borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(34),
-                        bottomRight: Radius.circular(34),
-                    ),
+                    gradient: LinearGradient(colors: grad, begin: Alignment.topCenter, end: Alignment.bottomCenter),
+                    borderRadius: const BorderRadius.only(topLeft: Radius.circular(18), bottomLeft: Radius.circular(18)),
                   ),
                 ),
                 Expanded(
@@ -2061,118 +1436,51 @@ void initState() {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Hero(
-                              tag: _heroTag(data),
-                              child: _Av(data: data, sz: 46, rad: 13),
-                            ),
+                            Hero(tag: _heroTag(data), child: _Av(data: data, sz: 46, rad: 13)),
                             const SizedBox(width: 10),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    '${data['ime'] ?? ''} ${data['priimek'] ?? ''}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
-                                      color: _kTx,
-                                    ),
-                                  ),
+                                  Text('${data['ime'] ?? ''} ${data['priimek'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: ctx.kText)),
                                   const SizedBox(height: 3),
                                   Row(
                                     children: [
-                                      Container(
-                                        width: 6,
-                                        height: 6,
-                                        decoration: BoxDecoration(
-                                          color: roleC,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
+                                      Container(width: 6, height: 6, decoration: BoxDecoration(color: roleC, shape: BoxShape.circle)),
                                       const SizedBox(width: 5),
-                                      Text(
-                                        role,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: roleC,
-                                        ),
-                                      ),
+                                      Text(role, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: roleC)),
                                     ],
                                   ),
-                                 _reviewBadge((data['uid'] ?? data['docId'] ?? '').toString(), data),
+                                  _reviewBadge((data['uid'] ?? data['docId'] ?? '').toString(), data, ctx),
                                 ],
                               ),
                             ),
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 7,
-                                vertical: 4,
-                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
                               decoration: BoxDecoration(
-                                color: sc >= 70
-                                    ? _kG.withOpacity(0.09)
-                                    : sc >= 55
-                                    ? _kA.withOpacity(0.09)
-                                    : _kSf,
+                                color: sc >= 70 ? _kG.withOpacity(0.09) : sc >= 55 ? _kA.withOpacity(0.09) : ctx.kSurface,
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: sc >= 70
-                                      ? _kG.withOpacity(0.22)
-                                      : sc >= 55
-                                      ? _kA.withOpacity(0.22)
-                                      : _kBd,
-                                ),
+                                border: Border.all(color: sc >= 70 ? _kG.withOpacity(0.22) : sc >= 55 ? _kA.withOpacity(0.22) : ctx.kBorder),
                               ),
-                              child: Text(
-                                '$sc%',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: sc >= 70
-                                      ? _kG
-                                      : sc >= 55
-                                      ? _kA
-                                      : _kTs,
-                                ),
-                              ),
+                              child: Text('$sc%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold,
+                                  color: sc >= 70 ? _kG : sc >= 55 ? _kA : ctx.kTextSub)),
                             ),
                           ],
                         ),
                         const SizedBox(height: 9),
                         Row(
                           children: [
-                            _pill(
-                              Icons.location_on_rounded,
-                              _showLocation(data)
-                                  ? (data['lokacija'] ?? '—')
-                                  : 'Skrito',
-                            ),
+                            _pill(Icons.location_on_rounded, _showLocation(data) ? (data['lokacija'] ?? '—') : 'Skrito', ctx),
                             const SizedBox(width: 6),
-                            _pill(
-                              Icons.schedule_rounded,
-                              _showAvailability(data)
-                                  ? (data['razpolozljivost'] ?? '—')
-                                  : 'Skrito',
-                            ),
+                            _pill(Icons.schedule_rounded, _showAvailability(data) ? (data['razpolozljivost'] ?? '—') : 'Skrito', ctx),
                           ],
                         ),
-                        if (_showDescription(data) &&
-                            (data['opis'] ?? '').toString().isNotEmpty) ...[
+                        if (_showDescription(data) && (data['opis'] ?? '').toString().isNotEmpty) ...[
                           const SizedBox(height: 7),
-                          Text(
-                            data['opis'],
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: _kTs,
-                              height: 1.4,
-                            ),
-                          ),
+                          Text(data['opis'], maxLines: 2, overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 12, color: ctx.kTextSub, height: 1.4)),
                         ],
                         if (vis.isNotEmpty) ...[
                           const SizedBox(height: 7),
@@ -2183,109 +1491,57 @@ void initState() {
                               ...vis.map((s) {
                                 final ct = s['tip'] == 'Lahko učim druge';
                                 return Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 7,
-                                    vertical: 3,
-                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                   decoration: BoxDecoration(
-                                    color: ct
-                                        ? _kP.withOpacity(0.07)
-                                        : _kA.withOpacity(0.07),
+                                    color: ct ? _kP.withOpacity(0.07) : _kA.withOpacity(0.07),
                                     borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                      color: ct
-                                          ? _kP.withOpacity(0.18)
-                                          : _kA.withOpacity(0.18),
-                                    ),
+                                    border: Border.all(color: ct ? _kP.withOpacity(0.18) : _kA.withOpacity(0.18)),
                                   ),
-                                  child: Text(
-                                    s['naziv'] ?? '',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: ct ? _kP : _kA,
-                                    ),
-                                  ),
+                                  child: Text(s['naziv'] ?? '', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: ct ? _kP : _kA)),
                                 );
                               }),
                               if (sk.length > 3)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 7,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _kSf,
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(color: _kBd),
-                                  ),
-                                  child: Text(
-                                    '+${sk.length - 3}',
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: _kTs,
-                                    ),
-                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                  decoration: BoxDecoration(color: ctx.kSurface, borderRadius: BorderRadius.circular(14), border: Border.all(color: ctx.kBorder)),
+                                  child: Text('+${sk.length - 3}', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: ctx.kTextSub)),
                                 ),
                             ],
                           ),
                         ],
                         if (match.reasons.isNotEmpty) ...[
-                        const SizedBox(height: 7),
-                        Wrap(
-                          spacing: 5,
-                          runSpacing: 5,
-                          children: match.reasons.take(3).map((r) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: _kG.withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: _kG.withOpacity(0.18)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.check_circle_rounded,
-                                    size: 10,
-                                    color: _kG,
-                                  ),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    r,
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: _kG,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
+                          const SizedBox(height: 7),
+                          Wrap(
+                            spacing: 5,
+                            runSpacing: 5,
+                            children: match.reasons.take(3).map((r) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: _kG.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: _kG.withOpacity(0.18)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.check_circle_rounded, size: 10, color: _kG),
+                                    const SizedBox(width: 3),
+                                    Text(r, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _kG)),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ],
                         const SizedBox(height: 9),
                         Row(
                           children: [
                             _matchBadge(sc),
                             const Spacer(),
-                            const Text(
-                              'Poglej profil',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: _kP,
-                              ),
-                            ),
+                            const Text('Poglej profil', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _kP)),
                             const SizedBox(width: 2),
-                            const Icon(
-                              Icons.arrow_forward_rounded,
-                              color: _kP,
-                              size: 12,
-                            ),
+                            const Icon(Icons.arrow_forward_rounded, color: _kP, size: 12),
                           ],
                         ),
                       ],
@@ -2300,113 +1556,58 @@ void initState() {
     );
   }
 
-  Widget _pill(IconData icon, String text) => Expanded(
+  Widget _pill(IconData icon, String text, BuildContext ctx) => Expanded(
     child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-      decoration: BoxDecoration(
-        color: _kSf,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _kBd),
-      ),
+      decoration: BoxDecoration(color: ctx.kSurface, borderRadius: BorderRadius.circular(8), border: Border.all(color: ctx.kBorder)),
       child: Row(
         children: [
           Icon(icon, size: 11, color: _kPL),
           const SizedBox(width: 4),
-          Expanded(
-            child: Text(
-              text,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: _kTx,
-              ),
-            ),
-          ),
+          Expanded(child: Text(text, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: ctx.kText))),
         ],
       ),
     ),
   );
 
   Widget _matchBadge(int sc) {
-  final (txt, col) = sc >= 85
-      ? ('Top match', _kG)
-      : sc >= 65
-      ? ('Dobro ujemanje', _kA)
-      : sc >= 40
-      ? ('Delno ujemanje', _kC)
-      : ('Osnovno', _kTs);
+    final (txt, col) = sc >= 85 ? ('Top match', _kG) : sc >= 65 ? ('Dobro ujemanje', _kA) : sc >= 40 ? ('Delno ujemanje', _kC) : ('Osnovno', _kTs);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.auto_awesome_rounded, size: 11, color: col),
+        const SizedBox(width: 3),
+        Text(txt, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: col)),
+      ],
+    );
+  }
 
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(Icons.auto_awesome_rounded, size: 11, color: col),
-      const SizedBox(width: 3),
-      Text(
-        txt,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-          color: col,
-        ),
-      ),
-    ],
-  );
-}
-
-  // ── BUILD ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) => Scaffold(
-    backgroundColor: _kBg,
+    backgroundColor: context.kBg,
     body: StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('users').snapshots(),
       builder: (ctx, snap) {
-        // ── Loading — skeleton ──────────────────────────────────────────────
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const _SkeletonScreen();
-        }
-        if (snap.hasError) {
-          return Center(
-            child: Text(
-              'Napaka: ${snap.error}',
-              style: const TextStyle(color: Colors.redAccent),
-            ),
-          );
-        }
-        // ── Empty community ─────────────────────────────────────────────────
+        if (snap.connectionState == ConnectionState.waiting) return const _SkeletonScreen();
+        if (snap.hasError) return Center(child: Text('Napaka: ${snap.error}', style: const TextStyle(color: Colors.redAccent)));
         if (!snap.hasData || snap.data!.docs.isEmpty) {
-          return Column(
-            children: [
-              _header(0),
-              const Expanded(child: _EmptyCommunity()),
-            ],
-          );
+          return Column(children: [_header(0), const Expanded(child: _EmptyCommunity())]);
         }
-
         final all = snap.data!.docs;
         final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
-
         final currentDoc = all.where((d) {
           final data = d.data() as Map<String, dynamic>;
           return d.id == currentUid || (data['uid'] ?? '').toString() == currentUid;
         }).toList();
-
         if (currentDoc.isEmpty) {
-          return Column(
-            children: [
-              _header(all.length),
-              const Expanded(child: _EmptyCommunity()),
-            ],
-          );
+          return Column(children: [_header(all.length), const Expanded(child: _EmptyCommunity())]);
         }
-
         final currentUser = currentDoc.first.data() as Map<String, dynamic>;
         final users = _prepare(all, currentUser, currentUid);
 
-        // ── Pull to refresh + list ──────────────────────────────────────────
         return RefreshIndicator(
           color: _kP,
-          backgroundColor: _kW,
+          backgroundColor: context.kCardBg,
           strokeWidth: 2.5,
           onRefresh: () async {
             HapticFeedback.mediumImpact();
@@ -2415,9 +1616,7 @@ void initState() {
           },
           child: CustomScrollView(
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
             slivers: [
               SliverToBoxAdapter(child: _header(all.length)),
               SliverToBoxAdapter(child: _communityPanel(all)),
@@ -2431,20 +1630,9 @@ void initState() {
                   sliver: SliverList(
                     delegate: SliverChildBuilderDelegate((ctx, i) {
                       final item = users[i];
-
-                      final data = {
-                        ...(item.doc.data() as Map<String, dynamic>),
-                        'docId': item.doc.id,
-                      };
+                      final data = {...(item.doc.data() as Map<String, dynamic>), 'docId': item.doc.id};
                       final sk = data['vescine'] as List? ?? [];
-
-                      return _userCard(
-                        ctx,
-                        data,
-                        sk,
-                        item.match,
-                        i,
-                      );
+                      return _userCard(ctx, data, sk, item.match, i);
                     }, childCount: users.length),
                   ),
                 ),
@@ -2457,7 +1645,7 @@ void initState() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// USER DETAIL SCREEN
+// USER DETAIL SCREEN (theme‑aware, header now constant)
 // ═══════════════════════════════════════════════════════════════════════════════
 class UserDetailScreen extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -2465,30 +1653,18 @@ class UserDetailScreen extends StatefulWidget {
   final int score;
   final String role;
   final List<String> reasons;
-  const UserDetailScreen({
-    super.key,
-    required this.data,
-    required this.skills,
-    required this.score,
-    required this.role,
-    required this.reasons,
-  });
+  const UserDetailScreen({super.key, required this.data, required this.skills, required this.score, required this.role, required this.reasons});
   @override
   State<UserDetailScreen> createState() => _UserDetailScreenState();
 }
 
-class _UserDetailScreenState extends State<UserDetailScreen>
-    with SingleTickerProviderStateMixin {
+class _UserDetailScreenState extends State<UserDetailScreen> with SingleTickerProviderStateMixin {
   late AnimationController _orbCtrl;
   @override
   void initState() {
     super.initState();
-    _orbCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 9),
-    )..repeat();
+    _orbCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 9))..repeat();
   }
-
   @override
   void dispose() {
     _orbCtrl.dispose();
@@ -2496,517 +1672,293 @@ class _UserDetailScreenState extends State<UserDetailScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    final d = widget.data;
-    final sk = widget.skills;
-    final sc = widget.score;
-    final r = widget.role;
-    final showLocation = _showLocation(d);
-    final showDescription = _showDescription(d);
-    final showAvailability = _showAvailability(d);
-    final showSkills = _showSkills(d);
+Widget build(BuildContext context) {
+  final d = widget.data;
+  final sk = widget.skills;
+  final sc = widget.score;
+  final r = widget.role;
+  final showLocation = _showLocation(d);
+  final showDescription = _showDescription(d);
+  final showAvailability = _showAvailability(d);
+  final showSkills = _showSkills(d);
+  final visibleSkills = showSkills ? sk : [];
 
-    final visibleSkills = showSkills ? sk : [];
-    return Scaffold(
-      backgroundColor: _kBg,
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            AnimatedBuilder(
-              animation: _orbCtrl,
-              builder: (_, __) => Container(
-                padding: const EdgeInsets.fromLTRB(20, 54, 20, 28),
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Color(0xFF1E1B4B),
-                      Color(0xFF3730A3),
-                      Color(0xFF4F46E5),
-                      Color(0xFF818CF8),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+  return Scaffold(
+    backgroundColor: context.kBg,
+    body: Stack(
+      children: [
+        SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            children: [
+              AnimatedBuilder(
+                animation: _orbCtrl,
+                builder: (_, __) => Container(
+                  padding: const EdgeInsets.fromLTRB(20, 54, 20, 28),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: _headerGradientColors,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                   ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: CustomPaint(
-                        painter: _OrbPainter(_orbCtrl.value * 2 * math.pi),
-                      ),
-                    ),
-                    Column(
-                      children: [
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.13),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.25),
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.arrow_back_ios_new_rounded,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Hero(
-                          tag: _heroTag(d),
-                          child: _Av(data: d, sz: 88, rad: 26),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          '${d['ime'] ?? ''} ${d['priimek'] ?? ''}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        _reviewBadge((d['uid'] ?? d['docId'] ?? '').toString(), d),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _roleC(r).withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: _roleC(r).withOpacity(0.4),
-                                ),
-                              ),
-                              child: Text(
-                                r,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            if (showLocation &&
-                                (d['lokacija'] ?? '')
-                                    .toString()
-                                    .isNotEmpty) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
-                                ),
+                  child: Stack(
+                    children: [
+                      Positioned.fill(child: CustomPaint(painter: _OrbPainter(_orbCtrl.value * 2 * math.pi))),
+                      Column(
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: GestureDetector(
+                              onTap: () => Navigator.pop(context),
+                              child: Container(
+                                width: 38,
+                                height: 38,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(20),
+                                  color: Colors.white.withOpacity(0.13),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white.withOpacity(0.25)),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.location_on_rounded,
-                                      color: Colors.white70,
-                                      size: 12,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      d['lokacija'],
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 100),
-              child: Column(
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [_kPD, _kP],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: _kP.withOpacity(0.25),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.auto_awesome_rounded,
-                              color: Colors.white70,
-                              size: 15,
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Ujemanje profila',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                                child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 16),
                               ),
                             ),
-                            const Spacer(),
-                            Text(
-                              '$sc%',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Stack(
+                          ),
+                          const SizedBox(height: 16),
+                          Hero(tag: _heroTag(d), child: _Av(data: d, sz: 88, rad: 26)),
+                          const SizedBox(height: 12),
+                          Text('${d['ime'] ?? ''} ${d['priimek'] ?? ''}', textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.3)),
+                          _reviewBadge((d['uid'] ?? d['docId'] ?? '').toString(), d, context),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Container(
-                                height: 5,
-                                color: Colors.white.withOpacity(0.15),
-                              ),
-                              AnimatedContainer(
-                                duration: const Duration(milliseconds: 800),
-                                curve: Curves.easeOutCubic,
-                                height: 5,
-                                width:
-                                    (MediaQuery.of(context).size.width - 60) *
-                                    (sc / 100),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                                 decoration: BoxDecoration(
-                                  color: sc >= 70
-                                      ? _kG
-                                      : sc >= 55
-                                      ? _kA
-                                      : Colors.white60,
-                                  borderRadius: BorderRadius.circular(4),
+                                  color: _roleC(r).withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: _roleC(r).withOpacity(0.4)),
                                 ),
+                                child: Text(r, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
                               ),
+                              if (showLocation && (d['lokacija'] ?? '').toString().isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.12), borderRadius: BorderRadius.circular(20)),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.location_on_rounded, color: Colors.white70, size: 12),
+                                      const SizedBox(width: 4),
+                                      Text(d['lokacija'], style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500)),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
-                                    if (widget.reasons.isNotEmpty) ...[
-                    _section(
-                      'Razlogi ujemanja',
-                      Icons.psychology_rounded,
-                      _kG,
-                      child: Wrap(
-                        spacing: 7,
-                        runSpacing: 7,
-                        children: widget.reasons.map((r) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _kG.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: _kG.withOpacity(0.20),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 100),
+                child: Column(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: _matchScoreGradient(sc), begin: Alignment.topLeft, end: Alignment.bottomRight),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [BoxShadow(color: _kP.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4))],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.auto_awesome_rounded, color: Colors.white70, size: 15),
+                              const SizedBox(width: 8),
+                              const Text('Ujemanje profila', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                              const Spacer(),
+                              Text('$sc%', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: Stack(
                               children: [
-                                const Icon(
-                                  Icons.check_circle_rounded,
-                                  color: _kG,
-                                  size: 13,
-                                ),
-                                const SizedBox(width: 5),
-                                Text(
-                                  r,
-                                  style: const TextStyle(
-                                    color: _kG,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
+                                Container(height: 5, color: Colors.white.withOpacity(0.15)),
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 800),
+                                  curve: Curves.easeOutCubic,
+                                  height: 5,
+                                  width: (MediaQuery.of(context).size.width - 60) * (sc / 100),
+                                  decoration: BoxDecoration(
+                                    color: sc >= 70 ? _kG : sc >= 55 ? _kA : Colors.white60,
+                                    borderRadius: BorderRadius.circular(4),
                                   ),
                                 ),
                               ],
                             ),
-                          );
-                        }).toList(),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _infoCard(
-                          Icons.schedule_rounded,
-                          'Razpoložljivost',
-                          showAvailability
-                              ? (d['razpolozljivost'] ?? '—')
-                              : 'Skrito',
-                          _kP,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _infoCard(
-                          Icons.auto_awesome_rounded,
-                          'Veščine',
-                          showSkills ? '${visibleSkills.length}' : 'Skrito',
-                          _kV,
+                    if (widget.reasons.isNotEmpty) ...[
+                      _section('Razlogi ujemanja', Icons.psychology_rounded, _kG, context,
+                        child: Wrap(
+                          spacing: 7,
+                          runSpacing: 7,
+                          children: widget.reasons.map((r) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: _kG.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: _kG.withOpacity(0.20)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.check_circle_rounded, color: _kG, size: 13),
+                                  const SizedBox(width: 5),
+                                  Text(r, style: const TextStyle(color: _kG, fontSize: 12, fontWeight: FontWeight.w700)),
+                                ],
+                              ),
+                            );
+                          }).toList(),
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  _reviewsList((d['uid'] ?? d['docId'] ?? '').toString()),
-                  _section(
-                    'Opis',
-                    Icons.description_outlined,
-                    _kP,
-                    child: Text(
-                      !showDescription
-                          ? 'Uporabnik je skril opis.'
-                          : (d['opis'] ?? '').toString().isEmpty
-                          ? 'Ni opisa.'
-                          : d['opis'],
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: _kTs,
-                        height: 1.5,
+                    Row(
+                      children: [
+                        Expanded(child: _infoCard(Icons.schedule_rounded, 'Razpoložljivost', showAvailability ? (d['razpolozljivost'] ?? '—') : 'Skrito', _kP, context)),
+                        const SizedBox(width: 10),
+                        Expanded(child: _infoCard(Icons.auto_awesome_rounded, 'Veščine', showSkills ? '${visibleSkills.length}' : 'Skrito', _kV, context)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _reviewsList((d['uid'] ?? d['docId'] ?? '').toString(), context),
+                    _section('Opis', Icons.description_outlined, _kP, context,
+                      child: Text(
+                        !showDescription ? 'Uporabnik je skril opis.' : (d['opis'] ?? '').toString().isEmpty ? 'Ni opisa.' : d['opis'],
+                        style: TextStyle(fontSize: 13, color: context.kTextSub, height: 1.5),
                       ),
                     ),
-                  ),
-                  _section(
-                    'Veščine',
-                    Icons.auto_awesome_rounded,
-                    _kV,
-                    child: !showSkills
-                        ? const Text(
-                            'Uporabnik je skril veščine.',
-                            style: TextStyle(color: _kTs, fontSize: 13),
-                          )
-                        : visibleSkills.isEmpty
-                        ? const Text(
-                            'Ni dodanih veščin.',
-                            style: TextStyle(color: _kTs, fontSize: 13),
-                          )
-                        : Column(
-                            children: visibleSkills.asMap().entries.map((e) {
-                              final s = e.value;
-                              final ct = s['tip'] == 'Lahko učim druge';
-                              final ac = ct ? _kP : _kA;
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                decoration: BoxDecoration(
-                                  color: _kW,
-                                  borderRadius: BorderRadius.circular(13),
-                                  border: Border.all(color: _kBd),
-                                ),
-                                child: IntrinsicHeight(
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 4,
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: ct
-                                                ? [_kP, _kV]
-                                                : [
-                                                    _kA,
-                                                    const Color(0xFFF59E0B),
-                                                  ],
-                                            begin: Alignment.topCenter,
-                                            end: Alignment.bottomCenter,
-                                          ),
-                                          borderRadius: const BorderRadius.only(
-                                            topLeft: Radius.circular(13),
-                                            bottomLeft: Radius.circular(13),
-                                          ),
-                                        ),
+                    _section('Veščine', Icons.auto_awesome_rounded, _kV, context,
+                      child: !showSkills
+                          ? Text('Uporabnik je skril veščine.', style: TextStyle(color: context.kTextSub, fontSize: 13))
+                          : visibleSkills.isEmpty
+                              ? Text('Ni dodanih veščin.', style: TextStyle(color: context.kTextSub, fontSize: 13))
+                              : Column(
+                                  children: visibleSkills.asMap().entries.map((e) {
+                                    final s = e.value;
+                                    final ct = s['tip'] == 'Lahko učim druge';
+                                    final ac = ct ? _kP : _kA;
+                                    return Container(
+                                      margin: const EdgeInsets.only(bottom: 8),
+                                      decoration: BoxDecoration(
+                                        color: context.kCardBg,
+                                        borderRadius: BorderRadius.circular(13),
+                                        border: Border.all(color: context.kBorder),
                                       ),
-                                      const SizedBox(width: 10),
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 10,
-                                        ),
-                                        child: Container(
-                                          width: 28,
-                                          height: 28,
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              colors: ct
-                                                  ? [_kP, _kV]
-                                                  : [
-                                                      _kA,
-                                                      const Color(0xFFF59E0B),
-                                                    ],
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
+                                      child: IntrinsicHeight(
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 4,
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(colors: ct ? [_kP, _kV] : [_kA, const Color(0xFFF59E0B)]),
+                                                borderRadius: const BorderRadius.only(topLeft: Radius.circular(13), bottomLeft: Radius.circular(13)),
+                                              ),
                                             ),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            ct
-                                                ? Icons
-                                                      .volunteer_activism_rounded
-                                                : Icons.school_rounded,
-                                            color: Colors.white,
-                                            size: 13,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 10,
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                s['naziv'] ?? '',
-                                                style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: _kTx,
+                                            const SizedBox(width: 10),
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(vertical: 10),
+                                              child: Container(
+                                                width: 28,
+                                                height: 28,
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(colors: ct ? [_kP, _kV] : [_kA, const Color(0xFFF59E0B)]),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(ct ? Icons.volunteer_activism_rounded : Icons.school_rounded, color: Colors.white, size: 13),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(s['naziv'] ?? '', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: context.kText)),
+                                                    Text('${s['nivoZnanja']} • ${ct ? "Učim" : "Učim se"}', style: TextStyle(fontSize: 10, color: ac, fontWeight: FontWeight.w600)),
+                                                  ],
                                                 ),
                                               ),
-                                              Text(
-                                                '${s['nivoZnanja']} • '
-                                                '${ct ? "Učim" : "Učim se"}',
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  color: ac,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                    ],
-                                  ),
+                                    );
+                                  }).toList(),
                                 ),
-                              );
-                            }).toList(),
-                          ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CreateCollaborationScreen(
-                            userData: d,
-                            skills: visibleSkills,
-                          ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (_) => CreateCollaborationScreen(userData: d, skills: visibleSkills)));
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [_kP, _kV]),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [BoxShadow(color: _kP.withOpacity(0.35), blurRadius: 12, offset: const Offset(0, 4))],
                         ),
-                      );
-                    },
-                    child: Container(
-                      width: double.infinity,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [_kP, _kV],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.handshake_rounded, color: Colors.white, size: 18),
+                            SizedBox(width: 8),
+                            Text('Pošlji povabilo', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                          ],
                         ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: _kP.withOpacity(0.35),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.handshake_rounded,
-                            color: Colors.white,
-                            size: 18,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Pošlji povabilo',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
+        Positioned(
+          top: MediaQuery.of(context).padding.top + 10,
+          left: 16,
+          child: const DarkModeToggle(),
+        ),
+      ],
+    ),
+  );
+}
 
-  Widget _infoCard(IconData icon, String lbl, String val, Color c) => Container(
+  Widget _infoCard(IconData icon, String lbl, String val, Color c, BuildContext ctx) => Container(
     padding: const EdgeInsets.all(14),
     margin: const EdgeInsets.only(bottom: 12),
     decoration: BoxDecoration(
-      color: _kW,
+      color: ctx.kCardBg,
       borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: _kBd),
-      boxShadow: [
-        BoxShadow(
-          color: c.withOpacity(0.07),
-          blurRadius: 8,
-          offset: const Offset(0, 3),
-        ),
-      ],
+      border: Border.all(color: ctx.kBorder),
+      boxShadow: [BoxShadow(color: c.withOpacity(0.07), blurRadius: 8, offset: const Offset(0, 3))],
     ),
     child: Column(
       children: [
@@ -3014,39 +1966,20 @@ class _UserDetailScreenState extends State<UserDetailScreen>
         const SizedBox(height: 6),
         Text(lbl, style: const TextStyle(fontSize: 11, color: _kTs)),
         const SizedBox(height: 3),
-        Text(
-          val,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-            color: _kTx,
-          ),
-        ),
+        Text(val, textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: ctx.kText)),
       ],
     ),
   );
 
-  Widget _section(
-    String title,
-    IconData icon,
-    Color c, {
-    required Widget child,
-  }) => Container(
+  Widget _section(String title, IconData icon, Color c, BuildContext ctx, {required Widget child}) => Container(
     width: double.infinity,
     margin: const EdgeInsets.only(bottom: 12),
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: _kW,
+      color: ctx.kCardBg,
       borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: _kBd),
-      boxShadow: [
-        BoxShadow(
-          color: c.withOpacity(0.06),
-          blurRadius: 8,
-          offset: const Offset(0, 3),
-        ),
-      ],
+      border: Border.all(color: ctx.kBorder),
+      boxShadow: [BoxShadow(color: c.withOpacity(0.06), blurRadius: 8, offset: const Offset(0, 3))],
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3056,25 +1989,11 @@ class _UserDetailScreenState extends State<UserDetailScreen>
             Container(
               width: 30,
               height: 30,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [c, c.withOpacity(0.7)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(9),
-              ),
+              decoration: BoxDecoration(gradient: LinearGradient(colors: [c, c.withOpacity(0.7)]), borderRadius: BorderRadius.circular(9)),
               child: Icon(icon, color: Colors.white, size: 15),
             ),
             const SizedBox(width: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: _kTx,
-              ),
-            ),
+            Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: ctx.kText)),
           ],
         ),
         const SizedBox(height: 12),
@@ -3083,3 +2002,5 @@ class _UserDetailScreenState extends State<UserDetailScreen>
     ),
   );
 }
+
+const _kTs = Color(0xFF6B7280);

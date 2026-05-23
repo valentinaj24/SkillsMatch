@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'my_profile_screen.dart';
 import 'users_list_screen.dart';
 import 'collaborations_screen.dart';
+import '../theme/app_colors.dart';
 
 const _kPrimary = Color(0xFF4F46E5);
 
@@ -86,7 +87,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F0FF),
+      backgroundColor: context.kBg,
       body: IndexedStack(index: selectedIndex, children: screens),
       bottomNavigationBar: SafeArea(
         top: false,

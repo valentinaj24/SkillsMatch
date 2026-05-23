@@ -9,6 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import '../theme/app_colors.dart';
 
 // ─── Color System ──────────────────────────────────────────────────────────────
 const _kPrimary = Color(0xFF4F46E5);
@@ -16,12 +17,6 @@ const _kPrimaryDark = Color(0xFF312E81);
 const _kPrimaryLight = Color(0xFF818CF8);
 const _kViolet = Color(0xFF7C3AED);
 const _kAmber = Color(0xFFD97706);
-const _kSurface = Color(0xFFF5F5FF);
-const _kCardBg = Color(0xFFFFFFFF);
-const _kBg = Color(0xFFF0F0FF);
-const _kBorder = Color(0xFFE2E8F0);
-const _kText = Color(0xFF1E1B4B);
-const _kTextSub = Color(0xFF6B7280);
 
 // ─── Orb Painter ──────────────────────────────────────────────────────────────
 class _OrbPainter extends CustomPainter {
@@ -396,11 +391,13 @@ class _EditProfileScreenState extends State<EditProfileScreen>
     IconData icon,
     FocusNode fn, {
     bool multiline = false,
+    BuildContext? ctx,
   }) {
     final focused = fn.hasFocus;
+    final context = ctx ?? this.context;
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 14),
+      hintStyle: TextStyle(color: context.kTextSub.withOpacity(0.5), fontSize: 14),
       prefixIcon: Padding(
         padding: EdgeInsets.only(bottom: multiline ? 52 : 0),
         child: Icon(
@@ -410,11 +407,11 @@ class _EditProfileScreenState extends State<EditProfileScreen>
         ),
       ),
       filled: true,
-      fillColor: focused ? const Color(0xFFF0F0FF) : _kSurface,
+      fillColor: focused ? context.kSurface.withOpacity(0.8) : context.kSurface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: _kBorder, width: 1.2),
+        borderSide: BorderSide(color: context.kBorder, width: 1.2),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
@@ -431,14 +428,14 @@ class _EditProfileScreenState extends State<EditProfileScreen>
     );
   }
 
-  InputDecoration _dropDeco(IconData icon) => InputDecoration(
+  InputDecoration _dropDeco(IconData icon, BuildContext ctx) => InputDecoration(
     prefixIcon: Icon(icon, color: const Color(0xFFA5B4FC), size: 20),
     filled: true,
-    fillColor: _kSurface,
+    fillColor: ctx.kSurface,
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: _kBorder, width: 1.2),
+      borderSide: BorderSide(color: ctx.kBorder, width: 1.2),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
@@ -446,14 +443,14 @@ class _EditProfileScreenState extends State<EditProfileScreen>
     ),
   );
 
-  Widget _lbl(String t) => Padding(
+  Widget _lbl(String t, BuildContext ctx) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
     child: Text(
       t,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w600,
-        color: _kText,
+        color: ctx.kText,
       ),
     ),
   );
@@ -464,13 +461,14 @@ class _EditProfileScreenState extends State<EditProfileScreen>
     required IconData icon,
     required Color accent,
     required Widget child,
+    required BuildContext ctx,
   }) => Container(
     width: double.infinity,
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: _kCardBg,
+      color: ctx.kCardBg,
       borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: _kBorder),
+      border: Border.all(color: ctx.kBorder),
       boxShadow: [
         BoxShadow(
           color: accent.withOpacity(0.07),
@@ -500,17 +498,17 @@ class _EditProfileScreenState extends State<EditProfileScreen>
             const SizedBox(width: 10),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: _kText,
+                color: ctx.kText,
               ),
             ),
           ],
         ),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 14),
-          child: Divider(height: 1, color: Color(0xFFF1F5F9)),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          child: Divider(height: 1, color: ctx.kBorder),
         ),
         child,
       ],
@@ -518,7 +516,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
   );
 
   // ── Razpoložljivost chips ──────────────────────────────────────────────────
-  Widget _availChips() {
+  Widget _availChips(BuildContext ctx) {
     final opts = [
       ('Dopoldan', Icons.wb_sunny_outlined),
       ('Popoldan', Icons.wb_cloudy_outlined),
@@ -537,9 +535,9 @@ class _EditProfileScreenState extends State<EditProfileScreen>
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: sel ? _kPrimary : _kSurface,
+              color: sel ? _kPrimary : ctx.kSurface,
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: sel ? _kPrimary : _kBorder, width: 1.2),
+              border: Border.all(color: sel ? _kPrimary : ctx.kBorder, width: 1.2),
               boxShadow: sel
                   ? [
                       BoxShadow(
@@ -553,14 +551,14 @@ class _EditProfileScreenState extends State<EditProfileScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 14, color: sel ? Colors.white : _kTextSub),
+                Icon(icon, size: 14, color: sel ? Colors.white : ctx.kTextSub),
                 const SizedBox(width: 6),
                 Text(
                   label,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: sel ? Colors.white : _kTextSub,
+                    color: sel ? Colors.white : ctx.kTextSub,
                   ),
                 ),
               ],
@@ -572,7 +570,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
   }
 
   // ── Nivo chips ─────────────────────────────────────────────────────────────
-  Widget _nivoChips() {
+  Widget _nivoChips(BuildContext ctx) {
     final opts = [
       ('Začetnik', const Color(0xFF10B981), Icons.eco_rounded),
       ('Srednje', const Color(0xFF3B82F6), Icons.trending_up_rounded),
@@ -591,9 +589,9 @@ class _EditProfileScreenState extends State<EditProfileScreen>
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
             decoration: BoxDecoration(
-              color: sel ? color : _kSurface,
+              color: sel ? color : ctx.kSurface,
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: sel ? color : _kBorder, width: 1.2),
+              border: Border.all(color: sel ? color : ctx.kBorder, width: 1.2),
               boxShadow: sel
                   ? [
                       BoxShadow(
@@ -607,14 +605,14 @@ class _EditProfileScreenState extends State<EditProfileScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 13, color: sel ? Colors.white : _kTextSub),
+                Icon(icon, size: 13, color: sel ? Colors.white : ctx.kTextSub),
                 const SizedBox(width: 5),
                 Text(
                   label,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: sel ? Colors.white : _kTextSub,
+                    color: sel ? Colors.white : ctx.kTextSub,
                   ),
                 ),
               ],
@@ -626,7 +624,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
   }
 
   // ── Tip toggle ─────────────────────────────────────────────────────────────
-  Widget _tipToggle() {
+  Widget _tipToggle(BuildContext ctx) {
     final opts = [
       ('Lahko učim druge', Icons.volunteer_activism_rounded, _kPrimary),
       ('Želim se naučiti', Icons.school_rounded, _kAmber),
@@ -644,10 +642,10 @@ class _EditProfileScreenState extends State<EditProfileScreen>
               margin: EdgeInsets.only(right: isFirst ? 8 : 0),
               padding: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: sel ? color.withOpacity(0.10) : _kSurface,
+                color: sel ? color.withOpacity(0.10) : ctx.kSurface,
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: sel ? color : _kBorder,
+                  color: sel ? color : ctx.kBorder,
                   width: sel ? 2 : 1.2,
                 ),
                 boxShadow: sel
@@ -665,7 +663,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                 children: [
                   Icon(
                     icon,
-                    color: sel ? color : const Color(0xFFA5B4FC),
+                    color: sel ? color : ctx.kTextSub,
                     size: 20,
                   ),
                   const SizedBox(height: 5),
@@ -675,7 +673,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: sel ? FontWeight.bold : FontWeight.w500,
-                      color: sel ? color : _kTextSub,
+                      color: sel ? color : ctx.kTextSub,
                     ),
                   ),
                 ],
@@ -688,7 +686,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
   }
 
   // ── Skill card ─────────────────────────────────────────────────────────────
-  Widget _skillCard(Map<String, dynamic> v, int i) {
+  Widget _skillCard(Map<String, dynamic> v, int i, BuildContext ctx) {
     final canTeach = v['tip'] == 'Lahko učim druge';
     final accent = canTeach ? _kPrimary : _kAmber;
     return TweenAnimationBuilder<double>(
@@ -705,9 +703,9 @@ class _EditProfileScreenState extends State<EditProfileScreen>
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: _kCardBg,
+          color: ctx.kCardBg,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: _kBorder),
+          border: Border.all(color: ctx.kBorder),
           boxShadow: [
             BoxShadow(
               color: accent.withOpacity(0.07),
@@ -764,10 +762,10 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                 children: [
                   Text(
                     v['naziv'] ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: _kText,
+                      color: ctx.kText,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -803,7 +801,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                 height: 34,
                 margin: const EdgeInsets.only(right: 10),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: ctx.isDark ? Colors.red.shade900.withOpacity(0.3) : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -820,12 +818,12 @@ class _EditProfileScreenState extends State<EditProfileScreen>
   }
 
   // ── Photo card ─────────────────────────────────────────────────────────────
-  Widget _photoCard() => Container(
+  Widget _photoCard(BuildContext ctx) => Container(
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: _kCardBg,
+      color: ctx.kCardBg,
       borderRadius: BorderRadius.circular(24),
-      border: Border.all(color: _kBorder),
+      border: Border.all(color: ctx.kBorder),
       boxShadow: [
         BoxShadow(
           color: _kPrimary.withOpacity(0.07),
@@ -844,8 +842,10 @@ class _EditProfileScreenState extends State<EditProfileScreen>
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFEEF2FF), Color(0xFFF5F3FF)],
+                gradient: LinearGradient(
+                  colors: ctx.isDark
+                      ? [const Color(0xFF252438), const Color(0xFF1C1B2E)]
+                      : [const Color(0xFFEEF2FF), const Color(0xFFF5F3FF)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -902,19 +902,19 @@ class _EditProfileScreenState extends State<EditProfileScreen>
           ],
         ),
         const SizedBox(height: 14),
-        const Text(
+        Text(
           'Profilna slika',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
-            color: _kText,
+            color: ctx.kText,
           ),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'Slika se shrani na Cloudinary.\nURL se hrani v Firestore bazi.',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, color: _kTextSub, height: 1.45),
+          style: TextStyle(fontSize: 12, color: ctx.kTextSub, height: 1.45),
         ),
         const SizedBox(height: 14),
         SizedBox(
@@ -1069,14 +1069,15 @@ class _EditProfileScreenState extends State<EditProfileScreen>
     required bool value,
     required Function(bool) onChanged,
     required IconData icon,
+    required BuildContext ctx,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: _kSurface,
+        color: ctx.kSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: _kBorder),
+        border: Border.all(color: ctx.kBorder),
       ),
       child: Row(
         children: [
@@ -1102,18 +1103,18 @@ class _EditProfileScreenState extends State<EditProfileScreen>
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
-                    color: _kText,
+                    color: ctx.kText,
                   ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: _kTextSub,
+                    color: ctx.kTextSub,
                     height: 1.4,
                   ),
                 ),
@@ -1131,14 +1132,14 @@ class _EditProfileScreenState extends State<EditProfileScreen>
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
-        backgroundColor: _kBg,
-        body: Center(child: CircularProgressIndicator(color: _kPrimary)),
+      return Scaffold(
+        backgroundColor: context.kBg,
+        body: const Center(child: CircularProgressIndicator(color: _kPrimary)),
       );
     }
 
     return Scaffold(
-      backgroundColor: _kBg,
+      backgroundColor: context.kBg,
       body: FadeTransition(
         opacity: _fadeAnim,
         child: SlideTransition(
@@ -1158,7 +1159,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                         // ── Foto ─────────────────────────────────────────────
                         Transform.translate(
                           offset: const Offset(0, 12),
-                          child: _photoCard(),
+                          child: _photoCard(context),
                         ),
                         const SizedBox(height: 26),
 
@@ -1167,6 +1168,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                           title: 'Osnovni podatki',
                           icon: Icons.person_rounded,
                           accent: _kPrimary,
+                          ctx: context,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -1178,7 +1180,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        _lbl('Ime *'),
+                                        _lbl('Ime *', context),
                                         TextFormField(
                                           controller: imeController,
                                           focusNode: _imeFN,
@@ -1188,6 +1190,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                             'Janez',
                                             Icons.badge_outlined,
                                             _imeFN,
+                                            ctx: context,
                                           ),
                                           validator: (v) =>
                                               v == null || v.isEmpty
@@ -1203,7 +1206,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        _lbl('Priimek *'),
+                                        _lbl('Priimek *', context),
                                         TextFormField(
                                           controller: priimekController,
                                           focusNode: _priimekFN,
@@ -1213,6 +1216,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                             'Novak',
                                             Icons.person_outline,
                                             _priimekFN,
+                                            ctx: context,
                                           ),
                                           validator: (v) =>
                                               v == null || v.isEmpty
@@ -1225,7 +1229,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                 ],
                               ),
                               const SizedBox(height: 14),
-                              _lbl('Lokacija *'),
+                              _lbl('Lokacija *', context),
                               TextFormField(
                                 controller: lokacijaController,
                                 focusNode: _lokacijaFN,
@@ -1233,6 +1237,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                   'Ljubljana, Slovenija',
                                   Icons.location_on_outlined,
                                   _lokacijaFN,
+                                  ctx: context,
                                 ),
                                 validator: (v) => v == null || v.isEmpty
                                     ? 'Vnesite lokacijo'
@@ -1281,10 +1286,11 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                           title: 'Opis in razpoložljivost',
                           icon: Icons.edit_note_rounded,
                           accent: _kViolet,
+                          ctx: context,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _lbl('Kratek opis'),
+                              _lbl('Kratek opis', context),
                               TextFormField(
                                 controller: opisController,
                                 focusNode: _opisFN,
@@ -1294,11 +1300,12 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                   Icons.description_outlined,
                                   _opisFN,
                                   multiline: true,
+                                  ctx: context,
                                 ),
                               ),
                               const SizedBox(height: 16),
-                              _lbl('Razpoložljivost'),
-                              _availChips(),
+                              _lbl('Razpoložljivost', context),
+                              _availChips(context),
                             ],
                           ),
                         ),
@@ -1307,6 +1314,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                           title: 'Zasebnost profila',
                           icon: Icons.visibility_off_rounded,
                           accent: _kAmber,
+                          ctx: context,
                           child: Column(
                             children: [
                               _privacySwitch(
@@ -1317,6 +1325,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                 onChanged: (v) =>
                                     setState(() => showLocation = v),
                                 icon: Icons.location_on_outlined,
+                                ctx: context,
                               ),
                               _privacySwitch(
                                 title: 'Prikaži opis',
@@ -1326,6 +1335,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                 onChanged: (v) =>
                                     setState(() => showDescription = v),
                                 icon: Icons.description_outlined,
+                                ctx: context,
                               ),
                               _privacySwitch(
                                 title: 'Prikaži razpoložljivost',
@@ -1335,6 +1345,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                 onChanged: (v) =>
                                     setState(() => showAvailability = v),
                                 icon: Icons.schedule_outlined,
+                                ctx: context,
                               ),
                               _privacySwitch(
                                 title: 'Prikaži veščine',
@@ -1344,6 +1355,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                 onChanged: (v) =>
                                     setState(() => showSkills = v),
                                 icon: Icons.auto_awesome_rounded,
+                                ctx: context,
                               ),
                             ],
                           ),
@@ -1354,13 +1366,14 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                           title: 'Veščine',
                           icon: Icons.auto_awesome_rounded,
                           accent: const Color(0xFF7C3AED),
+                          ctx: context,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Seznam obstoječih
                               if (vescine.isNotEmpty) ...[
                                 ...vescine.asMap().entries.map(
-                                  (e) => _skillCard(e.value, e.key),
+                                  (e) => _skillCard(e.value, e.key, context),
                                 ),
                                 const SizedBox(height: 4),
                               ] else ...[
@@ -1371,17 +1384,18 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                     horizontal: 16,
                                   ),
                                   decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFFF5F3FF),
-                                        Color(0xFFEEF2FF),
-                                      ],
+                                    gradient: LinearGradient(
+                                      colors: context.isDark
+                                          ? [const Color(0xFF252438), const Color(0xFF1C1B2E)]
+                                          : [const Color(0xFFF5F3FF), const Color(0xFFEEF2FF)],
                                       begin: Alignment.topLeft,
                                       end: Alignment.bottomRight,
                                     ),
                                     borderRadius: BorderRadius.circular(14),
                                     border: Border.all(
-                                      color: const Color(0xFFDDD6FE),
+                                      color: context.isDark
+                                          ? const Color(0xFF2E2D45)
+                                          : const Color(0xFFDDD6FE),
                                     ),
                                   ),
                                   child: Column(
@@ -1389,8 +1403,8 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                       Container(
                                         width: 44,
                                         height: 44,
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
+                                        decoration: const BoxDecoration(
+                                          gradient: LinearGradient(
                                             colors: [_kViolet, _kPrimary],
                                             begin: Alignment.topLeft,
                                             end: Alignment.bottomRight,
@@ -1404,20 +1418,20 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                         ),
                                       ),
                                       const SizedBox(height: 8),
-                                      const Text(
+                                      Text(
                                         'Še nimate veščin',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 13,
-                                          color: _kText,
+                                          color: context.kText,
                                         ),
                                       ),
                                       const SizedBox(height: 3),
-                                      const Text(
+                                      Text(
                                         'Dodajte svojo prvo veščino spodaj.',
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: _kTextSub,
+                                          color: context.kTextSub,
                                         ),
                                       ),
                                     ],
@@ -1442,11 +1456,11 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                             end: Alignment.centerRight,
                                           ),
                                     color: _addingSkill
-                                        ? const Color(0xFFF1F5F9)
+                                        ? context.kSurface
                                         : null,
                                     borderRadius: BorderRadius.circular(14),
                                     border: _addingSkill
-                                        ? Border.all(color: _kBorder)
+                                        ? Border.all(color: context.kBorder)
                                         : null,
                                     boxShadow: _addingSkill
                                         ? []
@@ -1468,7 +1482,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                             ? Icons.close_rounded
                                             : Icons.add_rounded,
                                         color: _addingSkill
-                                            ? _kTextSub
+                                            ? context.kTextSub
                                             : Colors.white,
                                         size: 20,
                                       ),
@@ -1479,7 +1493,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                             : 'Dodaj veščino',
                                         style: TextStyle(
                                           color: _addingSkill
-                                              ? _kTextSub
+                                              ? context.kTextSub
                                               : Colors.white,
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
@@ -1500,12 +1514,12 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                         CrossAxisAlignment.start,
                                     children: [
                                       const SizedBox(height: 14),
-                                      const Divider(
+                                      Divider(
                                         height: 1,
-                                        color: Color(0xFFF1F5F9),
+                                        color: context.kBorder,
                                       ),
                                       const SizedBox(height: 14),
-                                      _lbl('Naziv veščine'),
+                                      _lbl('Naziv veščine', context),
                                       TextFormField(
                                         controller: vescinaController,
                                         focusNode: _vescinaFN,
@@ -1513,14 +1527,15 @@ class _EditProfileScreenState extends State<EditProfileScreen>
                                           'Npr. Python, kuhanje...',
                                           Icons.star_outline_rounded,
                                           _vescinaFN,
+                                          ctx: context,
                                         ),
                                       ),
                                       const SizedBox(height: 12),
-                                      _lbl('Nivo znanja'),
-                                      _nivoChips(),
+                                      _lbl('Nivo znanja', context),
+                                      _nivoChips(context),
                                       const SizedBox(height: 12),
-                                      _lbl('Tip veščine'),
-                                      _tipToggle(),
+                                      _lbl('Tip veščine', context),
+                                      _tipToggle(context),
                                       const SizedBox(height: 14),
                                       SizedBox(
                                         width: double.infinity,

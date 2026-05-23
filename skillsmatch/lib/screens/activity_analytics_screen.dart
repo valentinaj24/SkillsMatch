@@ -2,17 +2,22 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../theme/app_colors.dart'; // added for dynamic theme
 
+// Brand / Accent Colors (stay the same)
 const _kPrimary = Color(0xFF4F46E5);
 const _kViolet = Color(0xFF7C3AED);
 const _kAmber = Color(0xFFD97706);
 const _kGreen = Color(0xFF059669);
 const _kRed = Color(0xFFEF4444);
-const _kBg = Color(0xFFF0F0FF);
-const _kCard = Color(0xFFFFFFFF);
-const _kBorder = Color(0xFFE2E8F0);
-const _kText = Color(0xFF1E1B4B);
-const _kSub = Color(0xFF6B7280);
+
+// ─── Constant header gradient (same as other main screens) ─────────────────
+const _headerGradientColors = [
+  Color(0xFF1E1B4B),
+  Color(0xFF3730A3),
+  Color(0xFF4F46E5),
+  Color(0xFF818CF8),
+];
 
 class ActivityAnalyticsScreen extends StatefulWidget {
   const ActivityAnalyticsScreen({super.key});
@@ -44,32 +49,32 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
   }
 
   Stream<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
-    _myCollaborationsStream() {
-  final sentStream = FirebaseFirestore.instance
-      .collection('collaborations')
-      .where('requesterId', isEqualTo: currentUid)
-      .snapshots();
+      _myCollaborationsStream() {
+    final sentStream = FirebaseFirestore.instance
+        .collection('collaborations')
+        .where('requesterId', isEqualTo: currentUid)
+        .snapshots();
 
-  final receivedStream = FirebaseFirestore.instance
-      .collection('collaborations')
-      .where('receiverId', isEqualTo: currentUid)
-      .snapshots();
-
-  return sentStream.asyncMap((sentSnap) async {
-    final receivedSnap = await FirebaseFirestore.instance
+    final receivedStream = FirebaseFirestore.instance
         .collection('collaborations')
         .where('receiverId', isEqualTo: currentUid)
-        .get();
+        .snapshots();
 
-    final all = <QueryDocumentSnapshot<Map<String, dynamic>>>[
-      ...sentSnap.docs,
-      ...receivedSnap.docs,
-    ];
+    return sentStream.asyncMap((sentSnap) async {
+      final receivedSnap = await FirebaseFirestore.instance
+          .collection('collaborations')
+          .where('receiverId', isEqualTo: currentUid)
+          .get();
 
-    final ids = <String>{};
-    return all.where((doc) => ids.add(doc.id)).toList();
-  });
-}
+      final all = <QueryDocumentSnapshot<Map<String, dynamic>>>[
+        ...sentSnap.docs,
+        ...receivedSnap.docs,
+      ];
+
+      final ids = <String>{};
+      return all.where((doc) => ids.add(doc.id)).toList();
+    });
+  }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> _reviewsStream() {
     return FirebaseFirestore.instance
@@ -160,22 +165,22 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
   @override
   Widget build(BuildContext context) {
     if (currentUid.isEmpty) {
-      return const Scaffold(
-        backgroundColor: _kBg,
+      return Scaffold(
+        backgroundColor: context.kBg,
         body: Center(
           child: Text(
             'Uporabnik ni prijavljen.',
-            style: TextStyle(color: _kText, fontWeight: FontWeight.bold),
+            style: TextStyle(color: context.kText, fontWeight: FontWeight.bold),
           ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: _kBg,
+      backgroundColor: context.kBg,
       body: StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
-          stream: _myCollaborationsStream(),
-          builder: (context, collabSnap) {
+        stream: _myCollaborationsStream(),
+        builder: (context, collabSnap) {
           if (collabSnap.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(color: _kPrimary),
@@ -208,7 +213,6 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
           myDocs.sort((a, b) {
             final ad = a.data()['createdAt'];
             final bd = b.data()['createdAt'];
-
             if (ad is Timestamp && bd is Timestamp) {
               return bd.compareTo(ad);
             }
@@ -287,40 +291,28 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 14),
-
                           _topSkillCard(topSkill),
-
                           const SizedBox(height: 14),
-
                           _statusSection(
                             pending: pending,
                             active: active,
                             completed: completed,
                             rejected: rejected,
                           ),
-
                           const SizedBox(height: 14),
-
                           _weeklyActivitySection(myDocs),
-
                           const SizedBox(height: 14),
-
                           _skillsSection(topSkills),
-
                           const SizedBox(height: 14),
-
                           _insightsSection(
-                          completed: completed,
-                          pending: pending,
-                          active: active,
-                          reviews: reviewDocs.length,
-                          topSkill: topSkill,
-                        ),
-
+                            completed: completed,
+                            pending: pending,
+                            active: active,
+                            reviews: reviewDocs.length,
+                            topSkill: topSkill,
+                          ),
                           const SizedBox(height: 14),
-
                           _historySection(myDocs),
                         ],
                       ),
@@ -344,12 +336,7 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
           padding: const EdgeInsets.fromLTRB(20, 54, 20, 30),
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Color(0xFF1E1B4B),
-                Color(0xFF3730A3),
-                Color(0xFF4F46E5),
-                Color(0xFF818CF8),
-              ],
+              colors: _headerGradientColors,
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -460,9 +447,9 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
     return Container(
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: _kCard,
+        color: context.kCardBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _kBorder),
+        border: Border.all(color: context.kBorder),
         boxShadow: [
           BoxShadow(
             color: color.withOpacity(0.08),
@@ -495,16 +482,16 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
           const SizedBox(height: 3),
           Text(
             title,
-            style: const TextStyle(
-              color: _kText,
+            style: TextStyle(
+              color: context.kText,
               fontSize: 13,
               fontWeight: FontWeight.bold,
             ),
           ),
           Text(
             subtitle,
-            style: const TextStyle(
-              color: _kSub,
+            style: TextStyle(
+              color: context.kTextSub,
               fontSize: 11,
               fontWeight: FontWeight.w500,
             ),
@@ -593,20 +580,20 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
       title: 'Status sodelovanj',
       icon: Icons.pie_chart_rounded,
       child: Column(
-          children: [
-            _DonutChart(
-              pending: pending,
-              active: active,
-              completed: completed,
-              rejected: rejected,
-            ),
-            const SizedBox(height: 12),
-            _progressRow('Čaka', pending, total, _kAmber),
-            _progressRow('Aktivno', active, total, _kGreen),
-            _progressRow('Zaključeno', completed, total, _kPrimary),
-            _progressRow('Zavrnjeno', rejected, total, _kRed),
-          ],
-        ),
+        children: [
+          _DonutChart(
+            pending: pending,
+            active: active,
+            completed: completed,
+            rejected: rejected,
+          ),
+          const SizedBox(height: 12),
+          _progressRow('Čaka', pending, total, _kAmber),
+          _progressRow('Aktivno', active, total, _kGreen),
+          _progressRow('Zaključeno', completed, total, _kPrimary),
+          _progressRow('Zavrnjeno', rejected, total, _kRed),
+        ],
+      ),
     );
   }
 
@@ -621,8 +608,8 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  color: _kText,
+                style: TextStyle(
+                  color: context.kText,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
                 ),
@@ -643,7 +630,7 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
             borderRadius: BorderRadius.circular(20),
             child: Stack(
               children: [
-                Container(height: 8, color: const Color(0xFFF1F5F9)),
+                Container(height: 8, color: context.kBorder.withOpacity(0.3)),
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 700),
                   curve: Curves.easeOutCubic,
@@ -667,9 +654,9 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
       title: 'Najpogostejše veščine',
       icon: Icons.bar_chart_rounded,
       child: topSkills.isEmpty
-          ? const Text(
+          ? Text(
               'Ni dovolj podatkov za prikaz veščin.',
-              style: TextStyle(color: _kSub, fontSize: 13),
+              style: TextStyle(color: context.kTextSub, fontSize: 13),
             )
           : Column(
               children: topSkills.map((entry) {
@@ -686,8 +673,8 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
                           entry.key,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: _kText,
+                          style: TextStyle(
+                            color: context.kText,
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
                           ),
@@ -702,7 +689,7 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
                             children: [
                               Container(
                                 height: 9,
-                                color: const Color(0xFFF1F5F9),
+                                color: context.kBorder.withOpacity(0.3),
                               ),
                               FractionallySizedBox(
                                 widthFactor: percent,
@@ -737,223 +724,212 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
     );
   }
 
- Widget _insightsSection({
-  required int completed,
-  required int pending,
-  required int active,
-  required int reviews,
-  required String topSkill,
-}) {
-  final insights = <Map<String, dynamic>>[];
+  Widget _insightsSection({
+    required int completed,
+    required int pending,
+    required int active,
+    required int reviews,
+    required String topSkill,
+  }) {
+    final insights = <Map<String, dynamic>>[];
 
-  if (completed == 0) {
-    insights.add({
-      'icon': Icons.flag_rounded,
-      'color': _kAmber,
-      'title': 'Začni prvo sodelovanje',
-      'subtitle':
-          'Poveži se z uporabniki in začni pridobivati izkušnje.',
-    });
-  }
-
-  if (active > 0) {
-    insights.add({
-      'icon': Icons.trending_up_rounded,
-      'color': _kGreen,
-      'title': '$active aktivnih sodelovanj',
-      'subtitle':
-          'Trenutno si aktiven pri več učnih povezovanjih.',
-    });
-  }
-
-  if (pending > 0) {
-    insights.add({
-      'icon': Icons.schedule_rounded,
-      'color': _kAmber,
-      'title': '$pending čakajočih zahtev',
-      'subtitle':
-          'Nekatera sodelovanja še čakajo na odgovor uporabnikov.',
-    });
-  }
-
-  if (reviews == 0) {
-    insights.add({
-      'icon': Icons.star_border_rounded,
-      'color': _kViolet,
-      'title': 'Pridobi prve ocene',
-      'subtitle':
-          'Ocene povečajo zaupanje in kredibilnost profila.',
-    });
-  } else {
-    insights.add({
-      'icon': Icons.workspace_premium_rounded,
-      'color': _kPrimary,
-      'title': 'Največ aktivnosti pri veščini',
-      'subtitle': topSkill,
-    });
-  }
-
-  if (completed >= 5) {
-    insights.add({
-      'icon': Icons.emoji_events_rounded,
-      'color': _kGreen,
-      'title': 'Odličen napredek',
-      'subtitle':
-          'Uspešno si zaključil več sodelovanj in gradiš skupnost.',
-    });
-  }
-
-  return _section(
-    title: 'Analitični vpogledi',
-    icon: Icons.insights_rounded,
-    child: Column(
-      children: insights.map((item) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: item['color'].withOpacity(0.08),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: item['color'].withOpacity(0.18),
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: item['color'].withOpacity(0.14),
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Icon(
-                  item['icon'],
-                  color: item['color'],
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['title'],
-                      style: const TextStyle(
-                        color: _kText,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      item['subtitle'],
-                      style: const TextStyle(
-                        color: _kSub,
-                        fontSize: 12,
-                        height: 1.4,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    ),
-  );
-}
-Widget _weeklyActivitySection(
-  List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-) {
-  final now = DateTime.now();
-
-  final days = List.generate(7, (index) {
-    final date = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: 6 - index));
-
-    return date;
-  });
-
-  final counts = List.generate(7, (_) => 0);
-
-  for (final doc in docs) {
-    final data = doc.data();
-
-    DateTime? date;
-
-    if (data['createdAt'] is Timestamp) {
-      date = (data['createdAt'] as Timestamp).toDate();
-    } else if (data['date'] is Timestamp) {
-      date = (data['date'] as Timestamp).toDate();
+    if (completed == 0) {
+      insights.add({
+        'icon': Icons.flag_rounded,
+        'color': _kAmber,
+        'title': 'Začni prvo sodelovanje',
+        'subtitle': 'Poveži se z uporabniki in začni pridobivati izkušnje.',
+      });
     }
 
-    if (date == null) continue;
+    if (active > 0) {
+      insights.add({
+        'icon': Icons.trending_up_rounded,
+        'color': _kGreen,
+        'title': '$active aktivnih sodelovanj',
+        'subtitle': 'Trenutno si aktiven pri več učnih povezovanjih.',
+      });
+    }
 
-    for (int i = 0; i < days.length; i++) {
-      final d = days[i];
+    if (pending > 0) {
+      insights.add({
+        'icon': Icons.schedule_rounded,
+        'color': _kAmber,
+        'title': '$pending čakajočih zahtev',
+        'subtitle': 'Nekatera sodelovanja še čakajo na odgovor uporabnikov.',
+      });
+    }
 
-      final sameDay =
-          date.year == d.year && date.month == d.month && date.day == d.day;
+    if (reviews == 0) {
+      insights.add({
+        'icon': Icons.star_border_rounded,
+        'color': _kViolet,
+        'title': 'Pridobi prve ocene',
+        'subtitle': 'Ocene povečajo zaupanje in kredibilnost profila.',
+      });
+    } else {
+      insights.add({
+        'icon': Icons.workspace_premium_rounded,
+        'color': _kPrimary,
+        'title': 'Največ aktivnosti pri veščini',
+        'subtitle': topSkill,
+      });
+    }
 
-      if (sameDay) {
-        counts[i]++;
+    if (completed >= 5) {
+      insights.add({
+        'icon': Icons.emoji_events_rounded,
+        'color': _kGreen,
+        'title': 'Odličen napredek',
+        'subtitle': 'Uspešno si zaključil več sodelovanj in gradiš skupnost.',
+      });
+    }
+
+    return _section(
+      title: 'Analitični vpogledi',
+      icon: Icons.insights_rounded,
+      child: Column(
+        children: insights.map((item) {
+          final color = item['color'] as Color;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: color.withOpacity(0.18),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: Icon(
+                    item['icon'] as IconData,
+                    color: color,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item['title'] as String,
+                        style: TextStyle(
+                          color: context.kText,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        item['subtitle'] as String,
+                        style: TextStyle(
+                          color: context.kTextSub,
+                          fontSize: 12,
+                          height: 1.4,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _weeklyActivitySection(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    final now = DateTime.now();
+
+    final days = List.generate(7, (index) {
+      final date = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).subtract(Duration(days: 6 - index));
+      return date;
+    });
+
+    final counts = List.generate(7, (_) => 0);
+
+    for (final doc in docs) {
+      final data = doc.data();
+      DateTime? date;
+      if (data['createdAt'] is Timestamp) {
+        date = (data['createdAt'] as Timestamp).toDate();
+      } else if (data['date'] is Timestamp) {
+        date = (data['date'] as Timestamp).toDate();
+      }
+      if (date == null) continue;
+      for (int i = 0; i < days.length; i++) {
+        final d = days[i];
+        final sameDay = date.year == d.year && date.month == d.month && date.day == d.day;
+        if (sameDay) {
+          counts[i]++;
+        }
       }
     }
+
+    final labels = days.map((d) {
+      switch (d.weekday) {
+        case DateTime.monday:
+          return 'Pon';
+        case DateTime.tuesday:
+          return 'Tor';
+        case DateTime.wednesday:
+          return 'Sre';
+        case DateTime.thursday:
+          return 'Čet';
+        case DateTime.friday:
+          return 'Pet';
+        case DateTime.saturday:
+          return 'Sob';
+        default:
+          return 'Ned';
+      }
+    }).toList();
+
+    return _section(
+      title: 'Aktivnost v zadnjih 7 dneh',
+      icon: Icons.show_chart_rounded,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Prikaz števila sodelovanj po dnevih glede na ustvarjene interakcije.',
+            style: TextStyle(
+              color: context.kTextSub,
+              fontSize: 12,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            height: 150,
+            child: _WeeklyBarChart(
+              values: counts,
+              labels: labels,
+            ),
+          ),
+        ],
+      ),
+    );
   }
-
-  final labels = days.map((d) {
-    switch (d.weekday) {
-      case DateTime.monday:
-        return 'Pon';
-      case DateTime.tuesday:
-        return 'Tor';
-      case DateTime.wednesday:
-        return 'Sre';
-      case DateTime.thursday:
-        return 'Čet';
-      case DateTime.friday:
-        return 'Pet';
-      case DateTime.saturday:
-        return 'Sob';
-      default:
-        return 'Ned';
-    }
-  }).toList();
-
-  return _section(
-    title: 'Aktivnost v zadnjih 7 dneh',
-    icon: Icons.show_chart_rounded,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Prikaz števila sodelovanj po dnevih glede na ustvarjene interakcije.',
-          style: TextStyle(
-            color: _kSub,
-            fontSize: 12,
-            height: 1.4,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 18),
-        SizedBox(
-          height: 150,
-          child: _WeeklyBarChart(
-            values: counts,
-            labels: labels,
-          ),
-        ),
-      ],
-    ),
-  );
-}
 
   Widget _historySection(
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
@@ -962,19 +938,17 @@ Widget _weeklyActivitySection(
       title: 'Zgodovina sodelovanj',
       icon: Icons.history_rounded,
       child: docs.isEmpty
-          ? const Text(
+          ? Text(
               'Zaenkrat še nimaš sodelovanj.',
-              style: TextStyle(color: _kSub, fontSize: 13),
+              style: TextStyle(color: context.kTextSub, fontSize: 13),
             )
           : Column(
               children: docs.map((doc) {
                 final data = doc.data();
                 final requesterId = (data['requesterId'] ?? '').toString();
-
                 final otherName = requesterId == currentUid
                     ? (data['receiverName'] ?? 'Neznan uporabnik').toString()
                     : (data['requesterName'] ?? 'Neznan uporabnik').toString();
-
                 final skill = (data['skillName'] ?? 'Ni veščine').toString();
                 final status = (data['status'] ?? 'pending').toString();
 
@@ -982,20 +956,20 @@ Widget _weeklyActivitySection(
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(13),
                   decoration: BoxDecoration(
-                    color: _kBg,
+                    color: context.kSurface,
                     borderRadius: BorderRadius.circular(15),
-                    border: Border.all(color: _kBorder),
+                    border: Border.all(color: context.kBorder),
                   ),
                   child: Row(
                     children: [
                       Container(
                         width: 42,
                         height: 42,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
                             colors: [_kPrimary, _kViolet],
                           ),
-                          borderRadius: BorderRadius.circular(13),
+                          borderRadius: BorderRadius.all(Radius.circular(13)),
                         ),
                         child: const Icon(
                           Icons.handshake_rounded,
@@ -1012,8 +986,8 @@ Widget _weeklyActivitySection(
                               otherName,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: _kText,
+                              style: TextStyle(
+                                color: context.kText,
                                 fontSize: 14,
                                 fontWeight: FontWeight.w900,
                               ),
@@ -1023,8 +997,8 @@ Widget _weeklyActivitySection(
                               '$skill • ${_formatDate(data['date'])}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: _kSub,
+                              style: TextStyle(
+                                color: context.kTextSub,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -1070,9 +1044,9 @@ Widget _weeklyActivitySection(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _kCard,
+        color: context.kCardBg,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _kBorder),
+        border: Border.all(color: context.kBorder),
         boxShadow: [
           BoxShadow(
             color: _kPrimary.withOpacity(0.06),
@@ -1089,21 +1063,19 @@ Widget _weeklyActivitySection(
               Container(
                 width: 36,
                 height: 36,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
                     colors: [_kPrimary, _kViolet],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(11),
+                  borderRadius: BorderRadius.all(Radius.circular(11)),
                 ),
                 child: Icon(icon, color: Colors.white, size: 18),
               ),
               const SizedBox(width: 10),
               Text(
                 title,
-                style: const TextStyle(
-                  color: _kText,
+                style: TextStyle(
+                  color: context.kText,
                   fontSize: 16,
                   fontWeight: FontWeight.w900,
                 ),
@@ -1118,6 +1090,7 @@ Widget _weeklyActivitySection(
   }
 }
 
+// ─── Weekly Bar Chart (theme‑aware) ─────────────────────────────────────────
 class _WeeklyBarChart extends StatelessWidget {
   final List<int> values;
   final List<String> labels;
@@ -1129,17 +1102,15 @@ class _WeeklyBarChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxValue = values.isEmpty
-        ? 1
-        : values.reduce((a, b) => a > b ? a : b);
+    final maxValue = values.isEmpty ? 1 : values.reduce((a, b) => a > b ? a : b);
 
     return Container(
       height: 124,
       padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F8FF),
+        color: context.kSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: _kBorder),
+        border: Border.all(color: context.kBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -1156,7 +1127,7 @@ class _WeeklyBarChart extends StatelessWidget {
                 Text(
                   '$value',
                   style: TextStyle(
-                    color: isTop ? _kPrimary : _kSub,
+                    color: isTop ? _kPrimary : context.kTextSub,
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
                   ),
@@ -1169,7 +1140,7 @@ class _WeeklyBarChart extends StatelessWidget {
                       width: 18,
                       height: 62,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEDEBFF),
+                        color: context.kBorder.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
@@ -1201,7 +1172,7 @@ class _WeeklyBarChart extends StatelessWidget {
                 Text(
                   labels[index],
                   style: TextStyle(
-                    color: isTop ? _kPrimary : _kSub,
+                    color: isTop ? _kPrimary : context.kTextSub,
                     fontSize: 10,
                     fontWeight: isTop ? FontWeight.w900 : FontWeight.w700,
                   ),
@@ -1215,6 +1186,7 @@ class _WeeklyBarChart extends StatelessWidget {
   }
 }
 
+// ─── Donut Chart (theme‑aware) ──────────────────────────────────────────────
 class _DonutChart extends StatelessWidget {
   final int pending;
   final int active;
@@ -1252,16 +1224,16 @@ class _DonutChart extends StatelessWidget {
                   children: [
                     Text(
                       '$total',
-                      style: const TextStyle(
-                        color: _kText,
+                      style: TextStyle(
+                        color: context.kText,
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const Text(
+                    Text(
                       'skupaj',
                       style: TextStyle(
-                        color: _kSub,
+                        color: context.kTextSub,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                       ),
@@ -1276,10 +1248,10 @@ class _DonutChart extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _legendItem('Čaka', pending, _kAmber),
-                _legendItem('Aktivno', active, _kGreen),
-                _legendItem('Zaključeno', completed, _kPrimary),
-                _legendItem('Zavrnjeno', rejected, _kRed),
+                _legendItem(context, 'Čaka', pending, _kAmber),
+                _legendItem(context, 'Aktivno', active, _kGreen),
+                _legendItem(context, 'Zaključeno', completed, _kPrimary),
+                _legendItem(context, 'Zavrnjeno', rejected, _kRed),
               ],
             ),
           ),
@@ -1288,7 +1260,7 @@ class _DonutChart extends StatelessWidget {
     );
   }
 
-  Widget _legendItem(String label, int value, Color color) {
+  Widget _legendItem(BuildContext context, String label, int value, Color color) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
       child: Row(
@@ -1305,8 +1277,8 @@ class _DonutChart extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(
-                color: _kText,
+              style: TextStyle(
+                color: context.kText,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -1326,6 +1298,7 @@ class _DonutChart extends StatelessWidget {
   }
 }
 
+// ─── Donut Painter (unchanged – uses static colors) ─────────────────────────
 class _DonutPainter extends CustomPainter {
   final int pending;
   final int active;
@@ -1356,10 +1329,10 @@ class _DonutPainter extends CustomPainter {
     if (total == 0) return;
 
     final data = [
-      (pending, _kAmber),
-      (active, _kGreen),
-      (completed, _kPrimary),
-      (rejected, _kRed),
+      (pending, const Color(0xFFD97706)), // _kAmber
+      (active, const Color(0xFF059669)),  // _kGreen
+      (completed, const Color(0xFF4F46E5)), // _kPrimary
+      (rejected, const Color(0xFFEF4444)), // _kRed
     ];
 
     double startAngle = -math.pi / 2;
@@ -1367,17 +1340,13 @@ class _DonutPainter extends CustomPainter {
     for (final item in data) {
       final value = item.$1;
       final color = item.$2;
-
       if (value == 0) continue;
-
       final sweepAngle = (value / total) * 2 * math.pi;
-
       final paint = Paint()
         ..color = color
         ..style = PaintingStyle.stroke
         ..strokeWidth = 18
         ..strokeCap = StrokeCap.round;
-
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
         startAngle,
@@ -1385,7 +1354,6 @@ class _DonutPainter extends CustomPainter {
         false,
         paint,
       );
-
       startAngle += sweepAngle;
     }
   }
@@ -1399,11 +1367,10 @@ class _DonutPainter extends CustomPainter {
   }
 }
 
+// ─── Orb Painter (unchanged) ─────────────────────────────────────────────────
 class _OrbPainter extends CustomPainter {
   final double t;
-
   _OrbPainter(this.t);
-
   @override
   void paint(Canvas canvas, Size size) {
     final orbs = [
@@ -1413,31 +1380,25 @@ class _OrbPainter extends CustomPainter {
       (0.92, 0.55, 44.0, const Color(0x22818CF8)),
       (0.25, 0.88, 50.0, const Color(0x307C3AED)),
     ];
-
     for (final orb in orbs) {
       final rx = orb.$1;
       final ry = orb.$2;
       final r = orb.$3;
       final color = orb.$4;
-
       final dx = math.sin(t + rx * 5) * 14;
       final dy = math.cos(t + ry * 4) * 11;
       final cx = size.width * rx + dx;
       final cy = size.height * ry + dy;
-
       canvas.drawCircle(
         Offset(cx, cy),
         r,
         Paint()
           ..shader = RadialGradient(
             colors: [color, Colors.transparent],
-          ).createShader(
-            Rect.fromCircle(center: Offset(cx, cy), radius: r),
-          ),
+          ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r)),
       );
     }
   }
-
   @override
   bool shouldRepaint(_OrbPainter oldDelegate) => oldDelegate.t != t;
 }

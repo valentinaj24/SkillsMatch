@@ -41,6 +41,7 @@ class _CallScreenState extends State<CallScreen> {
 
   void Function()? _cancelEvents;
   bool _speakerEnabled = false;
+  bool _remoteCameraEnabled = true;
 
   StreamSubscription? _callStatusSubscription;
 
@@ -134,6 +135,16 @@ class _CallScreenState extends State<CallScreen> {
             _remoteVideoTrack = track;
           });
         }
+      } else if (event is TrackMutedEvent) {
+        if (event.publication.track is RemoteVideoTrack) {
+          if (!mounted) return;
+          setState(() => _remoteCameraEnabled = false);
+        }
+      } else if (event is TrackUnmutedEvent) {
+        if (event.publication.track is RemoteVideoTrack) {
+          if (!mounted) return;
+          setState(() => _remoteCameraEnabled = true);
+        }
       }
     });
 
@@ -226,7 +237,7 @@ class _CallScreenState extends State<CallScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            if (widget.isVideoCall && _remoteVideoTrack != null)
+            if (widget.isVideoCall && _remoteVideoTrack != null && _remoteCameraEnabled)
               Positioned.fill(
                 child: VideoTrackRenderer(_remoteVideoTrack!),
               )
@@ -241,7 +252,18 @@ class _CallScreenState extends State<CallScreen> {
                 height: 160,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: VideoTrackRenderer(_localVideoTrack!),
+                  child: _cameraEnabled
+                      ? VideoTrackRenderer(_localVideoTrack!)
+                      : Container(
+                          color: const Color(0xFF1A1A2E),
+                          child: const Center(
+                            child: Icon(
+                              Icons.videocam_off_rounded,
+                              color: Colors.white38,
+                              size: 32,
+                            ),
+                          ),
+                        ),
                 ),
               ),
 

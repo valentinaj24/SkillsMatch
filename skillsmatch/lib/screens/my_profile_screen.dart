@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import '../theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -6,6 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 import 'activity_analytics_screen.dart';
+import '../widgets/dark_mode_toggle.dart';
+
 
 // ─── Color System ──────────────────────────────────────────────────────────────
 const _kPrimary = Color(0xFF4F46E5);
@@ -14,12 +17,6 @@ const _kPrimaryLight = Color(0xFF818CF8);
 const _kViolet = Color(0xFF7C3AED);
 const _kAmber = Color(0xFFD97706);
 const _kGreen = Color(0xFF059669);
-const _kSurface = Color(0xFFF5F5FF);
-const _kCardBg = Color(0xFFFFFFFF);
-const _kBg = Color(0xFFF0F0FF);
-const _kBorder = Color(0xFFE2E8F0);
-const _kText = Color(0xFF1E1B4B);
-const _kTextSub = Color(0xFF6B7280);
 
 // Nivo barvni sistem
 const _nivoColors = {
@@ -222,30 +219,30 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                   size: 30,
                 ),
               ),
-              const SizedBox(height: 14),
-              const Text(
+              SizedBox(height: 14),
+              Text(
                 'Odjava',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: _kText,
+                  color: context.kText,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8),
+              Text(
                 'Ali se želite odjaviti iz aplikacije?',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: _kTextSub, fontSize: 14),
+                style: TextStyle(color: context.kTextSub, fontSize: 14),
               ),
-              const SizedBox(height: 22),
+              SizedBox(height: 22),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(c, false),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: _kTextSub,
-                        side: const BorderSide(color: _kBorder),
+                        foregroundColor: context.kTextSub,
+                        side: BorderSide(color: context.kBorder),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(13),
@@ -333,7 +330,7 @@ class _MyProfileScreenState extends State<MyProfileScreen>
 
             Column(
               children: [
-                // Top bar — back + logout
+                // Top bar — logout
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -704,9 +701,9 @@ class _MyProfileScreenState extends State<MyProfileScreen>
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _kCardBg,
+          color: context.kCardBg,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _kBorder),
+          border: Border.all(color: context.kBorder),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -727,25 +724,25 @@ class _MyProfileScreenState extends State<MyProfileScreen>
               ),
               child: Icon(icon, color: accent, size: 22),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: _kText,
+                      color: context.kText,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     text,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: _kTextSub,
+                      color: context.kTextSub,
                       height: 1.4,
                     ),
                   ),
@@ -772,13 +769,13 @@ class _MyProfileScreenState extends State<MyProfileScreen>
         ),
         child: Icon(icon, color: Colors.white, size: 18),
       ),
-      const SizedBox(width: 10),
+      SizedBox(width: 10),
       Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 17,
           fontWeight: FontWeight.bold,
-          color: _kText,
+          color: context.kText,
         ),
       ),
     ],
@@ -789,7 +786,7 @@ class _MyProfileScreenState extends State<MyProfileScreen>
     final canTeach = skill['tip'] == 'Lahko učim druge';
     final nivo = skill['nivoZnanja'] as String? ?? 'Začetnik';
     final mColor = _nivoColors[nivo] ?? _kPrimary;
-    final mBg = _nivoBg[nivo] ?? _kSurface;
+    final mBg = _nivoBg[nivo] ?? context.kSurface;
     final mIcon = _nivoIcons[nivo] ?? Icons.star_rounded;
     final accent = canTeach ? _kPrimary : _kAmber;
 
@@ -807,9 +804,9 @@ class _MyProfileScreenState extends State<MyProfileScreen>
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
-          color: _kCardBg,
+          color: context.kCardBg,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: _kBorder),
+          border: Border.all(color: context.kBorder),
           boxShadow: [
             BoxShadow(
               color: accent.withOpacity(0.07),
@@ -873,10 +870,10 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                 children: [
                   Text(
                     skill['naziv'] ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: _kText,
+                      color: context.kText,
                     ),
                   ),
                   const SizedBox(height: 5),
@@ -973,19 +970,19 @@ class _MyProfileScreenState extends State<MyProfileScreen>
             size: 26,
           ),
         ),
-        const SizedBox(height: 12),
-        const Text(
+        SizedBox(height: 12),
+        Text(
           'Ni dodanih veščin',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 15,
-            color: _kText,
+            color: context.kText,
           ),
         ),
-        const SizedBox(height: 4),
-        const Text(
+        SizedBox(height: 4),
+        Text(
           'Dodajte veščine v zavihku Uredi.',
-          style: TextStyle(color: _kTextSub, fontSize: 13),
+          style: TextStyle(color: context.kTextSub, fontSize: 13),
         ),
       ],
     ),
@@ -1040,9 +1037,9 @@ class _MyProfileScreenState extends State<MyProfileScreen>
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: _kCardBg,
+        color: context.kCardBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _kBorder),
+        border: Border.all(color: context.kBorder),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -1074,22 +1071,22 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                   size: 18,
                 ),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Popolnost profila',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
-                        color: _kText,
+                        color: context.kText,
                       ),
                     ),
                     Text(
                       '$done od $total korakov zaključenih',
-                      style: const TextStyle(fontSize: 12, color: _kTextSub),
+                      style: TextStyle(fontSize: 12, color: context.kTextSub),
                     ),
                   ],
                 ),
@@ -1105,14 +1102,14 @@ class _MyProfileScreenState extends State<MyProfileScreen>
             ],
           ),
 
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
 
           // Progress bar
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: Stack(
               children: [
-                Container(height: 7, color: const Color(0xFFF1F5F9)),
+                Container(height: 7, color: context.kBorder.withOpacity(0.3)),
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 600),
                   curve: Curves.easeOutCubic,
@@ -1152,7 +1149,7 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                       : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: done ? const Color(0xFF6EE7B7) : _kBorder,
+                    color: done ? Color(0xFF6EE7B7) : context.kBorder,
                   ),
                 ),
                 child: Row(
@@ -1161,15 +1158,15 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                     Icon(
                       done ? Icons.check_circle_rounded : icon,
                       size: 14,
-                      color: done ? const Color(0xFF10B981) : _kTextSub,
+                      color: done ? Color(0xFF10B981) : context.kTextSub,
                     ),
-                    const SizedBox(width: 5),
+                    SizedBox(width: 5),
                     Text(
                       label,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: done ? const Color(0xFF059669) : _kTextSub,
+                        color: done ? Color(0xFF059669) : context.kTextSub,
                       ),
                     ),
                   ],
@@ -1357,27 +1354,29 @@ Widget _illustratedBanner(BuildContext ctx) {
 
   // ── Tips sekcija ───────────────────────────────────────────────────────────
   Widget _tipsSection() {
+    final isDark = context.isDark;
+
     final tips = [
       (
         Icons.tips_and_updates_rounded,
         'Dopolnite profil',
         'Popoln profil dobi 3× več ogleda.',
         const Color(0xFF4F46E5),
-        const Color(0xFFEEF2FF),
+        isDark ? const Color(0xFF1A1933) : const Color(0xFFEEF2FF),
       ),
       (
         Icons.star_rounded,
         'Dodajte veščine',
         'Več veščin = več priložnosti za povezovanje.',
         const Color(0xFFD97706),
-        const Color(0xFFFFFBEB),
+        isDark ? const Color(0xFF1F1A0F) : const Color(0xFFFFFBEB),
       ),
       (
         Icons.handshake_rounded,
         'Povežite se',
         'Poiščite mentorje in učence v skupnosti.',
         const Color(0xFF059669),
-        const Color(0xFFECFDF5),
+        isDark ? const Color(0xFF0C1F18) : const Color(0xFFECFDF5),
       ),
     ];
 
@@ -1394,7 +1393,7 @@ Widget _illustratedBanner(BuildContext ctx) {
             decoration: BoxDecoration(
               color: bg,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: color.withOpacity(0.2)),
+              border: Border.all(color: color.withOpacity(isDark ? 0.35 : 0.2)),
             ),
             child: Row(
               children: [
@@ -1420,12 +1419,12 @@ Widget _illustratedBanner(BuildContext ctx) {
                           color: color,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2),
                       Text(
                         sub,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: _kTextSub,
+                          color: context.kTextSub,
                           height: 1.4,
                         ),
                       ),
@@ -1442,64 +1441,73 @@ Widget _illustratedBanner(BuildContext ctx) {
 
   // ── Empty profile ──────────────────────────────────────────────────────────
   Widget _emptyProfile() => Scaffold(
-    backgroundColor: _kBg,
-    body: Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Container(
+  backgroundColor: context.kBg,
+  body: Stack(
+    children: [
+      Center(
+        child: Padding(
           padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: _kCardBg,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [_kPrimary, _kViolet],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: context.kCardBg,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [_kPrimary, _kViolet],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    shape: BoxShape.circle,
                   ),
-                  shape: BoxShape.circle,
+                  child: const Icon(
+                    Icons.person_add_alt_1_rounded,
+                    color: Colors.white,
+                    size: 34,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.person_add_alt_1_rounded,
-                  color: Colors.white,
-                  size: 34,
+                const SizedBox(height: 18),
+                Text(
+                  'Profil še ni ustvarjen',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: context.kText,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'Profil še ni ustvarjen',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: _kText,
+                const SizedBox(height: 8),
+                Text(
+                  'Najprej izpolnite obrazec za ustvarjanje profila.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 14, color: context.kTextSub, height: 1.5),
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Najprej izpolnite obrazec za ustvarjanje profila.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: _kTextSub, height: 1.5),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+      Positioned(
+        top: MediaQuery.of(context).padding.top + 10,
+        left: 16,
+        child: const DarkModeToggle(),
+      ),
+    ],
+  ),
+);
 
   Widget _reviewsSummaryCard(String userId, Map<String, dynamic> userData) {
   return StreamBuilder<QuerySnapshot>(
@@ -1532,9 +1540,9 @@ Widget _illustratedBanner(BuildContext ctx) {
         margin: const EdgeInsets.only(bottom: 14),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: _kCardBg,
+          color: context.kCardBg,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: _kBorder),
+          border: Border.all(color: context.kBorder),
           boxShadow: [
             BoxShadow(
               color: _kAmber.withOpacity(0.08),
@@ -1551,23 +1559,23 @@ Widget _illustratedBanner(BuildContext ctx) {
 
             Row(
               children: [
-                const Icon(Icons.star_rounded, color: _kAmber, size: 24),
-                const SizedBox(width: 8),
+                Icon(Icons.star_rounded, color: _kAmber, size: 24),
+                SizedBox(width: 8),
                 Text(
                   reviewCount == 0
                       ? 'Še nimaš ocen'
                       : '${averageRating.toStringAsFixed(1)} / 5.0',
-                  style: const TextStyle(
-                    color: _kText,
+                  style: TextStyle(
+                    color: context.kText,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 6),
+                SizedBox(width: 6),
                 Text(
                   '($reviewCount)',
-                  style: const TextStyle(
-                    color: _kTextSub,
+                  style: TextStyle(
+                    color: context.kTextSub,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -1627,17 +1635,17 @@ Widget _illustratedBanner(BuildContext ctx) {
                   margin: const EdgeInsets.only(bottom: 10),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: _kSurface,
+                    color: context.kSurface,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: _kBorder),
+                    border: Border.all(color: context.kBorder),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             reviewerName.isEmpty ? 'Neznan uporabnik' : reviewerName,
-                            style: const TextStyle(
-                              color: _kText,
+                            style: TextStyle(
+                              color: context.kText,
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
                             ),
@@ -1656,11 +1664,11 @@ Widget _illustratedBanner(BuildContext ctx) {
                         }),
                       ),
                       if (comment.isNotEmpty) ...[
-                        const SizedBox(height: 6),
+                        SizedBox(height: 6),
                         Text(
                           comment,
-                          style: const TextStyle(
-                            color: _kTextSub,
+                          style: TextStyle(
+                            color: context.kTextSub,
                             fontSize: 13,
                             height: 1.4,
                           ),
@@ -1689,7 +1697,7 @@ Widget _illustratedBanner(BuildContext ctx) {
     if (uid == null) return _emptyProfile();
 
     return Scaffold(
-      backgroundColor: _kBg,
+      backgroundColor: context.kBg,
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('users')

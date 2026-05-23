@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../theme/app_colors.dart'; // added for dynamic theme
 
+// Brand / Accent Colors (stay the same)
 const _kP = Color(0xFF4F46E5);
 const _kV = Color(0xFF7C3AED);
-const _kBg = Color(0xFFF0F0FF);
-const _kTx = Color(0xFF1E1B4B);
-const _kTs = Color(0xFF6B7280);
-const _kBd = Color(0xFFE2E8F0);
 const _kRed = Color(0xFFEF4444);
 const _kGreen = Color(0xFF059669);
 
@@ -41,9 +39,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
   String get receiverName {
     final ime = (widget.userData['ime'] ?? '').toString().trim();
     final priimek = (widget.userData['priimek'] ?? '').toString().trim();
-
     final fullName = '$ime $priimek'.trim();
-
     return fullName.isEmpty ? 'Neznan uporabnik' : fullName;
   }
 
@@ -53,7 +49,6 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
           if (skill is Map && skill['naziv'] != null) {
             return skill['naziv'].toString().trim();
           }
-
           return '';
         })
         .where((name) => name.isNotEmpty)
@@ -64,9 +59,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
   @override
   void initState() {
     super.initState();
-
     final names = skillNames;
-
     if (names.isNotEmpty) {
       selectedSkill = names.first;
     }
@@ -81,10 +74,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
   void _showSnack(String text, {Color color = _kP}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          text,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
+        content: Text(text, style: const TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -103,7 +93,6 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
 
   DateTime? _selectedDateTime() {
     if (selectedDate == null || selectedTime == null) return null;
-
     return DateTime(
       selectedDate!.year,
       selectedDate!.month,
@@ -115,7 +104,6 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
 
   Future<void> pickDate() async {
     final now = DateTime.now();
-
     final picked = await showDatePicker(
       context: context,
       firstDate: DateTime(now.year, now.month, now.day),
@@ -125,23 +113,28 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
       cancelText: 'Prekliči',
       confirmText: 'Potrdi',
       builder: (context, child) {
+        // Dynamic theme for date picker
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: _kP,
-              onPrimary: Colors.white,
-              onSurface: _kTx,
-            ),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: _kP,
+                    onPrimary: Colors.white,
+                    onSurface: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: _kP,
+                    onPrimary: Colors.white,
+                    onSurface: Color(0xFF1E1B4B),
+                  ),
           ),
           child: child!,
         );
       },
     );
-
     if (picked != null) {
-      setState(() {
-        selectedDate = picked;
-      });
+      setState(() => selectedDate = picked);
     }
   }
 
@@ -153,23 +146,27 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
       cancelText: 'Prekliči',
       confirmText: 'Potrdi',
       builder: (context, child) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: _kP,
-              onPrimary: Colors.white,
-              onSurface: _kTx,
-            ),
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: _kP,
+                    onPrimary: Colors.white,
+                    onSurface: Colors.white,
+                  )
+                : const ColorScheme.light(
+                    primary: _kP,
+                    onPrimary: Colors.white,
+                    onSurface: Color(0xFF1E1B4B),
+                  ),
           ),
           child: child!,
         );
       },
     );
-
     if (picked != null) {
-      setState(() {
-        selectedTime = picked;
-      });
+      setState(() => selectedTime = picked);
     }
   }
 
@@ -181,7 +178,6 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
         .where('status', isEqualTo: 'pending')
         .limit(1)
         .get();
-
     if (existing.docs.isNotEmpty) return true;
 
     final reverseExisting = await FirebaseFirestore.instance
@@ -191,61 +187,46 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
         .where('status', isEqualTo: 'pending')
         .limit(1)
         .get();
-
     return reverseExisting.docs.isNotEmpty;
   }
 
   Future<void> sendInvitation() async {
     if (isSending) return;
-
     if (!_formKey.currentState!.validate()) return;
 
     final currentUser = FirebaseAuth.instance.currentUser;
-
     if (currentUser == null) {
       _showSnack('Uporabnik ni prijavljen.', color: _kRed);
       return;
     }
-
     if (receiverId.isEmpty) {
       _showSnack('Napaka: uporabnik nima veljavnega ID-ja.', color: _kRed);
       return;
     }
-
     if (receiverId == currentUser.uid) {
       _showSnack('Ne moreš poslati povabila samemu sebi.', color: _kRed);
       return;
     }
-
     if (selectedSkill == null || selectedSkill!.trim().isEmpty) {
       _showSnack('Izberi veščino.', color: _kRed);
       return;
     }
-
     if (selectedDate == null || selectedTime == null) {
       _showSnack('Izberi datum in uro.', color: _kRed);
       return;
     }
-
     final meetingDateTime = _selectedDateTime();
-
     if (meetingDateTime == null || meetingDateTime.isBefore(DateTime.now())) {
       _showSnack('Izberi termin v prihodnosti.', color: _kRed);
       return;
     }
 
-    setState(() {
-      isSending = true;
-    });
+    setState(() => isSending = true);
 
     try {
       final alreadyExists = await _hasPendingInvitation(currentUser.uid);
-
       if (alreadyExists) {
-        _showSnack(
-          'Med vama že obstaja aktivno povabilo.',
-          color: Colors.orange,
-        );
+        _showSnack('Med vama že obstaja aktivno povabilo.', color: Colors.orange);
         return;
       }
 
@@ -253,18 +234,13 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
           .collection('users')
           .doc(currentUser.uid)
           .get();
-
       final currentData = currentUserDoc.data() ?? {};
-
-      final requesterName =
-          '${currentData['ime'] ?? ''} ${currentData['priimek'] ?? ''}'.trim();
+      final requesterName = '${currentData['ime'] ?? ''} ${currentData['priimek'] ?? ''}'.trim();
 
       await FirebaseFirestore.instance.collection('collaborations').add({
         'requesterId': currentUser.uid,
         'receiverId': receiverId,
-        'requesterName': requesterName.isEmpty
-            ? 'Neznan uporabnik'
-            : requesterName,
+        'requesterName': requesterName.isEmpty ? 'Neznan uporabnik' : requesterName,
         'receiverName': receiverName,
         'skillName': selectedSkill,
         'message': _messageController.text.trim(),
@@ -277,20 +253,13 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
       });
 
       if (!mounted) return;
-
       _showSnack('Povabilo uspešno poslano!', color: _kGreen);
-
       Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-
       _showSnack('Napaka: $e', color: _kRed);
     } finally {
-      if (mounted) {
-        setState(() {
-          isSending = false;
-        });
-      }
+      if (mounted) setState(() => isSending = false);
     }
   }
 
@@ -300,16 +269,16 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
     final hasSkills = names.isNotEmpty;
 
     return Scaffold(
-      backgroundColor: _kBg,
+      backgroundColor: context.kBg,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: _kBg,
-        surfaceTintColor: _kBg,
-        foregroundColor: _kTx,
+        backgroundColor: context.kBg,
+        surfaceTintColor: context.kBg,
+        foregroundColor: context.kText,
         centerTitle: false,
-        title: const Text(
+        title: Text(
           'Novo sodelovanje',
-          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.2),
+          style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.2, color: context.kText),
         ),
       ),
       body: SingleChildScrollView(
@@ -335,9 +304,9 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.kCardBg,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _kBd),
+        border: Border.all(color: context.kBorder),
         boxShadow: [
           BoxShadow(
             color: _kP.withOpacity(0.06),
@@ -352,42 +321,26 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [_kP, _kV],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: const LinearGradient(colors: [_kP, _kV]),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
-              Icons.person_add_alt_1_rounded,
-              color: Colors.white,
-              size: 24,
-            ),
+            child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white, size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Pošiljaš povabilo uporabniku',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: _kTs,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 13, color: context.kTextSub, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 5),
                 Text(
                   receiverName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.w900,
-                    color: _kTx,
-                  ),
+                  style: TextStyle(fontSize: 21, fontWeight: FontWeight.w900, color: context.kText),
                 ),
               ],
             ),
@@ -401,9 +354,9 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.kCardBg,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: _kBd),
+        border: Border.all(color: context.kBorder),
         boxShadow: [
           BoxShadow(
             color: _kP.withOpacity(0.05),
@@ -427,33 +380,23 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
             items: names.map((name) {
               return DropdownMenuItem<String>(
                 value: name,
-                child: Text(name, overflow: TextOverflow.ellipsis),
+                child: Text(name, overflow: TextOverflow.ellipsis, style: TextStyle(color: context.kText)),
               );
             }).toList(),
             validator: (value) {
-              if (!hasSkills) {
-                return 'Uporabnik nima dodanih veščin';
-              }
-
-              if (value == null || value.trim().isEmpty) {
-                return 'Izberi veščino';
-              }
-
+              if (!hasSkills) return 'Uporabnik nima dodanih veščin';
+              if (value == null || value.trim().isEmpty) return 'Izberi veščino';
               return null;
             },
-            onChanged: hasSkills
-                ? (value) {
-                    setState(() {
-                      selectedSkill = value;
-                    });
-                  }
-                : null,
+            onChanged: hasSkills ? (value) => setState(() => selectedSkill = value) : null,
+            dropdownColor: context.kCardBg,
+            style: TextStyle(color: context.kText),
           ),
           if (!hasSkills) ...[
             const SizedBox(height: 9),
-            const Text(
+            Text(
               'Temu uporabniku trenutno ne moreš poslati povabila, ker nima dodanih veščin.',
-              style: TextStyle(color: _kTs, fontSize: 12, height: 1.4),
+              style: TextStyle(color: context.kTextSub, fontSize: 12, height: 1.4),
             ),
           ],
           const SizedBox(height: 18),
@@ -464,20 +407,15 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
             maxLines: 4,
             maxLength: 250,
             validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Vnesi sporočilo';
-              }
-
-              if (value.trim().length < 5) {
-                return 'Sporočilo je prekratko';
-              }
-
+              if (value == null || value.trim().isEmpty) return 'Vnesi sporočilo';
+              if (value.trim().length < 5) return 'Sporočilo je prekratko';
               return null;
             },
             decoration: _inputDecoration(
               hint: 'Napiši povabilo...',
               icon: Icons.edit_note_rounded,
             ),
+            style: TextStyle(color: context.kText),
           ),
           const SizedBox(height: 10),
           Row(
@@ -485,9 +423,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
               Expanded(
                 child: _pickerBox(
                   icon: Icons.calendar_month_rounded,
-                  text: selectedDate == null
-                      ? 'Datum'
-                      : _formatDate(selectedDate!),
+                  text: selectedDate == null ? 'Datum' : _formatDate(selectedDate!),
                   onTap: pickDate,
                 ),
               ),
@@ -495,9 +431,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
               Expanded(
                 child: _pickerBox(
                   icon: Icons.access_time_rounded,
-                  text: selectedTime == null
-                      ? 'Ura'
-                      : _formatTime(selectedTime!),
+                  text: selectedTime == null ? 'Ura' : _formatTime(selectedTime!),
                   onTap: pickTime,
                   violet: true,
                 ),
@@ -512,11 +446,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
   Widget _label(String text) {
     return Text(
       text,
-      style: const TextStyle(
-        fontWeight: FontWeight.w900,
-        color: _kTx,
-        fontSize: 14,
-      ),
+      style: TextStyle(fontWeight: FontWeight.w900, color: context.kText, fontSize: 14),
     );
   }
 
@@ -526,9 +456,10 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
   }) {
     return InputDecoration(
       hintText: hint,
+      hintStyle: TextStyle(color: context.kTextSub, fontSize: 14),
       prefixIcon: Icon(icon, color: _kP, size: 21),
       filled: true,
-      fillColor: const Color(0xFFF5F5FF),
+      fillColor: context.kSurface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -546,6 +477,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: _kRed, width: 1.2),
       ),
+      counterStyle: TextStyle(color: context.kTextSub),
     );
   }
 
@@ -556,7 +488,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
     bool violet = false,
   }) {
     return Material(
-      color: const Color(0xFFF5F5FF),
+      color: context.kSurface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: onTap,
@@ -565,7 +497,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: _kBd),
+            border: Border.all(color: context.kBorder),
           ),
           child: Row(
             children: [
@@ -575,10 +507,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
                 child: Text(
                   text,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: _kTx,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w800, color: context.kText),
                 ),
               ),
             ],
@@ -597,11 +526,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
           width: double.infinity,
           height: 58,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [_kP, _kV],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
+            gradient: const LinearGradient(colors: [_kP, _kV]),
             borderRadius: BorderRadius.circular(19),
             boxShadow: [
               BoxShadow(
@@ -616,10 +541,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
                 ? const SizedBox(
                     width: 23,
                     height: 23,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2.5,
-                    ),
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                   )
                 : const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -628,11 +550,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
                       SizedBox(width: 9),
                       Text(
                         'Pošlji povabilo',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                        ),
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w900),
                       ),
                     ],
                   ),
