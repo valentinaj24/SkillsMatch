@@ -12,6 +12,7 @@ import 'package:record/record.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import '../theme/app_colors.dart'; // added for dynamic theme
+import '../services/encryption_service.dart';
 
 // Brand / Accent Colors (stay the same)
 const _kPrimary = Color(0xFF4F46E5);
@@ -125,13 +126,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   Future<void> _pickAndSendImage() async {
     if (currentUid.isEmpty || isUploadingImage) return;
-    final picked = await _imagePicker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final picked = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 80,
+    );
     if (picked == null) return;
     setState(() => isUploadingImage = true);
     try {
       final file = File(picked.path);
       final imageUrl = await CloudinaryService.uploadChatImage(file);
-      final chatRef = FirebaseFirestore.instance.collection('chats').doc(widget.chatId);
+      final chatRef = FirebaseFirestore.instance
+          .collection('chats')
+          .doc(widget.chatId);
       await chatRef.collection('messages').add({
         'senderId': currentUid,
         'type': 'image',
@@ -151,7 +157,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final otherUid = await _getOtherUserId();
       if (otherUid != null) {
         await http.post(
-          Uri.parse('https://skillsmatchnotifications.onrender.com/send-notification'),
+          Uri.parse(
+            'https://skillsmatchnotifications.onrender.com/send-notification',
+          ),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             'receiverId': otherUid,
@@ -166,7 +174,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Napaka pri pošiljanju slike: $e'), backgroundColor: _kRed, behavior: SnackBarBehavior.floating),
+        SnackBar(
+          content: Text('Napaka pri pošiljanju slike: $e'),
+          backgroundColor: _kRed,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     } finally {
       if (mounted) setState(() => isUploadingImage = false);
@@ -184,7 +196,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         final path = await _audioRecorder.stop();
         if (path == null) return;
         final voiceUrl = await CloudinaryService.uploadVoiceMessage(File(path));
-        final chatRef = FirebaseFirestore.instance.collection('chats').doc(widget.chatId);
+        final chatRef = FirebaseFirestore.instance
+            .collection('chats')
+            .doc(widget.chatId);
         await chatRef.collection('messages').add({
           'senderId': currentUid,
           'type': 'voice',
@@ -215,7 +229,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       return;
     }
     final dir = await getTemporaryDirectory();
-    final path = '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+    final path =
+        '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
     await _audioRecorder.start(const RecordConfig(), path: path);
     setState(() => isRecording = true);
   }
@@ -233,7 +248,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (query.docs.isEmpty) return;
       final batch = FirebaseFirestore.instance.batch();
       for (final doc in query.docs) {
-        batch.update(doc.reference, {'seen': true, 'seenAt': FieldValue.serverTimestamp()});
+        batch.update(doc.reference, {
+          'seen': true,
+          'seenAt': FieldValue.serverTimestamp(),
+        });
       }
       batch.set(
         FirebaseFirestore.instance.collection('chats').doc(widget.chatId),
@@ -246,44 +264,65 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
+
     if (text.isEmpty || currentUid.isEmpty || isSending) return;
+
     setState(() => isSending = true);
     _messageController.clear();
+
     try {
-      final chatRef = FirebaseFirestore.instance.collection('chats').doc(widget.chatId);
+      final encryptedText = EncryptionService.encryptMessage(text);
+
+      final chatRef = FirebaseFirestore.instance
+          .collection('chats')
+          .doc(widget.chatId);
+
       await chatRef.collection('messages').add({
         'senderId': currentUid,
-        'text': text,
+        'type': 'text',
+        'text': encryptedText,
         'createdAt': FieldValue.serverTimestamp(),
         'seen': false,
         'seenAt': null,
+        'encrypted': true,
       });
+
       await chatRef.set({
-        'lastMessage': text,
+        'lastMessage': '💬 Novo sporočilo',
         'lastMessageSenderId': currentUid,
         'lastMessageSeen': false,
         'lastMessageAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
+
       final otherUid = await _getOtherUserId();
+
       if (otherUid != null) {
         await http.post(
-          Uri.parse('https://skillsmatchnotifications.onrender.com/send-notification'),
+          Uri.parse(
+            'https://skillsmatchnotifications.onrender.com/send-notification',
+          ),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
             'receiverId': otherUid,
             'title': 'Novo sporočilo',
-            'body': text,
+            'body': '💬 Novo sporočilo',
             'chatId': widget.chatId,
             'senderId': currentUid,
           }),
         );
       }
+
       _scrollToBottom();
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Napaka pri pošiljanju: $e'), backgroundColor: _kRed, behavior: SnackBarBehavior.floating),
+        SnackBar(
+          content: Text('Napaka pri pošiljanju: $e'),
+          backgroundColor: _kRed,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     } finally {
       if (mounted) setState(() => isSending = false);
@@ -297,7 +336,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final staleCalls = await FirebaseFirestore.instance
         .collection('calls')
         .where('status', whereIn: ['ringing', 'answered'])
-        .where('createdAt', isLessThan: Timestamp.fromDate(DateTime.now().subtract(const Duration(minutes: 2))))
+        .where(
+          'createdAt',
+          isLessThan: Timestamp.fromDate(
+            DateTime.now().subtract(const Duration(minutes: 2)),
+          ),
+        )
         .get();
     for (final doc in staleCalls.docs) {
       await doc.reference.update({'status': 'expired'});
@@ -308,27 +352,47 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         .where('callerId', whereIn: [currentUid, otherUid])
         .where('receiverId', whereIn: [currentUid, otherUid])
         .where('status', whereIn: ['ringing', 'answered'])
-        .where('createdAt', isGreaterThan: Timestamp.fromDate(DateTime.now().subtract(const Duration(minutes: 2))))
+        .where(
+          'createdAt',
+          isGreaterThan: Timestamp.fromDate(
+            DateTime.now().subtract(const Duration(minutes: 2)),
+          ),
+        )
         .get();
     if (existingCall.docs.isNotEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ze obstaja aktiven klic'), backgroundColor: Colors.orange),
+          const SnackBar(
+            content: Text('Ze obstaja aktiven klic'),
+            backgroundColor: Colors.orange,
+          ),
         );
       }
       return;
     }
 
-    showDialog(context: context, barrierDismissible: false, builder: (context) => const Center(child: CircularProgressIndicator(color: _kPrimary)));
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) =>
+          const Center(child: CircularProgressIndicator(color: _kPrimary)),
+    );
 
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) throw Exception('Niste prijavljeni');
-      final callerDoc = await FirebaseFirestore.instance.collection('users').doc(currentUid).get();
+      final callerDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUid)
+          .get();
       final callerName = callerDoc.data()?['ime'] ?? 'Nepoznat';
-      final receiverDoc = await FirebaseFirestore.instance.collection('users').doc(otherUid).get();
+      final receiverDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(otherUid)
+          .get();
       final receiverFcmToken = receiverDoc.data()?['fcmToken'];
-      if (receiverFcmToken == null) throw Exception('Korisnik nije dostupan za pozive');
+      if (receiverFcmToken == null)
+        throw Exception('Korisnik nije dostupan za pozive');
 
       final response = await http.post(
         Uri.parse('https://skillsmatch-server.onrender.com/call/initiate'),
@@ -341,7 +405,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           'isVideoCall': isVideo,
         }),
       );
-      if (response.statusCode != 200) throw Exception('Server greška: ${response.statusCode}');
+      if (response.statusCode != 200)
+        throw Exception('Server greška: ${response.statusCode}');
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       final roomName = body['roomName'].toString();
       final token = body['token'].toString();
@@ -380,7 +445,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (mounted) Navigator.pop(context);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Napaka pri klicu: $e'), backgroundColor: _kRed, behavior: SnackBarBehavior.floating),
+        SnackBar(
+          content: Text('Napaka pri klicu: $e'),
+          backgroundColor: _kRed,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
@@ -406,7 +475,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final end = selection.end < 0 ? text.length : selection.end;
     final newText = text.replaceRange(start, end, emoji);
     final newOffset = start + emoji.length;
-    _messageController.value = TextEditingValue(text: newText, selection: TextSelection.collapsed(offset: newOffset));
+    _messageController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newOffset),
+    );
   }
 
   void _deleteEmojiOrChar() {
@@ -416,7 +488,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final cursor = selection.start < 0 ? text.length : selection.start;
     if (cursor == 0) return;
     final newText = text.replaceRange(cursor - 1, cursor, '');
-    _messageController.value = TextEditingValue(text: newText, selection: TextSelection.collapsed(offset: cursor - 1));
+    _messageController.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: cursor - 1),
+    );
   }
 
   void _scrollToBottom() {
@@ -462,13 +537,21 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         ),
         child: Text(
           'Danes',
-          style: TextStyle(color: context.kTextSub, fontSize: 12, fontWeight: FontWeight.w800),
+          style: TextStyle(
+            color: context.kTextSub,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
     );
   }
 
-  Widget _messageBubble(Map<String, dynamic> data, {required bool isLastMyMessage, required bool showDateChip}) {
+  Widget _messageBubble(
+    Map<String, dynamic> data, {
+    required bool isLastMyMessage,
+    required bool showDateChip,
+  }) {
     final isMe = data['senderId'] == currentUid;
     final type = (data['type'] ?? 'text').toString();
     final text = (data['text'] ?? '').toString();
@@ -483,7 +566,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         Align(
           alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
           child: Container(
-            margin: EdgeInsets.only(left: isMe ? 70 : 18, right: isMe ? 18 : 70, top: 7, bottom: 7),
+            margin: EdgeInsets.only(
+              left: isMe ? 70 : 18,
+              right: isMe ? 18 : 70,
+              top: 7,
+              bottom: 7,
+            ),
             child: Container(
               padding: type == 'image'
                   ? const EdgeInsets.fromLTRB(7, 7, 7, 9)
@@ -491,7 +579,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               decoration: BoxDecoration(
                 gradient: isMe
                     ? const LinearGradient(
-                        colors: [Color(0xFF4F46E5), Color(0xFF6D28D9), Color(0xFF7C3AED)],
+                        colors: [
+                          Color(0xFF4F46E5),
+                          Color(0xFF6D28D9),
+                          Color(0xFF7C3AED),
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       )
@@ -506,12 +598,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 border: isMe ? null : Border.all(color: context.kBorder),
               ),
               child: Column(
-                crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                crossAxisAlignment: isMe
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
                 children: [
                   if (type == 'image' && mediaUrl.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(18),
-                      child: Image.network(mediaUrl, width: 220, height: 220, fit: BoxFit.cover),
+                      child: Image.network(
+                        mediaUrl,
+                        width: 220,
+                        height: 220,
+                        fit: BoxFit.cover,
+                      ),
                     )
                   else if (type == 'voice' && mediaUrl.isNotEmpty)
                     Row(
@@ -527,7 +626,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               await _audioPlayer.play(UrlSource(mediaUrl));
                               setState(() => playingVoiceUrl = mediaUrl);
                               _audioPlayer.onPlayerComplete.listen((event) {
-                                if (mounted) setState(() => playingVoiceUrl = null);
+                                if (mounted)
+                                  setState(() => playingVoiceUrl = null);
                               });
                             }
                           },
@@ -535,11 +635,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             width: 38,
                             height: 38,
                             decoration: BoxDecoration(
-                              color: isMe ? Colors.white.withOpacity(0.20) : _kPrimary.withOpacity(0.12),
+                              color: isMe
+                                  ? Colors.white.withOpacity(0.20)
+                                  : _kPrimary.withOpacity(0.12),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              isPlayingThisVoice ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                              isPlayingThisVoice
+                                  ? Icons.stop_rounded
+                                  : Icons.play_arrow_rounded,
                               color: isMe ? Colors.white : _kPrimary,
                               size: 25,
                             ),
@@ -555,7 +659,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        Icon(Icons.graphic_eq_rounded, color: isMe ? Colors.white70 : context.kTextSub, size: 22),
+                        Icon(
+                          Icons.graphic_eq_rounded,
+                          color: isMe ? Colors.white70 : context.kTextSub,
+                          size: 22,
+                        ),
                       ],
                     )
                   else
@@ -572,13 +680,31 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(time, style: TextStyle(color: isMe ? Colors.white70 : context.kTextSub, fontSize: 11, fontWeight: FontWeight.w700)),
+                      Text(
+                        time,
+                        style: TextStyle(
+                          color: isMe ? Colors.white70 : context.kTextSub,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       if (isMe) ...[
                         const SizedBox(width: 10),
-                        Icon(seen ? Icons.done_all_rounded : Icons.done_rounded, size: 18, color: seen ? _kSeenGreen : Colors.white70),
+                        Icon(
+                          seen ? Icons.done_all_rounded : Icons.done_rounded,
+                          size: 18,
+                          color: seen ? _kSeenGreen : Colors.white70,
+                        ),
                         if (isLastMyMessage) ...[
                           const SizedBox(width: 4),
-                          Text(seen ? 'Videno' : 'Poslano', style: TextStyle(color: seen ? _kSeenGreen : Colors.white70, fontSize: 11, fontWeight: FontWeight.w900)),
+                          Text(
+                            seen ? 'Videno' : 'Poslano',
+                            style: TextStyle(
+                              color: seen ? _kSeenGreen : Colors.white70,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
                         ],
                       ],
                     ],
@@ -605,17 +731,38 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const LinearGradient(colors: [_kPrimary, _kViolet]),
-                boxShadow: [BoxShadow(color: _kPrimary.withOpacity(0.25), blurRadius: 18, offset: const Offset(0, 8))],
+                boxShadow: [
+                  BoxShadow(
+                    color: _kPrimary.withOpacity(0.25),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.chat_bubble_rounded, color: Colors.white, size: 35),
+              child: const Icon(
+                Icons.chat_bubble_rounded,
+                color: Colors.white,
+                size: 35,
+              ),
             ),
             const SizedBox(height: 16),
-            Text('Ni sporočil', style: TextStyle(color: context.kText, fontSize: 20, fontWeight: FontWeight.w900)),
+            Text(
+              'Ni sporočil',
+              style: TextStyle(
+                color: context.kText,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
             const SizedBox(height: 7),
             Text(
               'Začni pogovor in pošlji prvo sporočilo.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: context.kTextSub, fontSize: 13, height: 1.4),
+              style: TextStyle(
+                color: context.kTextSub,
+                fontSize: 13,
+                height: 1.4,
+              ),
             ),
           ],
         ),
@@ -628,26 +775,51 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
       decoration: BoxDecoration(
         color: context.kBg,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 18, offset: const Offset(0, -5))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 18,
+            offset: const Offset(0, -5),
+          ),
+        ],
       ),
       child: Container(
         padding: const EdgeInsets.fromLTRB(6, 6, 7, 6),
         decoration: BoxDecoration(
           color: context.kCardBg,
           borderRadius: BorderRadius.circular(26),
-          boxShadow: [BoxShadow(color: _kPrimary.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 7))],
+          boxShadow: [
+            BoxShadow(
+              color: _kPrimary.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 7),
+            ),
+          ],
         ),
         child: Row(
           children: [
             IconButton(
               onPressed: isUploadingImage ? null : _pickAndSendImage,
               icon: isUploadingImage
-                  ? SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, color: _kPrimary))
+                  ? SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: _kPrimary,
+                      ),
+                    )
                   : Icon(Icons.image_rounded, color: _kPrimary, size: 25),
             ),
             IconButton(
               onPressed: _toggleEmojiPicker,
-              icon: Icon(showEmojiPicker ? Icons.keyboard_alt_rounded : Icons.emoji_emotions_outlined, color: _kPrimary, size: 26),
+              icon: Icon(
+                showEmojiPicker
+                    ? Icons.keyboard_alt_rounded
+                    : Icons.emoji_emotions_outlined,
+                color: _kPrimary,
+                size: 26,
+              ),
             ),
             Expanded(
               child: TextField(
@@ -660,7 +832,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 style: TextStyle(color: context.kText),
                 decoration: InputDecoration(
                   hintText: 'Napiši sporočilo...',
-                  hintStyle: TextStyle(color: context.kTextSub, fontWeight: FontWeight.w500),
+                  hintStyle: TextStyle(
+                    color: context.kTextSub,
+                    fontWeight: FontWeight.w500,
+                  ),
                   border: InputBorder.none,
                   isDense: true,
                 ),
@@ -675,7 +850,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   color: isRecording ? _kRed : _kPrimary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Icon(isRecording ? Icons.stop_rounded : Icons.mic_rounded, color: isRecording ? Colors.white : _kPrimary, size: 24),
+                child: Icon(
+                  isRecording ? Icons.stop_rounded : Icons.mic_rounded,
+                  color: isRecording ? Colors.white : _kPrimary,
+                  size: 24,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -687,11 +866,27 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(colors: [_kPrimary, _kViolet]),
                   borderRadius: BorderRadius.circular(19),
-                  boxShadow: [BoxShadow(color: _kPrimary.withOpacity(0.35), blurRadius: 14, offset: const Offset(0, 6))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: _kPrimary.withOpacity(0.35),
+                      blurRadius: 14,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
                 ),
                 child: isSending
-                    ? const Padding(padding: EdgeInsets.all(14), child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.2))
-                    : const Icon(Icons.send_rounded, color: Colors.white, size: 22),
+                    ? const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2.2,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
               ),
             ),
           ],
@@ -701,39 +896,39 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Widget _emojiPicker() {
-  final isDark = context.isDark;
-  final backgroundColor = isDark ? context.kCardBg : Colors.white;
-  return SizedBox(
-    height: 245,
-    child: EmojiPicker(
-      onEmojiSelected: (category, emoji) => _addEmoji(emoji.emoji),
-      onBackspacePressed: _deleteEmojiOrChar,
-      config: Config(
-        height: 245,
-        checkPlatformCompatibility: true,
-        emojiViewConfig: EmojiViewConfig(
-          emojiSizeMax: 26,
-          columns: 7,
-          backgroundColor: backgroundColor,
-        ),
-        categoryViewConfig: CategoryViewConfig(
-          backgroundColor: backgroundColor,
-          indicatorColor: _kPrimary,
-          iconColorSelected: _kPrimary,
-          iconColor: isDark ? Colors.grey : Colors.grey,
-        ),
-        bottomActionBarConfig: BottomActionBarConfig(
-          backgroundColor: backgroundColor,
-          buttonColor: _kPrimary,
-        ),
-        searchViewConfig: SearchViewConfig(
-          backgroundColor: backgroundColor,
-          buttonIconColor: _kPrimary,
+    final isDark = context.isDark;
+    final backgroundColor = isDark ? context.kCardBg : Colors.white;
+    return SizedBox(
+      height: 245,
+      child: EmojiPicker(
+        onEmojiSelected: (category, emoji) => _addEmoji(emoji.emoji),
+        onBackspacePressed: _deleteEmojiOrChar,
+        config: Config(
+          height: 245,
+          checkPlatformCompatibility: true,
+          emojiViewConfig: EmojiViewConfig(
+            emojiSizeMax: 26,
+            columns: 7,
+            backgroundColor: backgroundColor,
+          ),
+          categoryViewConfig: CategoryViewConfig(
+            backgroundColor: backgroundColor,
+            indicatorColor: _kPrimary,
+            iconColorSelected: _kPrimary,
+            iconColor: isDark ? Colors.grey : Colors.grey,
+          ),
+          bottomActionBarConfig: BottomActionBarConfig(
+            backgroundColor: backgroundColor,
+            buttonColor: _kPrimary,
+          ),
+          searchViewConfig: SearchViewConfig(
+            backgroundColor: backgroundColor,
+            buttonIconColor: _kPrimary,
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _bottomChatArea() {
     return SafeArea(
@@ -761,14 +956,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             return _headerContent(isOnline: false, subtitle: 'Sodelovanje');
           }
           return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-            stream: FirebaseFirestore.instance.collection('users').doc(otherUid).snapshots(),
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(otherUid)
+                .snapshots(),
             builder: (context, snapshot) {
               final data = snapshot.data?.data() ?? {};
               final isOnline = data['isOnline'] == true;
               final lastSeen = data['lastSeen'];
               return _headerContent(
                 isOnline: isOnline,
-                subtitle: isOnline ? 'Online' : 'Zadnjič videno: ${_formatLastSeen(lastSeen)}',
+                subtitle: isOnline
+                    ? 'Online'
+                    : 'Zadnjič videno: ${_formatLastSeen(lastSeen)}',
               );
             },
           );
@@ -788,9 +988,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const LinearGradient(colors: [_kPrimary, _kViolet]),
-                boxShadow: [BoxShadow(color: _kPrimary.withOpacity(0.22), blurRadius: 12, offset: const Offset(0, 5))],
+                boxShadow: [
+                  BoxShadow(
+                    color: _kPrimary.withOpacity(0.22),
+                    blurRadius: 12,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
-              child: const Icon(Icons.person_rounded, color: Colors.white, size: 27),
+              child: const Icon(
+                Icons.person_rounded,
+                color: Colors.white,
+                size: 27,
+              ),
             ),
             Positioned(
               right: 1,
@@ -815,19 +1025,33 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               Text(
                 widget.otherUserName,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: context.kText),
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                  color: context.kText,
+                ),
               ),
               const SizedBox(height: 3),
               Text(
                 subtitle,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: isOnline ? _kGreen : context.kTextSub, fontSize: 12, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  color: isOnline ? _kGreen : context.kTextSub,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
         ),
-        IconButton(onPressed: () => _startCall(isVideo: false), icon: Icon(Icons.call_rounded, color: _kPrimary, size: 24)),
-        IconButton(onPressed: () => _startCall(isVideo: true), icon: Icon(Icons.videocam_rounded, color: _kPrimary, size: 27)),
+        IconButton(
+          onPressed: () => _startCall(isVideo: false),
+          icon: Icon(Icons.call_rounded, color: _kPrimary, size: 24),
+        ),
+        IconButton(
+          onPressed: () => _startCall(isVideo: true),
+          icon: Icon(Icons.videocam_rounded, color: _kPrimary, size: 27),
+        ),
       ],
     );
   }
@@ -842,10 +1066,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: _kPrimary));
+          return const Center(
+            child: CircularProgressIndicator(color: _kPrimary),
+          );
         }
         if (snapshot.hasError) {
-          return Center(child: Text('Napaka: ${snapshot.error}', style: const TextStyle(color: _kRed)));
+          return Center(
+            child: Text(
+              'Napaka: ${snapshot.error}',
+              style: const TextStyle(color: _kRed),
+            ),
+          );
         }
         final docs = snapshot.data?.docs ?? [];
         if (docs.isEmpty) return _emptyChat();
@@ -885,7 +1116,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     if (currentUid.isEmpty) {
       return Scaffold(
         backgroundColor: context.kBg,
-        body: Center(child: Text('Uporabnik ni prijavljen.', style: TextStyle(color: context.kText))),
+        body: Center(
+          child: Text(
+            'Uporabnik ni prijavljen.',
+            style: TextStyle(color: context.kText),
+          ),
+        ),
       );
     }
 
