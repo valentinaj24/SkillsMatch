@@ -689,6 +689,16 @@ String _prettySkill(String s) {
   if (s.isEmpty) return s;
   return s[0].toUpperCase() + s.substring(1);
 }
+String _displaySkill(String skill) {
+  return skill
+      .split(' ')
+      .map(
+        (w) => w.isEmpty
+            ? ''
+            : w[0].toUpperCase() + w.substring(1),
+      )
+      .join(' ');
+}
 
 _MatchResult _computeMatch({
   required Map<String, dynamic> currentUser,
@@ -704,20 +714,20 @@ _MatchResult _computeMatch({
 
   final myCanTeach = _skillNamesByType(mySkills, 'Lahko učim druge');
   final myWantLearn = _skillNamesByType(mySkills, 'Želim se naučiti');
+
   final otherCanTeach = _skillNamesByType(otherSkills, 'Lahko učim druge');
   final otherWantLearn = _skillNamesByType(otherSkills, 'Želim se naučiti');
 
   final q = _norm(query);
+
+  // 1. Ujemanje veščin — največ 80%
   double skillScore = 0;
 
   for (final wanted in myWantLearn) {
     for (final offered in otherCanTeach) {
       if (wanted == offered) {
-        skillScore += 60;
+        skillScore += 80;
         reasons.add('Uči: ${_prettySkill(offered)}');
-      } else if (_similarSkill(wanted, offered)) {
-        skillScore += 40;
-        reasons.add('Podobna veščina');
       }
     }
   }
@@ -725,65 +735,95 @@ _MatchResult _computeMatch({
   for (final mine in myCanTeach) {
     for (final theirWanted in otherWantLearn) {
       if (mine == theirWanted) {
-        skillScore += 60;
+        skillScore += 80;
         reasons.add('Ti pomagaš: ${_prettySkill(mine)}');
-      } else if (_similarSkill(mine, theirWanted)) {
-        skillScore += 40;
-        reasons.add('Možna izmenjava');
       }
     }
   }
 
-  percent += skillScore.clamp(0, 75);
+  for (final mine in myCanTeach) {
+    for (final theirs in otherCanTeach) {
+      if (mine == theirs) {
+        skillScore += 15;
+        reasons.add('Skupno strokovno področje');
+      }
+    }
+  }
 
+  for (final mine in myWantLearn) {
+    for (final theirs in otherWantLearn) {
+      if (mine == theirs) {
+        skillScore += 10;
+        reasons.add('Skupni učni interes');
+      }
+    }
+  }
+
+  percent += skillScore.clamp(0, 80);
+
+  // 2. Lokacija — največ 10%
   final myLocation = _norm(currentUser['lokacija']);
-  final otherLocation = _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
+  final otherLocation =
+      _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
+
   if (myLocation.isNotEmpty && otherLocation.isNotEmpty) {
     if (myLocation == otherLocation) {
-      percent += 12;
+      percent += 10;
       reasons.add('Ista lokacija');
-    } else if (myLocation.contains(otherLocation) || otherLocation.contains(myLocation)) {
-      percent += 7;
+    } else if (myLocation.contains(otherLocation) ||
+        otherLocation.contains(myLocation)) {
+      percent += 5;
       reasons.add('Podobna lokacija');
     }
   }
 
+  // 3. Razpoložljivost — največ 7%
   final myAvailability = _norm(currentUser['razpolozljivost']);
-  final otherAvailability = _showAvailability(otherUser) ? _norm(otherUser['razpolozljivost']) : '';
-  if (myAvailability.isNotEmpty && otherAvailability.isNotEmpty && myAvailability == otherAvailability) {
-    percent += 8;
+  final otherAvailability =
+      _showAvailability(otherUser) ? _norm(otherUser['razpolozljivost']) : '';
+
+  if (myAvailability.isNotEmpty &&
+      otherAvailability.isNotEmpty &&
+      myAvailability == otherAvailability) {
+    percent += 7;
     reasons.add('Ista razpoložljivost');
   }
 
-  final theyCanTeachMe = myWantLearn.any((w) => otherCanTeach.any((o) => _similarSkill(w, o)));
-  final iCanTeachThem = myCanTeach.any((m) => otherWantLearn.any((o) => _similarSkill(m, o)));
-  if (theyCanTeachMe && iCanTeachThem) {
-    percent += 5;
-    reasons.add('Vzajemna izmenjava');
-  }
-
+  // 4. Search bonus — največ 3%
   if (q.isNotEmpty) {
-    final otherName = '${otherUser['ime'] ?? ''} ${otherUser['priimek'] ?? ''}'.toLowerCase();
-    final otherLocationText = _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
-    final otherDescription = _showDescription(otherUser) ? _norm(otherUser['opis']) : '';
+    final otherName =
+        '${otherUser['ime'] ?? ''} ${otherUser['priimek'] ?? ''}'.toLowerCase();
+
+    final otherLocationText =
+        _showLocation(otherUser) ? _norm(otherUser['lokacija']) : '';
+
+    final otherDescription =
+        _showDescription(otherUser) ? _norm(otherUser['opis']) : '';
+
     final otherSkillText = otherSkills
-        .map((s) => '${s['naziv'] ?? ''} ${s['tip'] ?? ''} ${s['nivoZnanja'] ?? ''}')
+        .map((s) =>
+            '${s['naziv'] ?? ''} ${s['tip'] ?? ''} ${s['nivoZnanja'] ?? ''}')
         .join(' ')
         .toLowerCase();
+
     if (otherSkillText.contains(q)) {
-      percent += 5;
+      percent += 3;
       reasons.add('Ujema se z iskanjem');
     } else if (otherLocationText.contains(q) || otherName.contains(q)) {
-      percent += 3;
+      percent += 2;
       reasons.add('Ustreza iskanju');
     } else if (otherDescription.contains(q)) {
-      percent += 2;
+      percent += 1;
       reasons.add('Podoben interes');
     }
   }
 
   final uniqueReasons = reasons.toSet().take(4).toList();
-  return _MatchResult(percent: percent.round().clamp(0, 100), reasons: uniqueReasons);
+
+  return _MatchResult(
+    percent: percent.round().clamp(0, 100),
+    reasons: uniqueReasons,
+  );
 }
 
 // ─── Avatar (unchanged) ─────────────────────────────────────────────────────
@@ -1148,7 +1188,11 @@ class _UsersListScreenState extends State<UsersListScreen> with SingleTickerProv
       if (data['razpolozljivost'] == 'Vikend') vikend++;
       for (final s in sk) {
         final n = (s['naziv'] ?? '').toString().trim();
-        if (n.isNotEmpty) freq[n] = (freq[n] ?? 0) + 1;
+
+          if (n.isNotEmpty) {
+            final key = n.toLowerCase();
+            freq[key] = (freq[key] ?? 0) + 1;
+          }
       }
     }
     final topSkills = (freq.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).take(14).toList();
@@ -1203,7 +1247,7 @@ class _UsersListScreenState extends State<UsersListScreen> with SingleTickerProv
                 spacing: 7,
                 runSpacing: 7,
                 children: topSkills.map((e) {
-                  final name = e.key;
+                  final name = _displaySkill(e.key);
                   final cnt = e.value;
                   final sel = _activeSkill == name;
                   final allC = [_kP, _kV, _kC, _kG, _kA, const Color(0xFFDB2777), const Color(0xFF0284C7), const Color(0xFF0D9488)];
