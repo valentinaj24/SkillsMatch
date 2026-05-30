@@ -554,7 +554,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }) {
     final isMe = data['senderId'] == currentUid;
     final type = (data['type'] ?? 'text').toString();
-    final text = (data['text'] ?? '').toString();
+    final rawText = (data['text'] ?? '').toString();
+    final isEncrypted = data['encrypted'] == true;
+
+    final text = isEncrypted
+        ? EncryptionService.decryptMessage(rawText)
+        : rawText;
     final mediaUrl = (data['mediaUrl'] ?? '').toString();
     final seen = data['seen'] == true;
     final time = _formatTime(data['createdAt']);
