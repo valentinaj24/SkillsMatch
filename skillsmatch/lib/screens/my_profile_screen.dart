@@ -7,8 +7,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
 import 'activity_analytics_screen.dart';
-import '../widgets/dark_mode_toggle.dart';
-
+import '../main.dart';
+import '../accessibility/app_accessibility.dart';
 
 // ─── Color System ──────────────────────────────────────────────────────────────
 const _kPrimary = Color(0xFF4F46E5);
@@ -288,6 +288,344 @@ class _MyProfileScreenState extends State<MyProfileScreen>
       );
     }
   }
+void _openSettingsSheet(BuildContext ctx) {
+  showGeneralDialog(
+    context: ctx,
+    barrierDismissible: true,
+    barrierLabel: 'Nastavitve',
+    barrierColor: Colors.black.withOpacity(0.45),
+    transitionDuration: const Duration(milliseconds: 280),
+    pageBuilder: (context, anim1, anim2) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.86,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              color: context.kBg,
+              borderRadius: const BorderRadius.only(
+                topRight: Radius.circular(34),
+                bottomRight: Radius.circular(34),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.25),
+                  blurRadius: 30,
+                  offset: const Offset(8, 0),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: ListView(
+                padding: const EdgeInsets.all(18),
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [_kPrimaryDark, _kPrimary, _kViolet],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: _kPrimary.withOpacity(0.35),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.16),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.20),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.tune_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Nastavitve',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Uredi videz in dostopnost',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.16),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.white,
+                              size: 21,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 22),
+
+                  ValueListenableBuilder<ThemeMode>(
+                    valueListenable: themeModeNotifier,
+                    builder: (context, mode, _) {
+                      final isDark = mode == ThemeMode.dark;
+
+                      return _settingsOptionCard(
+                        icon: isDark
+                            ? Icons.dark_mode_rounded
+                            : Icons.light_mode_rounded,
+                        title: 'Temni način',
+                        subtitle: 'Preklopi med svetlo in temno temo',
+                        color: _kPrimary,
+                        child: Theme(
+                          data: Theme.of(context).copyWith(
+                            splashColor: Colors.transparent,
+                            highlightColor: Colors.transparent,
+                            hoverColor: Colors.transparent,
+                          ),
+                          child: _miniToggle(
+                            value: isDark,
+                            activeColor: _kPrimary,
+                            onTap: () {
+                              themeModeNotifier.value =
+                                  isDark ? ThemeMode.light : ThemeMode.dark;
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  AnimatedBuilder(
+                    animation: AppAccessibility.instance,
+                    builder: (context, _) {
+                      final senior = AppAccessibility.instance.seniorMode;
+
+                      return _settingsOptionCard(
+                        icon: Icons.format_size_rounded,
+                        title: 'Dostopnost',
+                        subtitle: 'Povečana velikost besedila',
+                        color: _kViolet,
+                        child: Theme(
+                          data: Theme.of(context).copyWith(
+                            splashColor: Colors.transparent,
+                            highlightColor: Colors.transparent,
+                            hoverColor: Colors.transparent,
+                          ),
+                          child: _miniToggle(
+                            value: senior,
+                            activeColor: _kViolet,
+                            onTap: () {
+                              AppAccessibility.instance.setSeniorMode(!senior);
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      _logout(ctx);
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withOpacity(0.10),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.redAccent.withOpacity(0.25),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.logout_rounded,
+                            color: Colors.redAccent,
+                            size: 24,
+                          ),
+                          SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              'Odjava',
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+    transitionBuilder: (context, anim, secondaryAnim, child) {
+      return SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(-1, 0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+        child: child,
+      );
+    },
+  );
+}
+Widget _settingsOptionCard({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required Color color,
+  required Widget child,
+}) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 14),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: context.kCardBg,
+      borderRadius: BorderRadius.circular(26),
+      border: Border.all(color: context.kBorder),
+      boxShadow: [
+        BoxShadow(
+          color: color.withOpacity(0.10),
+          blurRadius: 18,
+          offset: const Offset(0, 7),
+        ),
+      ],
+    ),
+    child: Row(
+        mainAxisSize: MainAxisSize.max,
+      children: [
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Icon(icon, color: color, size: 27),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: context.kText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: context.kTextSub,
+                  fontSize: 12,
+                  height: 1.25,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 52,
+          child: child,
+        ),
+      ],
+    ),
+  );
+}
+Widget _miniToggle({
+  required bool value,
+  required Color activeColor,
+  required VoidCallback onTap,
+}) {
+  return GestureDetector(
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      width: 48,
+      height: 28,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: value ? activeColor : context.kBorder,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: AnimatedAlign(
+        duration: const Duration(milliseconds: 220),
+        alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          width: 22,
+          height: 22,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
   // ── Header ─────────────────────────────────────────────────────────────────
   Widget _header(BuildContext ctx, Map<String, dynamic> data) {
@@ -331,45 +669,30 @@ class _MyProfileScreenState extends State<MyProfileScreen>
             Column(
               children: [
                 // Top bar — logout
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    GestureDetector(
-                      onTap: () => _logout(ctx),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 9,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.13),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.22),
+              Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: () => _openSettingsSheet(ctx),
+                        child: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.13),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.22),
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.settings_rounded,
+                            color: Colors.white,
+                            size: 21,
                           ),
                         ),
-                        child: const Row(
-                          children: [
-                            Icon(
-                              Icons.logout_rounded,
-                              color: Colors.white,
-                              size: 17,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Odjava',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
 
                 const SizedBox(height: 20),
 
@@ -1499,11 +1822,6 @@ Widget _illustratedBanner(BuildContext ctx) {
             ),
           ),
         ),
-      ),
-      Positioned(
-        top: MediaQuery.of(context).padding.top + 10,
-        left: 16,
-        child: const DarkModeToggle(),
       ),
     ],
   ),

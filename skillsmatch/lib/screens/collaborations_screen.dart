@@ -378,7 +378,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
       animation: Listenable.merge([_orbCtrl, _pulseCtrl, _floatCtrl]),
       builder: (_, __) => Container(
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(22, 52, 22, 28),
+        padding: const EdgeInsets.fromLTRB(22, 47, 22, 28),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: _headerGradientColors,
@@ -435,8 +435,8 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
                           ),
                         ),
                         Container(
-                          width: 98,
-                          height: 98,
+                          width: 90,
+                          height: 90,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white.withOpacity(0.10),

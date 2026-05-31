@@ -29,9 +29,9 @@ class AccessibilityWrapper extends StatelessWidget {
           data: MediaQuery.of(
             context,
           ).copyWith(textScaler: TextScaler.linear(senior ? 1.25 : 1.0)),
-          child: Stack(
-            children: [child, if (showButton) const _SeniorFloatingButton()],
-          ),
+   
+            child: child,
+                    
         );
       },
     );
