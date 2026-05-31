@@ -242,8 +242,8 @@ Projekt je bil razvit v okviru skupine **SkillBridge**.
 ### Člani ekipe
 
 - Teodora Krunić
-- Valentina J.
-- člani projektne skupine SkillBridge
+- Valentina Jovanović
+- Mateja Djurić
 
 ---
 
