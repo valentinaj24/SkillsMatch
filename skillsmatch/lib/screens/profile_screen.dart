@@ -1,11 +1,11 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../models/user_profile.dart';
 import 'main_navigation_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import '../services/service_locator.dart';
 
 const _kPrimary = Color(0xFF4F46E5);
 const _kPrimaryDark = Color(0xFF312E81);
@@ -361,10 +361,10 @@ class _ProfileScreenState extends State<ProfileScreen>
     if (!_formKey.currentState!.validate()) return;
     setState(() => isSaving = true);
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = ServiceLocator.auth.currentUser;
       if (user == null)
         throw Exception('Za ustvarjanje profila se morate prijaviti.');
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      await ServiceLocator.firestore.collection('users').doc(user.uid).set({
         'uid': user.uid,
         'ime': imeController.text.trim(),
         'priimek': priimekController.text.trim(),
@@ -934,6 +934,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               ),
             ),
             GestureDetector(
+              key: Key('delete_skill_$skill'),
               onTap: () => potrdiBrisanje(skill),
               child: Container(
                 width: 34,
@@ -959,6 +960,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     final sel = tipVescine == tip;
     return Expanded(
       child: GestureDetector(
+        key: Key('skill_type_$tip'),
         onTap: () => setState(() => tipVescine = tip),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
@@ -1157,6 +1159,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   SizedBox(
                                     width: double.infinity,
                                     child: OutlinedButton.icon(
+                                      key: const Key('location_button_profile'),
                                       onPressed: isGettingLocation
                                           ? null
                                           : uporabiTrenutnoLokacijo,
@@ -1378,6 +1381,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       borderRadius: BorderRadius.circular(14),
                                     ),
                                     child: OutlinedButton.icon(
+                                      key: const Key('add_skill_button'),
                                       onPressed: dodajVescino,
                                       icon: const Icon(
                                         Icons.add_circle_outline_rounded,
@@ -1464,6 +1468,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                         ],
                                 ),
                                 child: ElevatedButton.icon(
+                                  key: const Key('save_profile_button'),
                                   onPressed: isSaving ? null : shraniProfil,
                                   icon: isSaving
                                       ? const SizedBox(

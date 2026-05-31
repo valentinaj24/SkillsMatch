@@ -4,8 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:skillsmatch/services/call_service.dart';
 import 'call_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:skillsmatch/services/call_notification_service.dart';
+import '../services/service_locator.dart';
 
 class IncomingCallScreen extends StatefulWidget {
   final String callId;
@@ -57,7 +57,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
   }
 
   void _listenToCallStatus() {
-    _callStatusSubscription = FirebaseFirestore.instance
+    _callStatusSubscription = ServiceLocator.firestore
         .collection('calls')
         .doc(widget.callId)
         .snapshots()
@@ -124,7 +124,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
     CallNotificationService.cancelCallNotification(widget.callId);
 
-    FirebaseFirestore.instance
+    ServiceLocator.firestore
         .collection('calls')
         .doc(widget.callId)
         .update({'status': 'answered'});
@@ -150,7 +150,7 @@ class _IncomingCallScreenState extends State<IncomingCallScreen>
 
     CallNotificationService.cancelCallNotification(widget.callId);
 
-    FirebaseFirestore.instance
+    ServiceLocator.firestore
         .collection('calls')
         .doc(widget.callId)
         .update({'status': 'declined'});

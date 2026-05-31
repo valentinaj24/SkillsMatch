@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'; // ✅ ADD THIS for kDebugMode
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -17,6 +18,7 @@ import 'screens/auth_gate.dart';
 import 'services/notification_service.dart';
 import 'services/call_notification_service.dart';
 import 'theme/app_colors.dart';
+import 'services/service_locator.dart';
 
 // ─── Global theme notifier ────────────────────────────────────────────────────
 final themeModeNotifier = ValueNotifier<ThemeMode>(ThemeMode.system);
@@ -50,10 +52,17 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  if (kDebugMode) {
+    // Replace with your computer's local IP address (same as before)
+    const host = '10.0.2.2';
+    await FirebaseAuth.instance.useAuthEmulator(host, 9099);
+    FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
+  }
   
   // Inicijalizuj oba servisa
-  await NotificationService.init();           // za obične notifikacije
-  await CallNotificationService.init();       // za pozive
+  await NotificationService.init();
+  await CallNotificationService.init();
   
   // Postavi background handler za FCM
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
@@ -61,6 +70,11 @@ void main() async {
   await AppAccessibility.instance.load();
   await _checkPermissions();
   await _initializeAndroidAudioSettings();
+
+  ServiceLocator.init(
+    authInstance: FirebaseAuth.instance,
+    firestoreInstance: FirebaseFirestore.instance,
+  );
 
   runApp(const SkillsMatchApp());
 }

@@ -891,7 +891,8 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
         if (_page < _pages.length - 1)
           GestureDetector(
-            onTap: _finish,
+            key: const Key('skip-btn'),
+            onTap: _finish, 
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
               decoration: BoxDecoration(

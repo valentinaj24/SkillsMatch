@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../theme/app_colors.dart'; // added for dynamic theme
+import '../services/service_locator.dart'; // added for service locator
 
 // Brand / Accent Colors (stay the same)
 const _kP = Color(0xFF4F46E5);
@@ -171,7 +171,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
   }
 
   Future<bool> _hasPendingInvitation(String requesterId) async {
-    final existing = await FirebaseFirestore.instance
+    final existing = await ServiceLocator.firestore
         .collection('collaborations')
         .where('requesterId', isEqualTo: requesterId)
         .where('receiverId', isEqualTo: receiverId)
@@ -180,7 +180,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
         .get();
     if (existing.docs.isNotEmpty) return true;
 
-    final reverseExisting = await FirebaseFirestore.instance
+    final reverseExisting = await ServiceLocator.firestore
         .collection('collaborations')
         .where('requesterId', isEqualTo: receiverId)
         .where('receiverId', isEqualTo: requesterId)
@@ -194,7 +194,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
     if (isSending) return;
     if (!_formKey.currentState!.validate()) return;
 
-    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUser = ServiceLocator.auth.currentUser;
     if (currentUser == null) {
       _showSnack('Uporabnik ni prijavljen.', color: _kRed);
       return;
@@ -230,14 +230,14 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
         return;
       }
 
-      final currentUserDoc = await FirebaseFirestore.instance
+      final currentUserDoc = await ServiceLocator.firestore
           .collection('users')
           .doc(currentUser.uid)
           .get();
       final currentData = currentUserDoc.data() ?? {};
       final requesterName = '${currentData['ime'] ?? ''} ${currentData['priimek'] ?? ''}'.trim();
 
-      await FirebaseFirestore.instance.collection('collaborations').add({
+      await ServiceLocator.firestore.collection('collaborations').add({
         'requesterId': currentUser.uid,
         'receiverId': receiverId,
         'requesterName': requesterName.isEmpty ? 'Neznan uporabnik' : requesterName,
@@ -371,6 +371,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
           _label('Veščina'),
           const SizedBox(height: 10),
           DropdownButtonFormField<String>(
+            key: Key('skill_dropdown'),
             value: hasSkills ? selectedSkill : null,
             isExpanded: true,
             decoration: _inputDecoration(
@@ -403,6 +404,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
           _label('Sporočilo'),
           const SizedBox(height: 10),
           TextFormField(
+            key: Key('message_input_collaboration'),
             controller: _messageController,
             maxLines: 4,
             maxLength: 250,
@@ -425,6 +427,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
                   icon: Icons.calendar_month_rounded,
                   text: selectedDate == null ? 'Datum' : _formatDate(selectedDate!),
                   onTap: pickDate,
+                  pickerKey: Key('date_picker'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -434,6 +437,7 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
                   text: selectedTime == null ? 'Ura' : _formatTime(selectedTime!),
                   onTap: pickTime,
                   violet: true,
+                  pickerKey: Key('time_picker'),
                 ),
               ),
             ],
@@ -485,12 +489,14 @@ class _CreateCollaborationScreenState extends State<CreateCollaborationScreen> {
     required IconData icon,
     required String text,
     required VoidCallback onTap,
+    required Key pickerKey,
     bool violet = false,
   }) {
     return Material(
       color: context.kSurface,
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
+        key: pickerKey,
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(

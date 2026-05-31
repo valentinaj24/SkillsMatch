@@ -1,9 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_screen.dart';
 import '../theme/app_colors.dart';
+import '../services/service_locator.dart';
 
 // Brand / Accent Colors (stay the same)
 const _kPrimary = Color(0xFF4F46E5);
@@ -96,7 +96,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
   late Animation<double> _pulseAnim;
   late Animation<double> _floatAnim;
 
-  String get currentUid => FirebaseAuth.instance.currentUser?.uid ?? '';
+  String get currentUid => ServiceLocator.auth.currentUser?.uid ?? '';
 
   @override
   void initState() {
@@ -117,7 +117,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
   }
 
   Stream<QuerySnapshot<Map<String, dynamic>>> _stream() {
-    final query = FirebaseFirestore.instance.collection('collaborations');
+    final query = ServiceLocator.firestore.collection('collaborations');
     if (selectedTab == 'received') {
       return query.where('receiverId', isEqualTo: currentUid).snapshots();
     }
@@ -130,7 +130,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
     if (requesterId.isEmpty || receiverId.isEmpty) {
       throw Exception('Manjka requesterId ali receiverId.');
     }
-    final chatRef = FirebaseFirestore.instance.collection('chats').doc(collaborationId);
+    final chatRef = ServiceLocator.firestore.collection('chats').doc(collaborationId);
     await chatRef.set({
       'collaborationId': collaborationId,
       'users': [requesterId, receiverId],
@@ -164,7 +164,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
     if (isUpdating) return;
     setState(() => isUpdating = true);
     try {
-      await FirebaseFirestore.instance.collection('collaborations').doc(docId).set({
+      await ServiceLocator.firestore.collection('collaborations').doc(docId).set({
         'status': status,
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -237,6 +237,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
                 children: List.generate(5, (index) {
                   final selected = index < rating;
                   return GestureDetector(
+                    key: Key('tab_received'),
                     onTap: () => setDialogState(() => rating = index + 1),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -308,10 +309,10 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
         _showSnack('Napaka: uporabnik za oceno ni najden.', color: _kRed);
         return;
       }
-      final myDoc = await FirebaseFirestore.instance.collection('users').doc(currentUid).get();
+      final myDoc = await ServiceLocator.firestore.collection('users').doc(currentUid).get();
       final myData = myDoc.data() ?? {};
       final reviewerName = '${myData['ime'] ?? ''} ${myData['priimek'] ?? ''}'.trim();
-      await FirebaseFirestore.instance.collection('reviews').doc('${docId}_$currentUid').set({
+      await ServiceLocator.firestore.collection('reviews').doc('${docId}_$currentUid').set({
         'collaborationId': docId,
         'reviewerId': currentUid,
         'reviewerName': reviewerName.isEmpty ? 'Neznan uporabnik' : reviewerName,
@@ -503,6 +504,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
     final selected = selectedTab == value;
     return Expanded(
       child: GestureDetector(
+        key: Key('tab_sent'),
         onTap: () { if (selectedTab != value) setState(() => selectedTab = value); },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
@@ -674,6 +676,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
+                    key: Key('reject_button'),
                     onPressed: isUpdating ? null : () => _confirmStatusChange(docId, 'rejected', 'Zavrni povabilo?', 'Ali si prepričana, da želiš zavrniti to povabilo?'),
                     icon: const Icon(Icons.close_rounded, size: 17),
                     label: const Text('Zavrni'),
@@ -689,6 +692,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton.icon(
+                    key: const Key('accept_button'),
                     onPressed: isUpdating ? null : () => _confirmStatusChange(docId, 'accepted', 'Sprejmi povabilo?', 'Po sprejemu bosta lahko nadaljevala sodelovanje, sporočila in video klic.'),
                     icon: const Icon(Icons.check_rounded, size: 17),
                     label: const Text('Sprejmi'),
@@ -743,6 +747,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
+                key: Key('review_button'),
                 onPressed: () => _openReviewDialog(docId, data),
                 icon: const Icon(Icons.star_rounded, size: 17),
                 label: const Text('Oceni sodelovanje'),

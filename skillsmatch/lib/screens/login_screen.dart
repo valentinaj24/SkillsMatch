@@ -1,9 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_colors.dart'; // added for dynamic theme
-
+import '../services/service_locator.dart';
 import 'register_screen.dart';
 import 'auth_gate.dart';
 
@@ -268,13 +269,22 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     }
     setState(() => isLoading = true);
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(email: email, password: password);
+      await ServiceLocator.auth.signInWithEmailAndPassword(email: email, password: password);
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const AuthGate()), (route) => false);
       if (!mounted) return;
       _snack('Prijava uspešna.', _kPrimary);
     } on FirebaseAuthException catch (e) {
+      print('code: ${e.code}');
+      print('message: ${e.message}');
+      print('currentUser: ${FirebaseAuth.instance.currentUser?.uid}');
+      print('apps: ${Firebase.apps.length}');
       String msg = 'Prijava ni uspela.';
+      
+      debugPrint('FIREBASE LOGIN ERROR');
+      debugPrint('code: ${e.code}');
+      debugPrint('message: ${e.message}');
+      debugPrint('email: ${emailController.text}');
       if (e.code == 'invalid-email') {
         msg = 'Email naslov ni pravilen.';
       } else if (e.code == 'user-not-found') {
@@ -454,7 +464,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                     padding: EdgeInsets.symmetric(vertical: 22),
                     child: Divider(height: 1, color: Color(0xFFF1F5F9)),
                   ),
-                  _anim(1, Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_lbl('Email'), TextField(controller: emailController, focusNode: _emailFN, keyboardType: TextInputType.emailAddress, decoration: _deco('janez@example.si', Icons.email_outlined, _emailFN))])),
+                  _anim(1, Column(crossAxisAlignment: CrossAxisAlignment.start, children: [_lbl('Email'), TextField(key: Key('email_login'), controller: emailController, focusNode: _emailFN, keyboardType: TextInputType.emailAddress, decoration: _deco('janez@example.si', Icons.email_outlined, _emailFN))])),
                   const SizedBox(height: 16),
                   _anim(
                     2,
@@ -463,6 +473,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                       children: [
                         _lbl('Geslo'),
                         TextField(
+                          key: Key('password_login'),
                           controller: passwordController,
                           focusNode: _passwordFN,
                           obscureText: !showPassword,
@@ -495,6 +506,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               boxShadow: isLoading ? [] : [BoxShadow(color: _kPrimary.withOpacity(0.40), blurRadius: 20, offset: const Offset(0, 8))],
                             ),
                             child: ElevatedButton.icon(
+                              key: Key('login_button'),
                               onPressed: isLoading ? null : login,
                               icon: isLoading
                                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
@@ -516,6 +528,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                   _anim(
                     3,
                     TextButton(
+                      key: Key('go_to_register_button'),
                       onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen())),
                       child: RichText(
                         text: TextSpan(

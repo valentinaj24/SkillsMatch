@@ -122,6 +122,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
 
                 return Expanded(
                   child: GestureDetector(
+                    key: Key('nav_tab_$index'),
                     behavior: HitTestBehavior.opaque,
                     onTap: () => _onTap(index),
                     child: ScaleTransition(

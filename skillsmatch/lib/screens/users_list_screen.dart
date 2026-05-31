@@ -3,10 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'create_collaboration_screen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import '../theme/app_colors.dart';
 import '../widgets/dark_mode_toggle.dart';
-
+import '../services/service_locator.dart';
 
 // ─── Brand / Accent Colors (stay the same) ──────────────────────────────────
 const _kP = Color(0xFF4F46E5);
@@ -861,7 +860,7 @@ class _Av extends StatelessWidget {
 Widget _reviewBadge(String userId, Map<String, dynamic> userData, BuildContext context) {
   if (userId.isEmpty) return const SizedBox.shrink();
   return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance.collection('reviews').where('reviewedUserId', isEqualTo: userId).snapshots(),
+    stream: ServiceLocator.firestore.collection('reviews').where('reviewedUserId', isEqualTo: userId).snapshots(),
     builder: (context, snapshot) {
       final docs = snapshot.data?.docs ?? [];
       if (docs.isEmpty) return const SizedBox.shrink();
@@ -913,7 +912,7 @@ Widget _reviewBadge(String userId, Map<String, dynamic> userData, BuildContext c
 Widget _reviewsList(String userId, BuildContext context) {
   if (userId.isEmpty) return const SizedBox.shrink();
   return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance.collection('reviews').where('reviewedUserId', isEqualTo: userId).snapshots(),
+    stream: ServiceLocator.firestore.collection('reviews').where('reviewedUserId', isEqualTo: userId).snapshots(),
     builder: (context, snapshot) {
       final docs = snapshot.data?.docs ?? [];
       if (docs.isEmpty) return const SizedBox.shrink();
@@ -1630,7 +1629,7 @@ class _UsersListScreenState extends State<UsersListScreen> with SingleTickerProv
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: context.kBg,
     body: StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+      stream: ServiceLocator.firestore.collection('users').snapshots(),
       builder: (ctx, snap) {
         if (snap.connectionState == ConnectionState.waiting) return const _SkeletonScreen();
         if (snap.hasError) return Center(child: Text('Napaka: ${snap.error}', style: const TextStyle(color: Colors.redAccent)));
@@ -1638,7 +1637,7 @@ class _UsersListScreenState extends State<UsersListScreen> with SingleTickerProv
           return Column(children: [_header(0), const Expanded(child: _EmptyCommunity())]);
         }
         final all = snap.data!.docs;
-        final currentUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+        final currentUid = ServiceLocator.auth.currentUser?.uid ?? '';
         final currentDoc = all.where((d) {
           final data = d.data() as Map<String, dynamic>;
           return d.id == currentUid || (data['uid'] ?? '').toString() == currentUid;

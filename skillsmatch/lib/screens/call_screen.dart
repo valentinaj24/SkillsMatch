@@ -4,6 +4,7 @@ import 'package:livekit_client/livekit_client.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/call_notification_service.dart';
+import '../services/service_locator.dart';
 
 const _kPrimary = Color(0xFF4F46E5);
 const _kViolet = Color(0xFF7C3AED);
@@ -83,7 +84,7 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   void _listenToCallStatus() {
-    _callStatusSubscription = FirebaseFirestore.instance
+    _callStatusSubscription = ServiceLocator.firestore
         .collection('calls')
         .doc(widget.callId)
         .snapshots()
@@ -210,7 +211,7 @@ class _CallScreenState extends State<CallScreen> {
     _durationTimer?.cancel();
 
     try {
-      await FirebaseFirestore.instance
+      await ServiceLocator.firestore
           .collection('calls')
           .doc(widget.callId)
           .update({

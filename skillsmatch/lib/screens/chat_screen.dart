@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -13,6 +12,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:path_provider/path_provider.dart';
 import '../theme/app_colors.dart'; // added for dynamic theme
 import '../services/encryption_service.dart';
+import '../services/service_locator.dart'; // added for service locator
 
 // Brand / Accent Colors (stay the same)
 const _kPrimary = Color(0xFF4F46E5);
@@ -50,7 +50,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool isSending = false;
   bool showEmojiPicker = false;
 
-  String get currentUid => FirebaseAuth.instance.currentUser?.uid ?? '';
+  String get currentUid => ServiceLocator.auth.currentUser?.uid ?? '';
 
   @override
   void initState() {
@@ -103,7 +103,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Future<void> _setMyOnlineStatus(bool online) async {
     if (currentUid.isEmpty) return;
     try {
-      await FirebaseFirestore.instance.collection('users').doc(currentUid).set({
+      await ServiceLocator.firestore.collection('users').doc(currentUid).set({
         'isOnline': online,
         'lastSeen': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -111,7 +111,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Future<String?> _getOtherUserId() async {
-    final chatDoc = await FirebaseFirestore.instance
+    final chatDoc = await ServiceLocator.firestore
         .collection('chats')
         .doc(widget.chatId)
         .get();
@@ -135,7 +135,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     try {
       final file = File(picked.path);
       final imageUrl = await CloudinaryService.uploadChatImage(file);
-      final chatRef = FirebaseFirestore.instance
+      final chatRef = ServiceLocator.firestore
           .collection('chats')
           .doc(widget.chatId);
       await chatRef.collection('messages').add({
@@ -196,7 +196,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         final path = await _audioRecorder.stop();
         if (path == null) return;
         final voiceUrl = await CloudinaryService.uploadVoiceMessage(File(path));
-        final chatRef = FirebaseFirestore.instance
+        final chatRef = ServiceLocator.firestore
             .collection('chats')
             .doc(widget.chatId);
         await chatRef.collection('messages').add({
@@ -238,7 +238,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Future<void> _markMessagesAsSeen() async {
     if (currentUid.isEmpty) return;
     try {
-      final query = await FirebaseFirestore.instance
+      final query = await ServiceLocator.firestore
           .collection('chats')
           .doc(widget.chatId)
           .collection('messages')
@@ -246,7 +246,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           .where('seen', isEqualTo: false)
           .get();
       if (query.docs.isEmpty) return;
-      final batch = FirebaseFirestore.instance.batch();
+      final batch = ServiceLocator.firestore.batch();
       for (final doc in query.docs) {
         batch.update(doc.reference, {
           'seen': true,
@@ -254,7 +254,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         });
       }
       batch.set(
-        FirebaseFirestore.instance.collection('chats').doc(widget.chatId),
+        ServiceLocator.firestore.collection('chats').doc(widget.chatId),
         {'lastMessageSeen': true, 'updatedAt': FieldValue.serverTimestamp()},
         SetOptions(merge: true),
       );
@@ -273,7 +273,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     try {
       final encryptedText = EncryptionService.encryptMessage(text);
 
-      final chatRef = FirebaseFirestore.instance
+      final chatRef = ServiceLocator.firestore
           .collection('chats')
           .doc(widget.chatId);
 
@@ -333,7 +333,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final otherUid = await _getOtherUserId();
     if (otherUid == null || !mounted) return;
 
-    final staleCalls = await FirebaseFirestore.instance
+    final staleCalls = await ServiceLocator.firestore
         .collection('calls')
         .where('status', whereIn: ['ringing', 'answered'])
         .where(
@@ -347,7 +347,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       await doc.reference.update({'status': 'expired'});
     }
 
-    final existingCall = await FirebaseFirestore.instance
+    final existingCall = await ServiceLocator.firestore
         .collection('calls')
         .where('callerId', whereIn: [currentUid, otherUid])
         .where('receiverId', whereIn: [currentUid, otherUid])
@@ -379,14 +379,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
 
     try {
-      final currentUser = FirebaseAuth.instance.currentUser;
+      final currentUser = ServiceLocator.auth.currentUser;
       if (currentUser == null) throw Exception('Niste prijavljeni');
-      final callerDoc = await FirebaseFirestore.instance
+      final callerDoc = await ServiceLocator.firestore
           .collection('users')
           .doc(currentUid)
           .get();
       final callerName = callerDoc.data()?['ime'] ?? 'Nepoznat';
-      final receiverDoc = await FirebaseFirestore.instance
+      final receiverDoc = await ServiceLocator.firestore
           .collection('users')
           .doc(otherUid)
           .get();
@@ -413,7 +413,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final liveKitUrl = body['liveKitUrl'].toString();
       final callId = body['callId'].toString();
 
-      await FirebaseFirestore.instance.collection('calls').doc(callId).set({
+      await ServiceLocator.firestore.collection('calls').doc(callId).set({
         'callId': callId,
         'callerId': currentUid,
         'callerName': callerName,
@@ -804,6 +804,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         child: Row(
           children: [
             IconButton(
+              key: Key('image_picker_button'),
               onPressed: isUploadingImage ? null : _pickAndSendImage,
               icon: isUploadingImage
                   ? SizedBox(
@@ -828,6 +829,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ),
             Expanded(
               child: TextField(
+                key: Key('message_input'),
                 controller: _messageController,
                 focusNode: _focusNode,
                 minLines: 1,
@@ -847,6 +849,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               ),
             ),
             GestureDetector(
+              key: Key('voice_record_button'),
               onTap: _toggleVoiceRecording,
               child: Container(
                 width: 48,
@@ -864,6 +867,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ),
             const SizedBox(width: 8),
             GestureDetector(
+              key: Key('send_button'),
               onTap: isSending ? null : _sendMessage,
               child: Container(
                 width: 48,
@@ -961,7 +965,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             return _headerContent(isOnline: false, subtitle: 'Sodelovanje');
           }
           return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-            stream: FirebaseFirestore.instance
+            stream: ServiceLocator.firestore
                 .collection('users')
                 .doc(otherUid)
                 .snapshots(),
@@ -1063,7 +1067,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   Widget _messagesBody() {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance
+      stream: ServiceLocator.firestore
           .collection('chats')
           .doc(widget.chatId)
           .collection('messages')

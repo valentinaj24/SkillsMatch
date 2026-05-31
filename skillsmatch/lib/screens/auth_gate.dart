@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../services/service_locator.dart';
 
 import 'login_screen.dart';
 import 'main_navigation_screen.dart';
@@ -21,7 +22,7 @@ class AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
+      stream: ServiceLocator.auth.authStateChanges(),
       builder: (context, authSnapshot) {
         if (authSnapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -39,7 +40,7 @@ class AuthGate extends StatelessWidget {
         final user = authSnapshot.data!;
 
         return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-          future: FirebaseFirestore.instance
+          future: ServiceLocator.firestore
               .collection('users')
               .doc(user.uid)
               .get(),

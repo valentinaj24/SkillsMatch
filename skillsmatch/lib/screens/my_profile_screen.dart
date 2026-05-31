@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import '../theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../services/service_locator.dart';
 
 import 'edit_profile_screen.dart';
 import 'login_screen.dart';
@@ -278,7 +278,7 @@ class _MyProfileScreenState extends State<MyProfileScreen>
       ),
     );
     if (ok == true) {
-      await FirebaseAuth.instance.signOut();
+      await ServiceLocator.auth.signOut();
 
       if (!mounted) return;
 
@@ -797,7 +797,7 @@ Widget _miniToggle({
 
                 const SizedBox(height: 8),
                 _profileVerifiedBadge(
-                  FirebaseAuth.instance.currentUser?.uid ?? '',
+                  ServiceLocator.auth.currentUser?.uid ?? '',
                   data,
                 ),
 
@@ -845,7 +845,7 @@ Widget _miniToggle({
   if (userId.isEmpty) return const SizedBox.shrink();
 
   return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance
+    stream: ServiceLocator.firestore
         .collection('reviews')
         .where('reviewedUserId', isEqualTo: userId)
         .snapshots(),
@@ -1829,7 +1829,7 @@ Widget _illustratedBanner(BuildContext ctx) {
 
   Widget _reviewsSummaryCard(String userId, Map<String, dynamic> userData) {
   return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance
+    stream: ServiceLocator.firestore
         .collection('reviews')
         .where('reviewedUserId', isEqualTo: userId)
         .snapshots(),
@@ -1937,7 +1937,7 @@ Widget _illustratedBanner(BuildContext ctx) {
                 final reviewerId = (data['reviewerId'] ?? '').toString();
 
                 return FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance
+                  future: ServiceLocator.firestore
                       .collection('users')
                       .doc(reviewerId)
                       .get(),
@@ -2011,13 +2011,13 @@ Widget _illustratedBanner(BuildContext ctx) {
   // ── BUILD ──────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = ServiceLocator.auth.currentUser?.uid;
     if (uid == null) return _emptyProfile();
 
     return Scaffold(
       backgroundColor: context.kBg,
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
+        stream: ServiceLocator.firestore
             .collection('users')
             .doc(uid)
             .snapshots(),

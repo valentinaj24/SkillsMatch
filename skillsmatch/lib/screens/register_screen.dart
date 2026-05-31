@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../theme/app_colors.dart'; // added for dynamic theme
+import '../services/service_locator.dart'; 
 
 // Brand / accent colors (remain unchanged)
 const _kPrimary = Color(0xFF4F46E5);
@@ -260,9 +261,9 @@ class _RegisterScreenState extends State<RegisterScreen>
     }
     setState(() => isLoading = true);
     try {
-      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(email: email, password: pw);
+      final cred = await ServiceLocator.auth.createUserWithEmailAndPassword(email: email, password: pw);
       final uid = cred.user!.uid;
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+      await ServiceLocator.firestore.collection('users').doc(uid).set({
         'uid': uid,
         'ime': ime,
         'priimek': priimek,
@@ -277,7 +278,7 @@ class _RegisterScreenState extends State<RegisterScreen>
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
-      await FirebaseAuth.instance.signOut();
+      await ServiceLocator.auth.signOut();
       if (!mounted) return;
       await _showSuccessPopup();
       if (!mounted) return;
@@ -399,6 +400,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                     boxShadow: [BoxShadow(color: _kPrimary.withOpacity(0.35), blurRadius: 14, offset: const Offset(0, 4))],
                   ),
                   child: ElevatedButton(
+                    key: const Key('success_continue_button'),
                     onPressed: () => Navigator.pop(ctx),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
@@ -620,6 +622,7 @@ class _RegisterScreenState extends State<RegisterScreen>
             final sel = vloga == name;
             return Expanded(
               child: GestureDetector(
+                key: Key('role_card_${name.toLowerCase()}'),
                 onTap: () => setState(() => vloga = name),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 230),
@@ -919,23 +922,23 @@ class _RegisterScreenState extends State<RegisterScreen>
                             const SizedBox(height: 24),
                             _anim(0, Row(children: [
                               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [_lbl('Ime *'), TextField(controller: imeController, focusNode: _imeFN,
+                                children: [_lbl('Ime *'), TextField(key: Key('name_register'), controller: imeController, focusNode: _imeFN,
                                   textCapitalization: TextCapitalization.words,
                                   decoration: _deco('Janez', Icons.badge_outlined, _imeFN))])),
                               const SizedBox(width: 12),
                               Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [_lbl('Priimek *'), TextField(controller: priimekController, focusNode: _priimekFN,
+                                children: [_lbl('Priimek *'), TextField(key: Key('surname_register'), controller: priimekController, focusNode: _priimekFN,
                                   textCapitalization: TextCapitalization.words,
                                   decoration: _deco('Novak', Icons.person_outline, _priimekFN))])),
                             ])),
                             const SizedBox(height: 16),
                             _anim(1, Column(crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [_lbl('Email *'), TextField(controller: emailController, focusNode: _emailFN,
+                              children: [_lbl('Email *'), TextField(key: Key('email_register'), controller: emailController, focusNode: _emailFN,
                                 keyboardType: TextInputType.emailAddress,
                                 decoration: _deco('janez@example.si', Icons.email_outlined, _emailFN))])),
                             const SizedBox(height: 16),
                             _anim(2, Column(crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [_lbl('Telefon'), TextField(controller: telefonController, focusNode: _telefonFN,
+                              children: [_lbl('Telefon'), TextField(key: Key('phone_register'), controller: telefonController, focusNode: _telefonFN,
                                 keyboardType: TextInputType.phone,
                                 decoration: _deco('+386 41 000 000', Icons.phone_android_outlined, _telefonFN))])),
                             const SizedBox(height: 16),
@@ -943,12 +946,13 @@ class _RegisterScreenState extends State<RegisterScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _lbl('Lokacija *'),
-                                TextField(controller: lokacijaController, focusNode: _lokacijaFN,
+                                TextField(key: Key('location_register'), controller: lokacijaController, focusNode: _lokacijaFN,
                                   decoration: _deco('Ljubljana, Slovenija', Icons.location_on_outlined, _lokacijaFN)),
                                 const SizedBox(height: 8),
                                 SizedBox(
                                   width: double.infinity,
                                   child: OutlinedButton.icon(
+                                    key: Key('location_button_register'),
                                     onPressed: isGettingLocation ? null : uporabiTrenutnoLokacijo,
                                     icon: isGettingLocation
                                         ? const SizedBox(width: 16, height: 16,
@@ -972,10 +976,10 @@ class _RegisterScreenState extends State<RegisterScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _lbl('Geslo *'),
-                                TextField(controller: passwordController, focusNode: _passwordFN,
+                                TextField(key: Key('password_register'), controller: passwordController, focusNode: _passwordFN,
                                   obscureText: !showPassword,
                                   decoration: _deco('••••••••', Icons.lock_outline, _passwordFN,
-                                    suffix: IconButton(icon: Icon(showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                    suffix: IconButton(key: Key('toggle_password_visibility'),icon: Icon(showPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                                         color: _kPrimaryLight, size: 20),
                                       onPressed: () => setState(() => showPassword = !showPassword))),
                                 ),
@@ -987,10 +991,10 @@ class _RegisterScreenState extends State<RegisterScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 _lbl('Ponovite geslo *'),
-                                TextField(controller: confirmPasswordController, focusNode: _confirmFN,
+                                TextField(key: Key('confirm_password_register'), controller: confirmPasswordController, focusNode: _confirmFN,
                                   obscureText: !showConfirmPassword,
                                   decoration: _deco('••••••••', Icons.lock_reset_outlined, _confirmFN,
-                                    suffix: IconButton(icon: Icon(showConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                    suffix: IconButton(key: Key('toggle_confirm_password_visibility'),icon: Icon(showConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                                         color: _kPrimaryLight, size: 20),
                                       onPressed: () => setState(() => showConfirmPassword = !showConfirmPassword))),
                                 ),
@@ -1015,6 +1019,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                         boxShadow: isLoading ? [] : [BoxShadow(color: _kPrimary.withOpacity(0.42), blurRadius: 18, offset: const Offset(0, 7))],
                                       ),
                                       child: ElevatedButton.icon(
+                                        key: Key('register_button'),
                                         onPressed: isLoading ? null : register,
                                         icon: isLoading
                                             ? const SizedBox(width: 20, height: 20,
@@ -1037,6 +1042,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                             const SizedBox(height: 14),
                             Center(
                               child: TextButton(
+                                key: Key('back_to_login_button'),
                                 onPressed: () => Navigator.pop(context),
                                 child: RichText(
                                   text: TextSpan(

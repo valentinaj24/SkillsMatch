@@ -4,12 +4,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../theme/app_colors.dart';
+import '../services/service_locator.dart';
 
 // ─── Color System ──────────────────────────────────────────────────────────────
 const _kPrimary = Color(0xFF4F46E5);
@@ -167,14 +167,14 @@ class _EditProfileScreenState extends State<EditProfileScreen>
 
   // ── Logika (nespremenjena) ─────────────────────────────────────────────────
   Future<void> naloziProfil() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = ServiceLocator.auth.currentUser?.uid;
 
     if (uid == null) {
       setState(() => isLoading = false);
       return;
     }
 
-    final doc = await FirebaseFirestore.instance
+    final doc = await ServiceLocator.firestore
         .collection('users')
         .doc(uid)
         .get();
@@ -274,7 +274,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
 
   Future<void> shraniSpremembe() async {
     if (!_formKey.currentState!.validate()) return;
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = ServiceLocator.auth.currentUser?.uid;
     if (uid == null) {
       _snack('Uporabnik ni prijavljen.', Colors.redAccent);
       return;
@@ -282,7 +282,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
     setState(() => isSaving = true);
     try {
       final uploadedUrl = await uploadProfileImage(uid);
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+      await ServiceLocator.firestore.collection('users').doc(uid).set({
         'ime': imeController.text.trim(),
         'priimek': priimekController.text.trim(),
         'opis': opisController.text.trim(),
