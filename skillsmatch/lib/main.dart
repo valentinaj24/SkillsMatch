@@ -53,17 +53,10 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  if (kDebugMode) {
-    // Replace with your computer's local IP address (same as before)
-    const host = '10.0.2.2';
-    await FirebaseAuth.instance.useAuthEmulator(host, 9099);
-    FirebaseFirestore.instance.useFirestoreEmulator(host, 8080);
-  }
-  
   // Inicijalizuj oba servisa
   await NotificationService.init();
   await CallNotificationService.init();
-  
+
   // Postavi background handler za FCM
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
@@ -87,136 +80,150 @@ class SkillsMatchApp extends StatelessWidget {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeModeNotifier,
       builder: (context, _, __) => AnimatedBuilder(
-      animation: AppAccessibility.instance,
-      builder: (context, _) {
-        final senior = AppAccessibility.instance.seniorMode;
+        animation: AppAccessibility.instance,
+        builder: (context, _) {
+          final senior = AppAccessibility.instance.seniorMode;
 
-        return MaterialApp(
-          title: 'Skills Match',
-          debugShowCheckedModeBanner: false,
+          return MaterialApp(
+            title: 'Skills Match',
+            debugShowCheckedModeBanner: false,
 
-          navigatorKey: AppAccessibility.instance.navigatorKey,
+            navigatorKey: AppAccessibility.instance.navigatorKey,
 
-          builder: (context, child) {
+            builder: (context, child) {
               return AccessibilityWrapper(
                 child: child ?? const SizedBox.shrink(),
               );
             },
 
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF4F46E5),
-            ),
-            useMaterial3: true,
-
-            textTheme: senior
-                ? ThemeData.light().textTheme.copyWith(
-                    bodySmall: ThemeData.light().textTheme.bodySmall?.copyWith(
-                      fontSize: 16,
-                    ),
-                    bodyMedium: ThemeData.light().textTheme.bodyMedium
-                        ?.copyWith(fontSize: 20),
-                    bodyLarge: ThemeData.light().textTheme.bodyLarge?.copyWith(
-                      fontSize: 22,
-                    ),
-                    titleSmall: ThemeData.light().textTheme.titleSmall
-                        ?.copyWith(fontSize: 20),
-                    titleMedium: ThemeData.light().textTheme.titleMedium
-                        ?.copyWith(fontSize: 24),
-                    titleLarge: ThemeData.light().textTheme.titleLarge
-                        ?.copyWith(fontSize: 30),
-                    headlineSmall: ThemeData.light().textTheme.headlineSmall
-                        ?.copyWith(fontSize: 34),
-                    headlineMedium: ThemeData.light().textTheme.headlineMedium
-                        ?.copyWith(fontSize: 38),
-                  )
-                : ThemeData.light().textTheme,
-
-            inputDecorationTheme: InputDecorationTheme(
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: senior ? 22 : 16,
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF4F46E5),
               ),
-            ),
+              useMaterial3: true,
 
-            elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size.fromHeight(senior ? 66 : 50),
-                textStyle: TextStyle(
-                  fontSize: senior ? 20 : 15,
-                  fontWeight: FontWeight.bold,
+              textTheme: senior
+                  ? ThemeData.light().textTheme.copyWith(
+                      bodySmall: ThemeData.light().textTheme.bodySmall
+                          ?.copyWith(fontSize: 16),
+                      bodyMedium: ThemeData.light().textTheme.bodyMedium
+                          ?.copyWith(fontSize: 20),
+                      bodyLarge: ThemeData.light().textTheme.bodyLarge
+                          ?.copyWith(fontSize: 22),
+                      titleSmall: ThemeData.light().textTheme.titleSmall
+                          ?.copyWith(fontSize: 20),
+                      titleMedium: ThemeData.light().textTheme.titleMedium
+                          ?.copyWith(fontSize: 24),
+                      titleLarge: ThemeData.light().textTheme.titleLarge
+                          ?.copyWith(fontSize: 30),
+                      headlineSmall: ThemeData.light().textTheme.headlineSmall
+                          ?.copyWith(fontSize: 34),
+                      headlineMedium: ThemeData.light().textTheme.headlineMedium
+                          ?.copyWith(fontSize: 38),
+                    )
+                  : ThemeData.light().textTheme,
+
+              inputDecorationTheme: InputDecorationTheme(
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: senior ? 22 : 16,
+                ),
+              ),
+
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size.fromHeight(senior ? 66 : 50),
+                  textStyle: TextStyle(
+                    fontSize: senior ? 20 : 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+
+              outlinedButtonTheme: OutlinedButtonThemeData(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: Size.fromHeight(senior ? 64 : 48),
+                  textStyle: TextStyle(
+                    fontSize: senior ? 19 : 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
 
-            outlinedButtonTheme: OutlinedButtonThemeData(
-              style: OutlinedButton.styleFrom(
-                minimumSize: Size.fromHeight(senior ? 64 : 48),
-                textStyle: TextStyle(
-                  fontSize: senior ? 19 : 14,
-                  fontWeight: FontWeight.bold,
-                ),
+            darkTheme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(
+                seedColor: const Color(0xFF4F46E5),
+                brightness: Brightness.dark,
               ),
-            ),
-          ),
-
-           darkTheme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF4F46E5),
+              useMaterial3: true,
               brightness: Brightness.dark,
-            ),
-            useMaterial3: true,
-            brightness: Brightness.dark,
 
-            textTheme: senior
-                ? ThemeData.dark().textTheme.copyWith(
-                    bodySmall: ThemeData.dark().textTheme.bodySmall?.copyWith(fontSize: 16),
-                    bodyMedium: ThemeData.dark().textTheme.bodyMedium?.copyWith(fontSize: 20),
-                    bodyLarge: ThemeData.dark().textTheme.bodyLarge?.copyWith(fontSize: 22),
-                    titleSmall: ThemeData.dark().textTheme.titleSmall?.copyWith(fontSize: 20),
-                    titleMedium: ThemeData.dark().textTheme.titleMedium?.copyWith(fontSize: 24),
-                    titleLarge: ThemeData.dark().textTheme.titleLarge?.copyWith(fontSize: 30),
-                    headlineSmall: ThemeData.dark().textTheme.headlineSmall?.copyWith(fontSize: 34),
-                    headlineMedium: ThemeData.dark().textTheme.headlineMedium?.copyWith(fontSize: 38),
-                  )
-                : ThemeData.dark().textTheme,
+              textTheme: senior
+                  ? ThemeData.dark().textTheme.copyWith(
+                      bodySmall: ThemeData.dark().textTheme.bodySmall?.copyWith(
+                        fontSize: 16,
+                      ),
+                      bodyMedium: ThemeData.dark().textTheme.bodyMedium
+                          ?.copyWith(fontSize: 20),
+                      bodyLarge: ThemeData.dark().textTheme.bodyLarge?.copyWith(
+                        fontSize: 22,
+                      ),
+                      titleSmall: ThemeData.dark().textTheme.titleSmall
+                          ?.copyWith(fontSize: 20),
+                      titleMedium: ThemeData.dark().textTheme.titleMedium
+                          ?.copyWith(fontSize: 24),
+                      titleLarge: ThemeData.dark().textTheme.titleLarge
+                          ?.copyWith(fontSize: 30),
+                      headlineSmall: ThemeData.dark().textTheme.headlineSmall
+                          ?.copyWith(fontSize: 34),
+                      headlineMedium: ThemeData.dark().textTheme.headlineMedium
+                          ?.copyWith(fontSize: 38),
+                    )
+                  : ThemeData.dark().textTheme,
 
-            inputDecorationTheme: InputDecorationTheme(
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: senior ? 22 : 16,
+              inputDecorationTheme: InputDecorationTheme(
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: senior ? 22 : 16,
+                ),
+              ),
+              elevatedButtonTheme: ElevatedButtonThemeData(
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size.fromHeight(senior ? 66 : 50),
+                  textStyle: TextStyle(
+                    fontSize: senior ? 20 : 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              outlinedButtonTheme: OutlinedButtonThemeData(
+                style: OutlinedButton.styleFrom(
+                  minimumSize: Size.fromHeight(senior ? 64 : 48),
+                  textStyle: TextStyle(
+                    fontSize: senior ? 19 : 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
-            elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size.fromHeight(senior ? 66 : 50),
-                textStyle: TextStyle(fontSize: senior ? 20 : 15, fontWeight: FontWeight.bold),
+
+            themeMode: themeModeNotifier.value,
+
+            home: SplashScreen(
+              nextScreen: Builder(
+                builder: (context) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    AppAccessibility.instance.setFloatingVisible(false);
+                  });
+
+                  return const AuthGate();
+                },
               ),
             ),
-            outlinedButtonTheme: OutlinedButtonThemeData(
-              style: OutlinedButton.styleFrom(
-                minimumSize: Size.fromHeight(senior ? 64 : 48),
-                textStyle: TextStyle(fontSize: senior ? 19 : 14, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-
-          themeMode: themeModeNotifier.value,
-
-          home: SplashScreen(
-            nextScreen: Builder(
-              builder: (context) {
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  AppAccessibility.instance.setFloatingVisible(false);
-                });
-
-                return const AuthGate();
-              },
-            ),
-          ),
-        );
-      },
-    ), // AnimatedBuilder
+          );
+        },
+      ), // AnimatedBuilder
     ); // ValueListenableBuilder
   }
 }
@@ -250,7 +257,7 @@ class AuthWrapper extends StatelessWidget {
         }
 
         final user = authSnapshot.data!;
-        
+
         // Sačuvaj FCM token čim se user uloguje
         NotificationService.saveFcmToken();
 
