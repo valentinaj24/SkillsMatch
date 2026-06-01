@@ -13,6 +13,7 @@ import 'package:path_provider/path_provider.dart';
 import '../theme/app_colors.dart'; // added for dynamic theme
 import '../services/encryption_service.dart';
 import '../services/service_locator.dart'; // added for service locator
+import 'chat_info_screen.dart';
 
 // Brand / Accent Colors (stay the same)
 const _kPrimary = Color(0xFF4F46E5);
@@ -122,6 +123,25 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       if (uid != currentUid) return uid;
     }
     return null;
+  }
+
+  Future<void> _openChatInfo() async {
+    final otherUid = await _getOtherUserId();
+
+    if (otherUid == null || !mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatInfoScreen(
+          chatId: widget.chatId,
+          otherUserName: widget.otherUserName,
+          otherUserId: otherUid,
+          onAudioCall: () => _startCall(isVideo: false),
+          onVideoCall: () => _startCall(isVideo: true),
+        ),
+      ),
+    );
   }
 
   Future<void> _pickAndSendImage() async {
@@ -955,7 +975,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       backgroundColor: context.kCardBg,
       surfaceTintColor: context.kCardBg,
       foregroundColor: context.kText,
-      toolbarHeight: 76,
+      toolbarHeight: 92,
       titleSpacing: 0,
       title: FutureBuilder<String?>(
         future: _getOtherUserId(),
@@ -987,81 +1007,105 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Widget _headerContent({required bool isOnline, required String subtitle}) {
-    return Row(
-      children: [
-        Stack(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(colors: [_kPrimary, _kViolet]),
-                boxShadow: [
-                  BoxShadow(
-                    color: _kPrimary.withOpacity(0.22),
-                    blurRadius: 12,
-                    offset: const Offset(0, 5),
+    return SizedBox(
+      height: 70,
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: _openChatInfo,
+            child: CircleAvatar(
+              radius: 24,
+              backgroundColor: _kPrimary,
+              child: const Icon(Icons.person, color: Colors.white, size: 28),
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
+          Expanded(
+            child: GestureDetector(
+              onTap: _openChatInfo,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          widget.otherUserName,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: context.kText,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 17,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        Icons.chevron_right,
+                        size: 18,
+                        color: context.kTextSub,
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 2),
+
+                  Row(
+                    children: [
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: isOnline ? Colors.green : Colors.grey,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          subtitle,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isOnline ? Colors.green : context.kTextSub,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.person_rounded,
-                color: Colors.white,
-                size: 27,
-              ),
             ),
-            Positioned(
-              right: 1,
-              bottom: 1,
-              child: Container(
-                width: 13,
-                height: 13,
-                decoration: BoxDecoration(
-                  color: isOnline ? _kGreen : Colors.grey,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.otherUserName,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                  color: context.kText,
-                ),
-              ),
-              const SizedBox(height: 3),
-              Text(
-                subtitle,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: isOnline ? _kGreen : context.kTextSub,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+          ),
+
+          IconButton(
+            onPressed: () => _startCall(isVideo: false),
+            icon: const Icon(Icons.call),
+          ),
+
+          IconButton(
+            onPressed: () => _startCall(isVideo: true),
+            icon: const Icon(Icons.videocam),
+          ),
+
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) {
+              switch (value) {
+                case 'info':
+                  _openChatInfo();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'info', child: Text('Chat info')),
             ],
           ),
-        ),
-        IconButton(
-          onPressed: () => _startCall(isVideo: false),
-          icon: Icon(Icons.call_rounded, color: _kPrimary, size: 24),
-        ),
-        IconButton(
-          onPressed: () => _startCall(isVideo: true),
-          icon: Icon(Icons.videocam_rounded, color: _kPrimary, size: 27),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
