@@ -12,7 +12,12 @@
           "package_name": "com.example.skillsmatch"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "786145145910-gc2vi5jlpvmtu98ae4h9sp8ple8tmddd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBBmiEBp604U0YWIq6nKSgk2Cyz8GXl9uY"
@@ -20,7 +25,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "786145145910-gc2vi5jlpvmtu98ae4h9sp8ple8tmddd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "786145145910-v6be0sv0sue562ef9qlk9pufqf4p3ll6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.skillsmatch"
+              }
+            }
+          ]
         }
       }
     },
@@ -31,7 +48,20 @@
           "package_name": "com.skillbridge.skillsmatch"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "786145145910-opgvhmtuk6fo2sc4r6l2sntedh2ek0ic.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.skillbridge.skillsmatch",
+            "certificate_hash": "6b49e82c3f3b0707949e08787ff93ee54e1a8f91"
+          }
+        },
+        {
+          "client_id": "786145145910-gc2vi5jlpvmtu98ae4h9sp8ple8tmddd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBBmiEBp604U0YWIq6nKSgk2Cyz8GXl9uY"
@@ -39,7 +69,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "786145145910-gc2vi5jlpvmtu98ae4h9sp8ple8tmddd.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "786145145910-v6be0sv0sue562ef9qlk9pufqf4p3ll6.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.skillsmatch"
+              }
+            }
+          ]
         }
       }
     }
