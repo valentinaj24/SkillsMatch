@@ -911,11 +911,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          'Slika se shrani na Cloudinary.\nURL se hrani v Firestore bazi.',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 12, color: ctx.kTextSub, height: 1.45),
-        ),
+        
         const SizedBox(height: 14),
         SizedBox(
           width: double.infinity,

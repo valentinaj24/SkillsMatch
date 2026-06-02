@@ -196,12 +196,44 @@ class ChatInfoScreen extends StatelessWidget {
                     },
                   ),
                   const Divider(height: 1),
-                  _InfoTile(
-                    icon: Icons.notifications_rounded,
-                    title: 'Notifikacije',
-                    trailing: 'Aktivne',
-                    onTap: () {},
-                  ),
+                  StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+  stream: ServiceLocator.firestore
+      .collection('chats')
+      .doc(chatId)
+      .snapshots(),
+  builder: (context, snapshot) {
+    final muted =
+        snapshot.data?.data()?['notificationsMuted'] == true;
+
+    return _InfoTile(
+      icon: muted
+          ? Icons.notifications_off_rounded
+          : Icons.notifications_rounded,
+      title: 'Notifikacije',
+      trailing: muted ? 'Izklopljene' : 'Aktivne',
+      onTap: () async {
+        await ServiceLocator.firestore
+            .collection('chats')
+            .doc(chatId)
+            .set({
+          'notificationsMuted': !muted,
+        }, SetOptions(merge: true));
+
+        if (!context.mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              muted
+                  ? 'Obvestila so vklopljena.'
+                  : 'Obvestila so izklopljena.',
+            ),
+          ),
+        );
+      },
+    );
+  },
+),
                 ],
               ),
             ],

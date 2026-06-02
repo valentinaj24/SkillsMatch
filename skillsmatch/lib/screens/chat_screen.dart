@@ -195,21 +195,32 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
       final otherUid = await _getOtherUserId();
-      if (otherUid != null) {
-        await http.post(
-          Uri.parse(
-            'https://skillsmatchnotifications.onrender.com/send-notification',
-          ),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'receiverId': otherUid,
-            'title': 'Novo sporočilo',
-            'body': '📷 Poslana je slika',
-            'chatId': widget.chatId,
-            'senderId': currentUid,
-          }),
-        );
-      }
+
+if (otherUid != null) {
+  final chatDoc = await ServiceLocator.firestore
+      .collection('chats')
+      .doc(widget.chatId)
+      .get();
+
+  final muted =
+      chatDoc.data()?['notificationsMuted'] == true;
+
+  if (!muted) {
+    await http.post(
+      Uri.parse(
+        'https://skillsmatchnotifications.onrender.com/send-notification',
+      ),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'receiverId': otherUid,
+        'title': 'Novo sporočilo',
+        'body': '📷 Poslana je slika',
+        'chatId': widget.chatId,
+        'senderId': currentUid,
+      }),
+    );
+  }
+}
       _scrollToBottom();
     } catch (e) {
       if (!mounted) return;
@@ -337,21 +348,31 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
       final otherUid = await _getOtherUserId();
 
-      if (otherUid != null) {
-        await http.post(
-          Uri.parse(
-            'https://skillsmatchnotifications.onrender.com/send-notification',
-          ),
-          headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'receiverId': otherUid,
-            'title': 'Novo sporočilo',
-            'body': '💬 Novo sporočilo',
-            'chatId': widget.chatId,
-            'senderId': currentUid,
-          }),
-        );
-      }
+if (otherUid != null) {
+  final chatDoc = await ServiceLocator.firestore
+      .collection('chats')
+      .doc(widget.chatId)
+      .get();
+
+  final muted =
+      chatDoc.data()?['notificationsMuted'] == true;
+
+  if (!muted) {
+    await http.post(
+      Uri.parse(
+        'https://skillsmatchnotifications.onrender.com/send-notification',
+      ),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'receiverId': otherUid,
+        'title': 'Novo sporočilo',
+        'body': '💬 Novo sporočilo',
+        'chatId': widget.chatId,
+        'senderId': currentUid,
+      }),
+    );
+  }
+}
 
       _scrollToBottom();
     } catch (e) {
