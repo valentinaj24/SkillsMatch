@@ -5,6 +5,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:skillsmatch/services/notification_service.dart';
 
 import '../theme/app_colors.dart';
 import '../services/service_locator.dart';
@@ -469,6 +471,9 @@ class _LoginScreenState extends State<LoginScreen>
       );
 
       final user = credential.user;
+
+      await FirebaseMessaging.instance.deleteToken();
+      await NotificationService.saveFcmToken();
 
       if (user != null && !user.emailVerified) {
         await ServiceLocator.auth.signOut();
