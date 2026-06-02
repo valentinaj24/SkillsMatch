@@ -63,7 +63,7 @@ class _SkeletonScreenState extends State<SkeletonScreen>
       await _textCtrl.reverse();
       if (!mounted) break;
       setState(() => _msgIdx = (_msgIdx + 1) % _messages.length);
-      _textCtrl.forward();
+      await _textCtrl.forward();
     }
   }
 

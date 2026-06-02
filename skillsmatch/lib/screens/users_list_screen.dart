@@ -881,8 +881,10 @@ Widget _reviewBadge(String userId, Map<String, dynamic> userData, BuildContext c
       if (docs.isEmpty) return const SizedBox.shrink();
       double total = 0;
       for (final doc in docs) {
-        final reviewData = doc.data() as Map<String, dynamic>;
-        total += (reviewData['rating'] ?? 0).toDouble();
+        final reviewData = doc.data() as Map<String, dynamic>?;
+        if (reviewData != null) {
+          total += (reviewData['rating'] ?? 0).toDouble();
+        }
       }
       final avg = total / docs.length;
       final skills = userData['vescine'] as List? ?? [];
@@ -958,10 +960,10 @@ Widget _reviewsList(String userId, BuildContext context) {
             const SizedBox(height: 12),
             Column(
               children: docs.map((doc) {
-                final data = doc.data() as Map<String, dynamic>;
-                final rating = data['rating'] ?? 0;
-                final comment = (data['comment'] ?? '').toString();
-                final reviewerName = (data['reviewerName'] ?? 'Neznan uporabnik').toString();
+                final data = doc.data() as Map<String, dynamic>?;
+                final rating = data?['rating'] ?? 0;
+                final comment = (data?['comment'] ?? '').toString();
+                final reviewerName = (data?['reviewerName'] ?? 'Neznan uporabnik').toString();
                 return Container(
                   width: double.infinity,
                   margin: const EdgeInsets.only(bottom: 10),

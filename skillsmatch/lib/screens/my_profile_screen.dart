@@ -282,7 +282,7 @@ class _MyProfileScreenState extends State<MyProfileScreen>
 
       if (!mounted) return;
 
-      Navigator.of(context).pushAndRemoveUntil(
+      await Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );

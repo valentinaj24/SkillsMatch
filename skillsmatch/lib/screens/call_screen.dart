@@ -98,7 +98,7 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   Future<void> _hangUpLocally() async {
-    _callStatusSubscription?.cancel();
+    await _callStatusSubscription?.cancel();
     _durationTimer?.cancel();
     _cancelEvents?.call();
     await Hardware.instance.setSpeakerphoneOn(false);
@@ -121,7 +121,7 @@ class _CallScreenState extends State<CallScreen> {
     } else {
       await Permission.microphone.request();
     }
-    _connectToRoom();
+    await _connectToRoom();
   }
 
   Future<void> _connectToRoom() async {
@@ -164,7 +164,7 @@ class _CallScreenState extends State<CallScreen> {
       if (widget.isVideoCall) {
         await room.localParticipant?.setCameraEnabled(true);
         for (final pub in room.localParticipant!.videoTrackPublications) {
-          if (pub.track != null) {
+          if (pub.track != null && pub.track is VideoTrack) {
             _localVideoTrack = pub.track as VideoTrack;
             break;
           }
@@ -207,7 +207,7 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   Future<void> _endCall() async {
-    _callStatusSubscription?.cancel();
+    await _callStatusSubscription?.cancel();
     _durationTimer?.cancel();
 
     try {

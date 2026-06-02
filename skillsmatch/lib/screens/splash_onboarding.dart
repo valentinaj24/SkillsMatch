@@ -275,16 +275,16 @@ class _SplashScreenState extends State<SplashScreen>
 
   Future<void> _runSequence() async {
     await Future.delayed(const Duration(milliseconds: 200));
-    _logoCtrl.forward();
+    await _logoCtrl.forward();
 
     await Future.delayed(const Duration(milliseconds: 500));
-    _textCtrl.forward();
+    await _textCtrl.forward();
 
     await Future.delayed(const Duration(milliseconds: 200));
-    _progressCtrl.forward();
+    await _progressCtrl.forward();
 
     await Future.delayed(const Duration(milliseconds: 1600));
-    _go();
+    await _go();
   }
 
   Future<void> _go() async {
@@ -296,7 +296,7 @@ class _SplashScreenState extends State<SplashScreen>
 
   if (!mounted) return;
 
-  Navigator.of(context).pushReplacement(
+  await Navigator.of(context).pushReplacement(
     PageRouteBuilder(
       pageBuilder: (_, __, ___) => seen
           ? widget.nextScreen
@@ -617,14 +617,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   }
 
   Future<void> _finish() async {
-    HapticFeedback.mediumImpact();
+    await HapticFeedback.mediumImpact();
 
     final p = await SharedPreferences.getInstance();
     await p.setBool('onboarding_seen', true);
 
     if (!mounted) return;
 
-    Navigator.of(context).pushReplacement(
+    await Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => widget.nextScreen,
         transitionsBuilder: (_, a, __, child) =>

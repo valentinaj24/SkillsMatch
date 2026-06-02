@@ -43,7 +43,7 @@ Future<void> _initializeAndroidAudioSettings() async {
           .toMap(),
     },
   );
-  webrtc.Helper.setAndroidAudioConfiguration(
+  await webrtc.Helper.setAndroidAudioConfiguration(
     webrtc.AndroidAudioConfiguration.communication,
   );
 }

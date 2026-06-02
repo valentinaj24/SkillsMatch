@@ -106,7 +106,7 @@ class CallNotificationService {
 
     // ─── TERMINATED: app je bio potpuno zatvoren ─────────────────────────────
     // Korisnik je tapnuo na notifikaciju i otvorio app.
-    FirebaseMessaging.instance.getInitialMessage().then((message) {
+    await FirebaseMessaging.instance.getInitialMessage().then((message) {
       if (message != null && message.data['type'] == 'incoming_call') {
         _handleNotificationTap(_buildPayload(message.data));
       }

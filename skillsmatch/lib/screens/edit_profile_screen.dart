@@ -208,7 +208,7 @@ class _EditProfileScreenState extends State<EditProfileScreen>
       isLoading = false;
     });
 
-    _entryCtrl.forward();
+    await _entryCtrl.forward();
   }
 
   Future<void> izberiSliko() async {

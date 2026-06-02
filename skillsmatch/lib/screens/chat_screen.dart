@@ -150,7 +150,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     if (otherUid == null || !mounted) return;
 
-    Navigator.push(
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ChatInfoScreen(
@@ -432,7 +432,7 @@ if (otherUid != null) {
       return;
     }
 
-    showDialog(
+    await showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) =>
@@ -489,7 +489,7 @@ if (otherUid != null) {
 
       if (mounted) Navigator.pop(context);
       if (!mounted) return;
-      Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => CallScreen(

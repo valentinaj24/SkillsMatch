@@ -70,7 +70,7 @@ class CallService {
           'callerFcmToken': callerFcmToken,
         }),
       );
-      CallNotificationService.cancelCallNotification(callId);
+      await CallNotificationService.cancelCallNotification(callId);
 
     } catch (e) {
       print('Greška pri odbijanju poziva: $e');

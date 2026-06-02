@@ -145,7 +145,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
       _showSnack('Odpiram sporočila...');
       await _ensureChatExists(collaborationId, data);
       if (!mounted) return;
-      Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => ChatScreen(

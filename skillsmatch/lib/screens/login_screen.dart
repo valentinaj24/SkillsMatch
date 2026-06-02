@@ -490,7 +490,7 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (!mounted) return;
 
-      Navigator.of(context).pushAndRemoveUntil(
+      await Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const AuthGate()),
         (route) => false,
       );
@@ -595,7 +595,7 @@ class _LoginScreenState extends State<LoginScreen>
 
       if (!mounted) return;
 
-      Navigator.of(context).pushAndRemoveUntil(
+      await Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const AuthGate()),
         (route) => false,
       );
