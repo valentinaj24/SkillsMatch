@@ -127,7 +127,6 @@ class _SearchMessagesScreenState extends State<SearchMessagesScreen> {
               ),
             ),
           ),
-
           Expanded(
             child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: _messagesStream(),
@@ -151,14 +150,12 @@ class _SearchMessagesScreenState extends State<SearchMessagesScreen> {
 
                 final results = docs.where((doc) {
                   final text = _getMessageText(doc.data()).toLowerCase();
-
                   if (query.isEmpty) return false;
-
                   return text.contains(query);
                 }).toList();
 
                 if (query.isEmpty) {
-                  return _EmptySearchState(
+                  return const _EmptySearchState(
                     icon: Icons.search_rounded,
                     title: 'Pretraži chat',
                     subtitle:

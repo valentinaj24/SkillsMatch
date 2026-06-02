@@ -17,16 +17,16 @@ class MediaGalleryScreen extends StatelessWidget {
   });
 
   Stream<QuerySnapshot<Map<String, dynamic>>> _imagesStream() {
-  return ServiceLocator.firestore
-      .collection('chats')
-      .doc(chatId)
-      .collection('messages')
-      .where('type', isEqualTo: 'image')
-      .snapshots();
-}
+    return ServiceLocator.firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .where('type', isEqualTo: 'image')
+        .snapshots();
+  }
 
   String _formatDate(dynamic value) {
-    if (value is! Timestamp) return '';
+    if (value is! Timestamp) return 'Slika';
     final d = value.toDate();
     return '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
   }
@@ -74,7 +74,7 @@ class MediaGalleryScreen extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.photo_library_outlined,
-                      size: 70,
+                      size: 74,
                       color: context.kTextSub,
                     ),
                     const SizedBox(height: 14),
@@ -90,7 +90,11 @@ class MediaGalleryScreen extends StatelessWidget {
                     Text(
                       'Sve slike koje pošaljete u ovom chatu biće prikazane ovde.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: context.kTextSub, fontSize: 14),
+                      style: TextStyle(
+                        color: context.kTextSub,
+                        fontSize: 14,
+                        height: 1.4,
+                      ),
                     ),
                   ],
                 ),
@@ -130,6 +134,18 @@ class MediaGalleryScreen extends StatelessWidget {
                     child: Image.network(
                       imageUrl,
                       fit: BoxFit.cover,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return Container(
+                          color: context.kCardBg,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: _kPrimary,
+                              strokeWidth: 2,
+                            ),
+                          ),
+                        );
+                      },
                       errorBuilder: (_, __, ___) {
                         return Container(
                           color: context.kCardBg,
@@ -169,10 +185,7 @@ class FullImageScreen extends StatelessWidget {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: Text(
-          date.isEmpty ? 'Slika' : date,
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),
+        title: Text(date, style: const TextStyle(fontWeight: FontWeight.w800)),
       ),
       body: Center(
         child: Hero(

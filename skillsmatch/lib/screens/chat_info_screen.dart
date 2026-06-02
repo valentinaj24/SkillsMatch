@@ -10,6 +10,7 @@ import 'chat_theme_screen.dart';
 const _kPrimary = Color(0xFF4F46E5);
 const _kViolet = Color(0xFF7C3AED);
 const _kGreen = Color(0xFF22C55E);
+const _kRed = Color(0xFFEF4444);
 
 class ChatInfoScreen extends StatelessWidget {
   final String chatId;
@@ -36,6 +37,60 @@ class ChatInfoScreen extends StatelessWidget {
         .snapshots();
   }
 
+  Future<void> _clearChat(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Obriši chat?'),
+        content: const Text('Sve poruke iz ovog chata će biti obrisane.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Otkaži'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Obriši', style: TextStyle(color: _kRed)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final messages = await ServiceLocator.firestore
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .get();
+
+    final batch = ServiceLocator.firestore.batch();
+
+    for (final doc in messages.docs) {
+      batch.delete(doc.reference);
+    }
+
+    batch.set(
+      ServiceLocator.firestore.collection('chats').doc(chatId),
+      {
+        'lastMessage': '',
+        'lastMessageAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      },
+      SetOptions(merge: true),
+    );
+
+    await batch.commit();
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Chat je obrisan.')));
+
+    Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,28 +115,44 @@ class ChatInfoScreen extends StatelessWidget {
           final profileImage = (userData['profileImage'] ?? '').toString();
 
           return ListView(
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 28),
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 30),
             children: [
-              const SizedBox(height: 14),
+              const SizedBox(height: 10),
 
               Center(
-                child: CircleAvatar(
-                  radius: 64,
-                  backgroundColor: _kPrimary.withOpacity(0.15),
-                  backgroundImage: profileImage.isNotEmpty
-                      ? NetworkImage(profileImage)
-                      : null,
-                  child: profileImage.isEmpty
-                      ? const Icon(
-                          Icons.person_rounded,
-                          size: 70,
-                          color: _kPrimary,
-                        )
-                      : null,
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: const LinearGradient(
+                      colors: [_kPrimary, _kViolet],
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _kPrimary.withOpacity(0.25),
+                        blurRadius: 22,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: CircleAvatar(
+                    radius: 66,
+                    backgroundColor: context.kCardBg,
+                    backgroundImage: profileImage.isNotEmpty
+                        ? NetworkImage(profileImage)
+                        : null,
+                    child: profileImage.isEmpty
+                        ? const Icon(
+                            Icons.person_rounded,
+                            size: 72,
+                            color: _kPrimary,
+                          )
+                        : null,
+                  ),
                 ),
               ),
 
-              const SizedBox(height: 18),
+              const SizedBox(height: 20),
 
               Center(
                 child: Text(
@@ -95,15 +166,28 @@ class ChatInfoScreen extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 6),
+              const SizedBox(height: 7),
 
               Center(
-                child: Text(
-                  isOnline ? 'Online' : 'Offline',
-                  style: TextStyle(
-                    color: isOnline ? _kGreen : context.kTextSub,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isOnline
+                        ? _kGreen.withOpacity(0.12)
+                        : context.kCardBg,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: context.kBorder),
+                  ),
+                  child: Text(
+                    isOnline ? 'Online' : 'Offline',
+                    style: TextStyle(
+                      color: isOnline ? _kGreen : context.kTextSub,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ),
@@ -196,44 +280,13 @@ class ChatInfoScreen extends StatelessWidget {
                     },
                   ),
                   const Divider(height: 1),
-                  StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-  stream: ServiceLocator.firestore
-      .collection('chats')
-      .doc(chatId)
-      .snapshots(),
-  builder: (context, snapshot) {
-    final muted =
-        snapshot.data?.data()?['notificationsMuted'] == true;
-
-    return _InfoTile(
-      icon: muted
-          ? Icons.notifications_off_rounded
-          : Icons.notifications_rounded,
-      title: 'Notifikacije',
-      trailing: muted ? 'Izklopljene' : 'Aktivne',
-      onTap: () async {
-        await ServiceLocator.firestore
-            .collection('chats')
-            .doc(chatId)
-            .set({
-          'notificationsMuted': !muted,
-        }, SetOptions(merge: true));
-
-        if (!context.mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              muted
-                  ? 'Obvestila so vklopljena.'
-                  : 'Obvestila so izklopljena.',
-            ),
-          ),
-        );
-      },
-    );
-  },
-),
+                  _InfoTile(
+                    icon: Icons.delete_outline_rounded,
+                    title: 'Obriši chat',
+                    trailing: '',
+                    danger: true,
+                    onTap: () => _clearChat(context),
+                  ),
                 ],
               ),
             ],
@@ -268,6 +321,13 @@ class _BigActionButton extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: context.kBorder),
+            boxShadow: [
+              BoxShadow(
+                color: _kPrimary.withOpacity(0.06),
+                blurRadius: 14,
+                offset: const Offset(0, 7),
+              ),
+            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -313,21 +373,25 @@ class _InfoTile extends StatelessWidget {
   final String title;
   final String trailing;
   final VoidCallback onTap;
+  final bool danger;
 
   const _InfoTile({
     required this.icon,
     required this.title,
     required this.trailing,
     required this.onTap,
+    this.danger = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final color = danger ? _kRed : context.kText;
+
     return ListTile(
-      leading: Icon(icon, color: context.kText),
+      leading: Icon(icon, color: color),
       title: Text(
         title,
-        style: TextStyle(color: context.kText, fontWeight: FontWeight.w800),
+        style: TextStyle(color: color, fontWeight: FontWeight.w800),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,

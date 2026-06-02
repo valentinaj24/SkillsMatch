@@ -15,27 +15,38 @@ class ChatThemeScreen extends StatelessWidget {
     {
       'id': 'purple',
       'name': 'Purple',
+      'description': 'Klasična SkillsMatch tema',
       'colors': [Color(0xFF4F46E5), Color(0xFF7C3AED)],
     },
     {
       'id': 'green',
       'name': 'Green',
+      'description': 'Mirna zelena tema',
       'colors': [Color(0xFF16A34A), Color(0xFF22C55E)],
     },
     {
       'id': 'pink',
       'name': 'Pink',
+      'description': 'Roze soft tema',
       'colors': [Color(0xFFDB2777), Color(0xFFF472B6)],
     },
     {
       'id': 'blue',
       'name': 'Blue',
+      'description': 'Plava moderna tema',
       'colors': [Color(0xFF2563EB), Color(0xFF38BDF8)],
     },
     {
       'id': 'orange',
       'name': 'Orange',
+      'description': 'Topla narandžasta tema',
       'colors': [Color(0xFFEA580C), Color(0xFFF97316)],
+    },
+    {
+      'id': 'dark',
+      'name': 'Dark violet',
+      'description': 'Tamna elegantna tema',
+      'colors': [Color(0xFF111827), Color(0xFF7C3AED)],
     },
   ];
 
@@ -87,50 +98,75 @@ class ChatThemeScreen extends StatelessWidget {
               final theme = themes[index];
               final id = theme['id'] as String;
               final name = theme['name'] as String;
+              final description = theme['description'] as String;
               final colors = theme['colors'] as List<Color>;
               final selected = currentTheme == id;
 
-              return InkWell(
+              return Material(
+                color: context.kCardBg,
                 borderRadius: BorderRadius.circular(24),
-                onTap: () => _saveTheme(context, id),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: context.kCardBg,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: selected ? colors.first : context.kBorder,
-                      width: selected ? 2 : 1,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 54,
-                        height: 54,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(colors: colors),
-                        ),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(24),
+                  onTap: () => _saveTheme(context, id),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: selected ? colors.first : context.kBorder,
+                        width: selected ? 2 : 1,
                       ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: Text(
-                          name,
-                          style: TextStyle(
-                            color: context.kText,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w900,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(colors: colors),
+                            boxShadow: [
+                              BoxShadow(
+                                color: colors.first.withOpacity(0.25),
+                                blurRadius: 12,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                      if (selected)
-                        Icon(
-                          Icons.check_circle_rounded,
-                          color: colors.first,
-                          size: 28,
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: TextStyle(
+                                  color: context.kText,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                description,
+                                style: TextStyle(
+                                  color: context.kTextSub,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                    ],
+                        if (selected)
+                          Icon(
+                            Icons.check_circle_rounded,
+                            color: colors.first,
+                            size: 28,
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               );
