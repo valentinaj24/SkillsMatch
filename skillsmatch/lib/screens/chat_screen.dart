@@ -785,6 +785,7 @@ if (otherUid != null) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(28),
+        child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -828,6 +829,7 @@ if (otherUid != null) {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
