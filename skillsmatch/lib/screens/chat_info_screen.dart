@@ -33,7 +33,6 @@ class ChatInfoScreen extends StatelessWidget {
         .doc(chatId)
         .collection('messages')
         .where('type', isEqualTo: 'image')
-        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 

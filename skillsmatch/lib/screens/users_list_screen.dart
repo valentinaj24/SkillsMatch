@@ -25,9 +25,24 @@ const _headerGradientColors = [
 ];
 
 List<Color> _matchScoreGradient(int sc) {
-  if (sc >= 70) return [_kG, _kG.withOpacity(0.7)];
-  if (sc >= 55) return [_kA, _kA.withOpacity(0.7)];
-  return [Colors.white60, Colors.white60];
+  if (sc >= 70) {
+    return [
+      const Color(0xFF7C3AED),
+      const Color(0xFF4F46E5),
+    ];
+  }
+
+  if (sc >= 55) {
+    return [
+      const Color(0xFF06B6D4),
+      const Color(0xFF3B82F6),
+    ];
+  }
+
+  return [
+    const Color.fromARGB(255, 134, 151, 175),
+    const Color.fromARGB(255, 72, 94, 125),
+  ];
 }
 
 // ─── Orb painter (unchanged) ────────────────────────────────────────────────
@@ -724,8 +739,8 @@ _MatchResult _computeMatch({
 
   for (final wanted in myWantLearn) {
     for (final offered in otherCanTeach) {
-      if (wanted == offered) {
-        skillScore += 80;
+      if (_similarSkill(wanted, offered)) {
+          skillScore += 80;
         reasons.add('Uči: ${_prettySkill(offered)}');
       }
     }
@@ -733,7 +748,7 @@ _MatchResult _computeMatch({
 
   for (final mine in myCanTeach) {
     for (final theirWanted in otherWantLearn) {
-      if (mine == theirWanted) {
+      if (_similarSkill(mine, theirWanted)) {
         skillScore += 80;
         reasons.add('Ti pomagaš: ${_prettySkill(mine)}');
       }
@@ -742,7 +757,7 @@ _MatchResult _computeMatch({
 
   for (final mine in myCanTeach) {
     for (final theirs in otherCanTeach) {
-      if (mine == theirs) {
+      if (_similarSkill(mine, theirs)) {
         skillScore += 15;
         reasons.add('Skupno strokovno področje');
       }
@@ -751,7 +766,7 @@ _MatchResult _computeMatch({
 
   for (final mine in myWantLearn) {
     for (final theirs in otherWantLearn) {
-      if (mine == theirs) {
+      if (_similarSkill(mine, theirs)) {
         skillScore += 10;
         reasons.add('Skupni učni interes');
       }
@@ -1844,7 +1859,7 @@ Widget build(BuildContext context) {
                                   height: 5,
                                   width: (MediaQuery.of(context).size.width - 60) * (sc / 100),
                                   decoration: BoxDecoration(
-                                    color: sc >= 70 ? _kG : sc >= 55 ? _kA : Colors.white60,
+                                    color: Colors.white.withOpacity(0.85),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                 ),
@@ -1984,11 +1999,7 @@ Widget build(BuildContext context) {
             ],
           ),
         ),
-        Positioned(
-          top: MediaQuery.of(context).padding.top + 10,
-          left: 16,
-          child: const DarkModeToggle(),
-        ),
+    
       ],
     ),
   );

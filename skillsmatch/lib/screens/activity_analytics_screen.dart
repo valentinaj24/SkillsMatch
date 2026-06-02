@@ -375,20 +375,11 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
                           ),
                         ),
                       ),
-                      const Spacer(),
-                      const Text(
-                        'Aktivnost',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Spacer(),
+
                       const SizedBox(width: 40),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
                   Container(
                     width: 72,
                     height: 72,
@@ -406,7 +397,7 @@ class _ActivityAnalyticsScreenState extends State<ActivityAnalyticsScreen>
                       size: 36,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   const Text(
                     'Aktivnost in analitika',
                     textAlign: TextAlign.center,

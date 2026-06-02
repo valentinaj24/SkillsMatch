@@ -293,13 +293,18 @@ void _openSettingsSheet(BuildContext ctx) {
     context: ctx,
     barrierDismissible: true,
     barrierLabel: 'Nastavitve',
-    barrierColor: Colors.black.withOpacity(0.45),
+    barrierColor: Colors.black.withOpacity(0.70),
     transitionDuration: const Duration(milliseconds: 280),
     pageBuilder: (context, anim1, anim2) {
       return Align(
         alignment: Alignment.centerLeft,
         child: Material(
           color: Colors.transparent,
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topRight: Radius.circular(34),
+              bottomRight: Radius.circular(34),
+            ),
           child: Container(
             width: MediaQuery.of(context).size.width * 0.86,
             height: double.infinity,
@@ -370,14 +375,7 @@ void _openSettingsSheet(BuildContext ctx) {
                                 ),
                               ),
                               SizedBox(height: 4),
-                              Text(
-                                'Uredi videz in dostopnost',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                              
                             ],
                           ),
                         ),
@@ -462,7 +460,43 @@ void _openSettingsSheet(BuildContext ctx) {
                     },
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 6),
+
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      ctx,
+                      MaterialPageRoute(builder: (_) => const ActivityAnalyticsScreen()),
+                    );
+                  },
+                  child: _settingsLinkCard(
+                    icon: Icons.analytics_rounded,
+                    title: 'Aktivnost',
+                    subtitle: 'Analitika in zgodovina sodelovanj',
+                    color: _kPrimary,
+                  ),
+                ),
+
+                GestureDetector(
+                  onTap: () => _showSecurityDialog(context),
+                  child: _settingsLinkCard(
+                    icon: Icons.security_rounded,
+                    title: 'Varnost',
+                    subtitle: 'Varnost in zasebnost podatkov',
+                    color: _kGreen,
+                  ),
+                ),
+
+                _settingsInfoCard(
+                  icon: Icons.info_rounded,
+                  title: 'O aplikaciji',
+                  subtitle: 'Verzija aplikacije',
+                  value: 'v1.0.0',
+                  color: _kAmber,
+                ),
+
+                const SizedBox(height: 4),
 
                   GestureDetector(
                     onTap: () {
@@ -508,8 +542,10 @@ void _openSettingsSheet(BuildContext ctx) {
               ),
             ),
           ),
+          ),
         ),
       );
+      
     },
     transitionBuilder: (context, anim, secondaryAnim, child) {
       return SlideTransition(
@@ -535,7 +571,9 @@ Widget _settingsOptionCard({
     decoration: BoxDecoration(
       color: context.kCardBg,
       borderRadius: BorderRadius.circular(26),
-      border: Border.all(color: context.kBorder),
+      border: Border.all(
+        color: Colors.transparent,
+      ),
       boxShadow: [
         BoxShadow(
           color: color.withOpacity(0.10),
@@ -595,6 +633,209 @@ Widget _settingsOptionCard({
     ),
   );
 }
+Widget _settingsLinkCard({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required Color color,
+}) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 14),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: context.kCardBg,
+      borderRadius: BorderRadius.circular(26),
+      border: Border.all(
+        color: Colors.transparent,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: color.withOpacity(0.10),
+          blurRadius: 18,
+          offset: const Offset(0, 7),
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Icon(icon, color: color, size: 27),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: TextStyle(
+                    color: context.kText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  )),
+              const SizedBox(height: 4),
+              Text(subtitle,
+                  style: TextStyle(
+                    color: context.kTextSub,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  )),
+            ],
+          ),
+        ),
+        Icon(Icons.arrow_forward_ios_rounded,
+            size: 16, color: context.kTextSub),
+      ],
+    ),
+  );
+}
+
+Widget _settingsInfoCard({
+  required IconData icon,
+  required String title,
+  required String subtitle,
+  required String value,
+  required Color color,
+}) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 14),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: context.kCardBg,
+      borderRadius: BorderRadius.circular(26),
+      border: Border.all(
+        color: Colors.transparent,
+      ),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 54,
+          height: 54,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Icon(icon, color: color, size: 27),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title,
+                  style: TextStyle(
+                    color: context.kText,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  )),
+              const SizedBox(height: 4),
+              Text(subtitle,
+                  style: TextStyle(
+                    color: context.kTextSub,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  )),
+            ],
+          ),
+        ),
+        Text(value,
+            style: TextStyle(
+              color: color,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            )),
+      ],
+    ),
+  );
+}
+
+void _showSecurityDialog(BuildContext ctx) {
+  showDialog(
+    context: ctx,
+    builder: (context) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 62,
+              height: 62,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [_kPrimary, _kViolet]),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.security_rounded,
+                  color: Colors.white, size: 32),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Varnost in zasebnost',
+              style: TextStyle(
+                color: context.kText,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 14),
+            _securityItem(Icons.verified_user_rounded, 'Preverjen dostop'),
+            _securityItem(Icons.lock_rounded, 'Šifrirana sporočila v bazi'),
+            _securityItem(Icons.visibility_off_rounded,
+                'Možnost skrivanja podatkov profila'),
+            _securityItem(Icons.cloud_done_rounded,
+                'Zaščiten dostop do podatkov'),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _kPrimary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: const Text('V redu'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+Widget _securityItem(IconData icon, String text) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Row(
+      children: [
+        Icon(icon, color: _kGreen, size: 20),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              color: context.kText,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 Widget _miniToggle({
   required bool value,
   required Color activeColor,
@@ -641,7 +882,7 @@ Widget _miniToggle({
       animation: _orbCtrl,
       builder: (_, __) => Container(
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(20, 56, 20, 32),
+        padding: const EdgeInsets.fromLTRB(20, 40, 20, 32),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -1026,7 +1267,9 @@ Widget _miniToggle({
         decoration: BoxDecoration(
           color: context.kCardBg,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: context.kBorder),
+          border: Border.all(
+            color: Colors.transparent,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -1129,7 +1372,9 @@ Widget _miniToggle({
         decoration: BoxDecoration(
           color: context.kCardBg,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: context.kBorder),
+          border: Border.all(
+            color: Colors.transparent,
+          ),
           boxShadow: [
             BoxShadow(
               color: accent.withOpacity(0.07),
@@ -1362,7 +1607,9 @@ Widget _miniToggle({
       decoration: BoxDecoration(
         color: context.kCardBg,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: context.kBorder),
+        border: Border.all(
+          color: Colors.transparent,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.04),
@@ -1860,7 +2107,9 @@ Widget _illustratedBanner(BuildContext ctx) {
         decoration: BoxDecoration(
           color: context.kCardBg,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: context.kBorder),
+          border: Border.all(
+            color: Colors.transparent,
+          ),
           boxShadow: [
             BoxShadow(
               color: _kAmber.withOpacity(0.08),
@@ -1955,7 +2204,9 @@ Widget _illustratedBanner(BuildContext ctx) {
                   decoration: BoxDecoration(
                     color: context.kSurface,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: context.kBorder),
+                    border: Border.all(
+                      color: Colors.transparent,
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

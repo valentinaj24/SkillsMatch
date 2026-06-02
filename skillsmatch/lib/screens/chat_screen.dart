@@ -53,6 +53,26 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   String get currentUid => ServiceLocator.auth.currentUser?.uid ?? '';
 
+  List<Color> _themeColors(String themeId) {
+  switch (themeId) {
+    case 'green':
+      return [const Color(0xFF16A34A), const Color(0xFF22C55E)];
+
+    case 'pink':
+      return [const Color(0xFFDB2777), const Color(0xFFF472B6)];
+
+    case 'blue':
+      return [const Color(0xFF2563EB), const Color(0xFF38BDF8)];
+
+    case 'orange':
+      return [const Color(0xFFEA580C), const Color(0xFFF97316)];
+
+    case 'purple':
+    default:
+      return [const Color(0xFF4F46E5), const Color(0xFF7C3AED)];
+  }
+}
+
   @override
   void initState() {
     super.initState();
@@ -568,10 +588,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   Widget _messageBubble(
-    Map<String, dynamic> data, {
-    required bool isLastMyMessage,
-    required bool showDateChip,
-  }) {
+  Map<String, dynamic> data, {
+  required bool isLastMyMessage,
+  required bool showDateChip,
+  required List<Color> themeColors,
+}) {
     final isMe = data['senderId'] == currentUid;
     final type = (data['type'] ?? 'text').toString();
     final rawText = (data['text'] ?? '').toString();
@@ -603,15 +624,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   : const EdgeInsets.fromLTRB(16, 13, 16, 11),
               decoration: BoxDecoration(
                 gradient: isMe
-                    ? const LinearGradient(
-                        colors: [
-                          Color(0xFF4F46E5),
-                          Color(0xFF6D28D9),
-                          Color(0xFF7C3AED),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
+                  ? LinearGradient(
+                      colors: themeColors,
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
                     : null,
                 color: isMe ? null : context.kCardBg,
                 borderRadius: BorderRadius.only(
@@ -1109,8 +1126,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
   }
 
-  Widget _messagesBody() {
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+Widget _messagesBody(List<Color> themeColors) { 
+     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: ServiceLocator.firestore
           .collection('chats')
           .doc(widget.chatId)
@@ -1157,45 +1174,66 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               docs[index].data(),
               isLastMyMessage: index == lastMyMessageIndex,
               showDateChip: index == 0,
+              themeColors: themeColors,
             );
           },
         );
       },
     );
   }
-
-  @override
-  Widget build(BuildContext context) {
-    if (currentUid.isEmpty) {
-      return Scaffold(
-        backgroundColor: context.kBg,
-        body: Center(
-          child: Text(
-            'Uporabnik ni prijavljen.',
-            style: TextStyle(color: context.kText),
-          ),
-        ),
-      );
-    }
-
-    return PopScope(
-      canPop: !showEmojiPicker,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && showEmojiPicker) {
-          setState(() => showEmojiPicker = false);
-        }
-      },
-      child: Scaffold(
-        resizeToAvoidBottomInset: true,
-        backgroundColor: context.kBg,
-        appBar: _chatHeader(),
-        body: Column(
-          children: [
-            Expanded(child: _messagesBody()),
-            _bottomChatArea(),
-          ],
+@override
+Widget build(BuildContext context) {
+  if (currentUid.isEmpty) {
+    return Scaffold(
+      backgroundColor: context.kBg,
+      body: Center(
+        child: Text(
+          'Uporabnik ni prijavljen.',
+          style: TextStyle(color: context.kText),
         ),
       ),
     );
   }
+
+  return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+    stream: ServiceLocator.firestore
+        .collection('chats')
+        .doc(widget.chatId)
+        .snapshots(),
+    builder: (context, chatSnapshot) {
+      final themeId =
+          chatSnapshot.data?.data()?['theme']?.toString() ?? 'purple';
+
+      final themeColors = _themeColors(themeId);
+
+      final chatBackground = switch (themeId) {
+        'green' => const Color.fromARGB(255, 218, 255, 229),
+        'pink' => const Color.fromARGB(255, 254, 208, 233),
+        'blue' => const Color.fromARGB(255, 212, 229, 255),
+        'orange' => const Color.fromARGB(255, 247, 230, 210),
+        _ => context.kBg,
+      };
+
+      return PopScope(
+        canPop: !showEmojiPicker,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && showEmojiPicker) {
+            setState(() => showEmojiPicker = false);
+          }
+        },
+        child: Scaffold(
+          resizeToAvoidBottomInset: true,
+          backgroundColor: chatBackground,
+          appBar: _chatHeader(),
+          body: Column(
+            children: [
+              Expanded(child: _messagesBody(themeColors)),
+              _bottomChatArea(),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 }

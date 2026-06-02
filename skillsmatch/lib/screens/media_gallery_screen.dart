@@ -17,14 +17,13 @@ class MediaGalleryScreen extends StatelessWidget {
   });
 
   Stream<QuerySnapshot<Map<String, dynamic>>> _imagesStream() {
-    return ServiceLocator.firestore
-        .collection('chats')
-        .doc(chatId)
-        .collection('messages')
-        .where('type', isEqualTo: 'image')
-        .orderBy('createdAt', descending: true)
-        .snapshots();
-  }
+  return ServiceLocator.firestore
+      .collection('chats')
+      .doc(chatId)
+      .collection('messages')
+      .where('type', isEqualTo: 'image')
+      .snapshots();
+}
 
   String _formatDate(dynamic value) {
     if (value is! Timestamp) return '';

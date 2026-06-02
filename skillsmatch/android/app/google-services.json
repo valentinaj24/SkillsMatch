@@ -58,6 +58,14 @@
           }
         },
         {
+          "client_id": "786145145910-rhvvdkv41tnec10jcnaadmdg0jh4cges.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.skillbridge.skillsmatch",
+            "certificate_hash": "5e64c613b5f88ac8881d340f3c3f0c056edb950a"
+          }
+        },
+        {
           "client_id": "786145145910-gc2vi5jlpvmtu98ae4h9sp8ple8tmddd.apps.googleusercontent.com",
           "client_type": 3
         }
