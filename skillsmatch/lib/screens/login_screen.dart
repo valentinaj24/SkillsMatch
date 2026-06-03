@@ -472,7 +472,6 @@ class _LoginScreenState extends State<LoginScreen>
 
       final user = credential.user;
 
-      await FirebaseMessaging.instance.deleteToken();
       await NotificationService.saveFcmToken();
 
       if (user != null && !user.emailVerified) {

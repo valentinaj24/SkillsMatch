@@ -40,6 +40,9 @@ class NotificationService {
 
   static Future<void> saveFcmToken() async {
     final token = await _messaging.getToken();
+
+    print('FCM TOKEN = $token');
+    print('CURRENT UID = ${FirebaseAuth.instance.currentUser?.uid}');
     if (token == null) return;
 
     await _saveTokenToFirestore(token);

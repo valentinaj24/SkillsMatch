@@ -39,6 +39,7 @@ class _CallScreenState extends State<CallScreen> {
   bool _cameraEnabled = true;
   VideoTrack? _localVideoTrack;
   VideoTrack? _remoteVideoTrack;
+  bool _timerStarted = false;
 
   void Function()? _cancelEvents;
   bool _speakerEnabled = false;
@@ -91,6 +92,10 @@ class _CallScreenState extends State<CallScreen> {
         .listen((doc) {
       if (!mounted) return;
       final status = doc.data()?['status'] ?? '';
+      if (status == 'answered' && !_timerStarted) {
+        _startDurationTimer();
+        _timerStarted = true;
+      }
       if (status == 'ended') {
         _hangUpLocally();
       }
@@ -176,7 +181,6 @@ class _CallScreenState extends State<CallScreen> {
           _room = room;
           _connected = true;
         });
-        _startDurationTimer(); // Pokreni tajmer čim se uspješno povežemo
       }
     } catch (e) {
       if (mounted) {
@@ -219,6 +223,8 @@ class _CallScreenState extends State<CallScreen> {
             'endedAt': FieldValue.serverTimestamp(),
             'durationSeconds': _secondsElapsed,
           });
+      
+      await _addCallEndMessage();
 
       await CallNotificationService.cancelCallNotification(widget.callId);
     } catch (e) {
@@ -229,6 +235,61 @@ class _CallScreenState extends State<CallScreen> {
     await Hardware.instance.setSpeakerphoneOn(false);
     await _room?.disconnect();
     if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> _addCallEndMessage() async {
+    final callDoc = await ServiceLocator.firestore
+        .collection('calls')
+        .doc(widget.callId)
+        .get();
+
+    final data = callDoc.data();
+    if (data == null) return;
+
+    final chatId = data['chatId'] as String?;
+    if (chatId == null) return;
+
+    final callerId = data['callerId'] as String?;
+    final isVideo = data['isVideo'] ?? false;
+    final durationSec = _secondsElapsed;
+
+    // Formatiranje trajanja (MM:SS)
+    final minutes = durationSec ~/ 60;
+    final seconds = durationSec % 60;
+    final durationStr = '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+
+    final currentUserId = ServiceLocator.auth.currentUser?.uid;
+    final isCaller = currentUserId == callerId;
+
+    final messageText = isCaller
+    ? (isVideo 
+        ? '📹 Video klic k ${widget.otherUserName} – trajanje $durationStr' 
+        : '📞 Glasovni klic k ${widget.otherUserName} – trajanje $durationStr')
+    : (isVideo 
+        ? '📹 Video klic od ${widget.otherUserName} – trajanje $durationStr' 
+        : '📞 Glasovni klic od ${widget.otherUserName} – trajanje $durationStr');
+        
+    final chatRef = ServiceLocator.firestore.collection('chats').doc(chatId);
+
+    // Dodaj poruku u podkolekciju messages
+    await chatRef.collection('messages').add({
+      'senderId': 'system',                // specijalni ID za sistemske poruke
+      'type': 'call',
+      'text': messageText,
+      'createdAt': FieldValue.serverTimestamp(),
+      'callDuration': durationSec,
+      'isVideo': isVideo,
+      'callerId': callerId,
+    });
+
+    // Ažuriraj lastMessage u chatu
+    await chatRef.set({
+      'lastMessage': messageText,
+      'lastMessageSenderId': 'system',
+      'lastMessageSeen': false,
+      'lastMessageAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   @override

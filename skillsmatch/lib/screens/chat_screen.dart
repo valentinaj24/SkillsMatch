@@ -485,6 +485,7 @@ if (otherUid != null) {
         'roomName': roomName,
         'livekitUrl': liveKitUrl,
         'createdAt': FieldValue.serverTimestamp(),
+        'chatId': widget.chatId,
       });
 
       if (mounted) Navigator.pop(context);
@@ -627,6 +628,47 @@ if (otherUid != null) {
     final time = _formatTime(data['createdAt']);
     final isPlayingThisVoice = playingVoiceUrl == mediaUrl;
 
+    // ─── Sistemska poruka o pozivu ──────────────────────────────────────────
+    if (type == 'call') {
+      return Column(
+        children: [
+          if (showDateChip) _dateChip(),
+          Center(
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: context.kCardBg.withOpacity(0.8),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: context.kBorder, width: 0.5),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    data['isVideo'] == true ? Icons.videocam : Icons.call,
+                    color: _kPrimary,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    text,
+                    style: TextStyle(
+                      color: context.kText,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // ─── Obične poruke (tekst, slika, glas) ────────────────────────────────
     return Column(
       children: [
         if (showDateChip) _dateChip(),
@@ -780,7 +822,6 @@ if (otherUid != null) {
       ],
     );
   }
-
   Widget _emptyChat() {
     return Center(
       child: Padding(
