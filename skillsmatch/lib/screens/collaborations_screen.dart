@@ -4,6 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'chat_screen.dart';
 import '../theme/app_colors.dart';
 import '../services/service_locator.dart';
+import 'call_screen.dart';
+import '../services/call_service.dart';
 
 // Brand / Accent Colors (stay the same)
 const _kPrimary = Color(0xFF4F46E5);
@@ -323,6 +325,46 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
       });
       if (!mounted) return;
       _showSnack('Ocena je shranjena.', color: _kGreen);
+    }
+  }
+
+  Future<void> _startVideoCall(String collaborationId, Map<String, dynamic> data, String otherName) async {
+    try {
+      await _ensureChatExists(collaborationId, data);
+
+      final requesterId = (data['requesterId'] ?? '').toString();
+      final receiverId  = (data['receiverId']  ?? '').toString();
+      final otherUid    = requesterId == currentUid ? receiverId : requesterId;
+
+      if (otherUid.isEmpty) {
+        _showSnack('Napaka: ne najdem sogovornika.', color: _kRed);
+        return;
+      }
+
+      _showSnack('Kličem...');
+
+      final result = await CallService.initiateCall(
+        receiverId:   otherUid,
+        receiverName: otherName,
+        isVideoCall:  true,
+        chatId:       collaborationId,
+      ).timeout(const Duration(seconds: 15));
+
+      if (!mounted) return;
+
+      Navigator.push(context, MaterialPageRoute(
+        builder: (_) => CallScreen(
+          roomName:      result['roomName'],
+          token:         result['token'],
+          livekitUrl:    result['liveKitUrl'],
+          isVideoCall:   true,
+          otherUserName: otherName,
+          callId:        result['callId'],
+        ),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      _showSnack('Napaka pri klicu: $e', color: _kRed);
     }
   }
 
@@ -720,7 +762,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
                     icon: Icons.video_call_rounded,
                     label: 'Video klic',
                     filled: true,
-                    onTap: () => _showSnack('Video klic bo dodan v naslednjem koraku.'),
+                    onTap: () => _startVideoCall(docId, data, otherName),
                   ),
                 ),
               ],

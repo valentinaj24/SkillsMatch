@@ -53,6 +53,14 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  final fcm = FirebaseMessaging.instance;
+  NotificationSettings settings = await fcm.requestPermission();
+  print('🔔 FCM permission: ${settings.authorizationStatus}');
+  String? token = await fcm.getToken();
+  print('🔑 FCM token: $token');
+  if (token == null) print('❌ FCM token is NULL! Check google-services.json and permissions.');
+
+
   // Inicijalizuj oba servisa
   await NotificationService.init();
   await CallNotificationService.init();

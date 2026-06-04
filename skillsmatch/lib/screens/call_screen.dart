@@ -103,6 +103,8 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   Future<void> _hangUpLocally() async {
+    if (_isHangingUp) return;
+    _isHangingUp = true;
     await _callStatusSubscription?.cancel();
     _durationTimer?.cancel();
     _cancelEvents?.call();
@@ -119,6 +121,48 @@ class _CallScreenState extends State<CallScreen> {
       Navigator.pop(context);
     }
   }
+
+  Future<void> _addMissedCallMessage() async {
+  print('_addMissedCallMessage POZVAN, secondsElapsed=$_secondsElapsed');
+
+  try {
+    final callDoc = await ServiceLocator.firestore
+        .collection('calls').doc(widget.callId).get();
+    final data = callDoc.data();
+    if (data == null) return;
+
+    final chatId = data['chatId'] as String?;
+    if (chatId == null) return;
+
+    final isVideo = data['isVideo'] ?? false;
+
+    final messageText = isVideo
+        ? ' Zamujeni video klic za ${widget.otherUserName}'
+        : ' Zamujeni klic za ${widget.otherUserName}';
+
+    final chatRef = ServiceLocator.firestore.collection('chats').doc(chatId);
+
+    await chatRef.collection('messages').add({
+      'senderId': ServiceLocator.auth.currentUser?.uid ?? 'system',
+      'type': 'call',
+      'text': messageText,
+      'createdAt': FieldValue.serverTimestamp(),
+      'callDuration': 0,
+      'isVideo': isVideo,
+      'missed': true,
+    });
+
+    await chatRef.set({
+      'lastMessage': messageText,
+      'lastMessageSenderId': 'system',
+      'lastMessageSeen': false,
+      'lastMessageAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  } catch (e) {
+    print('Greška pri pisanju missed call poruke: $e');
+  }
+}
 
   Future<void> _requestPermissionsAndConnect() async {
     if (widget.isVideoCall) {
@@ -176,6 +220,7 @@ class _CallScreenState extends State<CallScreen> {
         }
       }
 
+
       if (mounted) {
         setState(() {
           _room = room;
@@ -210,7 +255,16 @@ class _CallScreenState extends State<CallScreen> {
     await Hardware.instance.setSpeakerphoneOn(_speakerEnabled);
   }
 
+  bool _isHangingUp = false; 
+  int _endCallCount = 0;
   Future<void> _endCall() async {
+    _endCallCount++;
+    print('_endCall POZVAN br.$_endCallCount, _isHangingUp=$_isHangingUp');    
+    if (_isHangingUp) return;
+    _isHangingUp = true;
+    print('_endCall NASTAVLJA br.$_endCallCount');
+
+
     await _callStatusSubscription?.cancel();
     _durationTimer?.cancel();
 
@@ -224,7 +278,13 @@ class _CallScreenState extends State<CallScreen> {
             'durationSeconds': _secondsElapsed,
           });
       
-      await _addCallEndMessage();
+      if (_secondsElapsed > 0) {
+        print('Pisem _addCallEndMessage');
+        await _addCallEndMessage();      // poziv je bio odgovoren
+      } else {
+        print('Pisem _addMissedCallMessage');
+        await _addMissedCallMessage();   // poziv nije bio odgovoren
+      }
 
       await CallNotificationService.cancelCallNotification(widget.callId);
     } catch (e) {
@@ -238,6 +298,8 @@ class _CallScreenState extends State<CallScreen> {
   }
 
   Future<void> _addCallEndMessage() async {
+    print('_addCallEndMessage POZVAN, secondsElapsed=$_secondsElapsed');
+
     final callDoc = await ServiceLocator.firestore
         .collection('calls')
         .doc(widget.callId)
@@ -263,17 +325,17 @@ class _CallScreenState extends State<CallScreen> {
 
     final messageText = isCaller
     ? (isVideo 
-        ? '📹 Video klic k ${widget.otherUserName} – trajanje $durationStr' 
-        : '📞 Glasovni klic k ${widget.otherUserName} – trajanje $durationStr')
+        ? ' Video klic k ${widget.otherUserName} – trajanje $durationStr' 
+        : ' Glasovni klic k ${widget.otherUserName} – trajanje $durationStr')
     : (isVideo 
-        ? '📹 Video klic od ${widget.otherUserName} – trajanje $durationStr' 
-        : '📞 Glasovni klic od ${widget.otherUserName} – trajanje $durationStr');
+        ? ' Video klic od ${widget.otherUserName} – trajanje $durationStr' 
+        : ' Glasovni klic od ${widget.otherUserName} – trajanje $durationStr');
         
     final chatRef = ServiceLocator.firestore.collection('chats').doc(chatId);
 
     // Dodaj poruku u podkolekciju messages
     await chatRef.collection('messages').add({
-      'senderId': 'system',                // specijalni ID za sistemske poruke
+      'senderId': ServiceLocator.auth.currentUser?.uid ?? 'system',
       'type': 'call',
       'text': messageText,
       'createdAt': FieldValue.serverTimestamp(),

@@ -13,6 +13,7 @@ class CallService {
     required String receiverId,
     required String receiverName,
     required bool isVideoCall,
+    required String chatId,
   }) async {
     final caller = FirebaseAuth.instance.currentUser;
     if (caller == null) throw Exception('Niste prijavljeni');
@@ -46,6 +47,7 @@ class CallService {
         'receiverFcmToken': receiverFcmToken,
         'callerName': callerName,
         'isVideoCall': isVideoCall,
+        'chatId': chatId,
       }),
     );
 

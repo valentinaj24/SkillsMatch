@@ -1670,7 +1670,7 @@ class _UsersListScreenState extends State<UsersListScreen> with SingleTickerProv
           backgroundColor: context.kCardBg,
           strokeWidth: 2.5,
           onRefresh: () async {
-            HapticFeedback.mediumImpact();
+            await HapticFeedback.mediumImpact();
             setState(() {});
             await Future.delayed(const Duration(milliseconds: 600));
           },

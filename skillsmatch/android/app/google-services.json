@@ -7,42 +7,6 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:786145145910:android:4040edba7c5e53cb365497",
-        "android_client_info": {
-          "package_name": "com.example.skillsmatch"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "786145145910-gc2vi5jlpvmtu98ae4h9sp8ple8tmddd.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBBmiEBp604U0YWIq6nKSgk2Cyz8GXl9uY"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "786145145910-gc2vi5jlpvmtu98ae4h9sp8ple8tmddd.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "786145145910-v6be0sv0sue562ef9qlk9pufqf4p3ll6.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.skillsmatch"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:786145145910:android:991947534611cf7d365497",
         "android_client_info": {
           "package_name": "com.skillbridge.skillsmatch"

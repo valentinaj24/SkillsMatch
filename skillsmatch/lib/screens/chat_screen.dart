@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'dart:async';
 import 'dart:convert';
 import 'call_screen.dart';
 import 'dart:io';
@@ -14,6 +15,7 @@ import '../theme/app_colors.dart'; // added for dynamic theme
 import '../services/encryption_service.dart';
 import '../services/service_locator.dart'; // added for service locator
 import 'chat_info_screen.dart';
+import '../services/call_service.dart';
 
 // Brand / Accent Colors (stay the same)
 const _kPrimary = Color(0xFF4F46E5);
@@ -390,6 +392,8 @@ if (otherUid != null) {
     }
   }
 
+  bool _callInProgress = false;
+
   Future<void> _startCall({required bool isVideo}) async {
     final otherUid = await _getOtherUserId();
     if (otherUid == null || !mounted) return;
@@ -432,87 +436,76 @@ if (otherUid != null) {
       return;
     }
 
-    await showDialog(
+    bool cancelled = false;
+    showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) =>
-          const Center(child: CircularProgressIndicator(color: _kPrimary)),
+      builder: (_) => AlertDialog(
+        content: Row(children: [
+          const CircularProgressIndicator(),
+          const SizedBox(width: 16),
+          const Text('Pozivanje...'),
+        ]),
+        actions: [
+          TextButton(
+            onPressed: () { cancelled = true; Navigator.pop(context); },
+            child: const Text('Otkaži'),
+          ),
+        ],
+      ),
     );
 
     try {
-      final currentUser = ServiceLocator.auth.currentUser;
-      if (currentUser == null) throw Exception('Niste prijavljeni');
-      final callerDoc = await ServiceLocator.firestore
-          .collection('users')
-          .doc(currentUid)
-          .get();
-      final callerName = callerDoc.data()?['ime'] ?? 'Nepoznat';
-      final receiverDoc = await ServiceLocator.firestore
-          .collection('users')
-          .doc(otherUid)
-          .get();
-      final receiverFcmToken = receiverDoc.data()?['fcmToken'];
-      if (receiverFcmToken == null)
-        throw Exception('Korisnik nije dostupan za pozive');
+      final otherUid = await _getOtherUserId();
+      if (otherUid == null || cancelled) return;
 
-      final response = await http.post(
-        Uri.parse('https://skillsmatch-server.onrender.com/call/initiate'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'callerIdentity': currentUid,
-          'receiverIdentity': otherUid,
-          'receiverFcmToken': receiverFcmToken,
-          'callerName': callerName,
-          'isVideoCall': isVideo,
-        }),
-      );
-      if (response.statusCode != 200)
-        throw Exception('Server greška: ${response.statusCode}');
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-      final roomName = body['roomName'].toString();
-      final token = body['token'].toString();
-      final liveKitUrl = body['liveKitUrl'].toString();
-      final callId = body['callId'].toString();
+      final result = await CallService.initiateCall(
+        receiverId: otherUid,
+        receiverName: widget.otherUserName,
+        isVideoCall: isVideo,
+        chatId: widget.chatId,
+      ).timeout(const Duration(seconds: 15)); 
 
-      await ServiceLocator.firestore.collection('calls').doc(callId).set({
-        'callId': callId,
-        'callerId': currentUid,
-        'callerName': callerName,
-        'receiverId': otherUid,
-        'receiverName': widget.otherUserName,
-        'isVideo': isVideo,
-        'status': 'ringing',
-        'roomName': roomName,
-        'livekitUrl': liveKitUrl,
-        'createdAt': FieldValue.serverTimestamp(),
-        'chatId': widget.chatId,
-      });
+      if (cancelled || !mounted) return;
+      Navigator.pop(context); // zatvori loading dialog
 
-      if (mounted) Navigator.pop(context);
-      if (!mounted) return;
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => CallScreen(
-            roomName: roomName,
-            token: token,
-            livekitUrl: liveKitUrl,
-            isVideoCall: isVideo,
-            otherUserName: widget.otherUserName,
-            callId: callId,
+
+
+      final roomName    = result['roomName']    as String?;
+      final callerToken = result['token'] as String?;
+      final liveKitUrl  = result['liveKitUrl']  as String?;
+      final callId      = result['callId']      as String?;
+
+      print('SERVER RESPONSE: $result');
+
+      if (roomName == null || callerToken == null || liveKitUrl == null || callId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Server greška: nepotpun odgovor $result'),
+            backgroundColor: Colors.red,
           ),
+        );
+        return;
+      }
+
+      Navigator.push(context, MaterialPageRoute(
+        builder: (_) => CallScreen(
+          roomName:      roomName,
+          token:         callerToken,
+          livekitUrl:    liveKitUrl,
+          isVideoCall:   isVideo,
+          otherUserName: widget.otherUserName,
+          callId:        callId,
         ),
-      );
-    } catch (e) {
-      if (mounted) Navigator.pop(context);
+      ));
+    }catch (e) {
       if (!mounted) return;
+      Navigator.pop(context); // zatvori loading
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Napaka pri klicu: $e'),
-          backgroundColor: _kRed,
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text('Greška pri pozivu: $e'), backgroundColor: Colors.red),
       );
+    }finally{
+      _callInProgress = false;
     }
   }
 
