@@ -137,8 +137,8 @@ class _CallScreenState extends State<CallScreen> {
     final isVideo = data['isVideo'] ?? false;
 
     final messageText = isVideo
-        ? ' Zamujeni video klic za ${widget.otherUserName}'
-        : ' Zamujeni klic za ${widget.otherUserName}';
+        ? ' Zamujeni video klic'
+        : ' Zamujeni klic';
 
     final chatRef = ServiceLocator.firestore.collection('chats').doc(chatId);
 
@@ -325,11 +325,11 @@ class _CallScreenState extends State<CallScreen> {
 
     final messageText = isCaller
     ? (isVideo 
-        ? ' Video klic k ${widget.otherUserName} – trajanje $durationStr' 
-        : ' Glasovni klic k ${widget.otherUserName} – trajanje $durationStr')
+        ? ' Video klic - $durationStr' 
+        : ' Glasovni klic - $durationStr')
     : (isVideo 
-        ? ' Video klic od ${widget.otherUserName} – trajanje $durationStr' 
-        : ' Glasovni klic od ${widget.otherUserName} – trajanje $durationStr');
+        ? ' Video klic - $durationStr' 
+        : ' Glasovni klic - $durationStr');
         
     final chatRef = ServiceLocator.firestore.collection('chats').doc(chatId);
 
