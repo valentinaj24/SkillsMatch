@@ -295,7 +295,7 @@ Projekt SkillsMatch vključuje večplastni pristop k zagotavljanju kakovosti, ki
 | -------------------------------- | -------------------------- | ------------------------------------- | --------------------------------------- |
 | Enotno testiranje (unit tests)   | `flutter_test` + `mockito` | `test/skills_match_test.dart`         | Validatorji, poslovna logika            |
 | Integracijski testi (end-to-end) | `integration_test`         | `integration_test/app_flow_test.dart` | Celoten tok aplikacije                  |
-| Statična analiza kode            | SonarQube                  | `sonarqube/README.md\`                | Kakovost in vzdrževalnost kode          |
+| Statična analiza kode            | SonarQube                  | `sonarqube/README.md`                | Kakovost in vzdrževalnost kode          |
 | CI/CD avtomatizacija             | GitHub Actions             | `.github/workflows/flutter_tests.yml` | Zaganjanje testov ob vsakem `push`/`PR` |
 
 ***
