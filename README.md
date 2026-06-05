@@ -113,6 +113,18 @@ Flutter App
      ├── Cloudinary
      └── LiveKit
 ```
+### Arhitekturne odločitve
+
+Pri razvoju aplikacije smo sprejeli več arhitekturnih odločitev, ki omogočajo dobro uporabniško izkušnjo, enostavno vzdrževanje sistema in razširljivost rešitve.
+
+| Komponenta | Razlog za izbiro |
+|------------|------------------|
+| Flutter | Razvoj za Android in iOS iz ene same kode ter hitrejši razvoj uporabniškega vmesnika. |
+| Firebase Authentication | Varna registracija in prijava uporabnikov brez razvoja lastnega sistema za avtentikacijo. |
+| Cloud Firestore | Shranjevanje podatkov v realnem času ter enostavna integracija s Flutter aplikacijo. |
+| Firebase Cloud Messaging | Pošiljanje obvestil o novih sporočilih, povabilih in klicih v realnem času. |
+| Cloudinary | Shranjevanje in optimizacija profilnih slik ter zmanjšanje obremenitve podatkovne baze. |
+| LiveKit | Stabilna implementacija avdio in video klicev z nizko zakasnitvijo. |
 
 ### Uporabljene tehnologije
 
@@ -416,6 +428,22 @@ V prihodnosti načrtujemo:
 * večjezično podporo.
 
 ***
+
+# 📋 Projektno vodenje
+
+Pri razvoju projekta smo uporabljali GitHub Projects in Kanban metodologijo za organizacijo dela, spremljanje napredka.
+
+Naloge so bile razdeljene v kategorije:
+
+- Todo
+- In Progress
+- Done
+
+Takšen pristop nam je omogočil pregled nad razvojem projekta, spremljanje napredka posameznih funkcionalnosti ter učinkovito sodelovanje med člani ekipe.
+
+## Kanban tabla
+
+![Kanban Board](docs/kanban.png)
 
 # 👨‍💻 Projektna skupina
 
