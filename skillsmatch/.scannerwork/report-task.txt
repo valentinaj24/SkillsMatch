@@ -2,5 +2,5 @@ projectKey=SkillsMatch
 serverUrl=http://localhost:9000
 serverVersion=25.10.0.114319
 dashboardUrl=http://localhost:9000/dashboard?id=SkillsMatch
-ceTaskId=8b00de76-9bfa-4bc9-9e0c-e3c9ff7e2bfc
-ceTaskUrl=http://localhost:9000/api/ce/task?id=8b00de76-9bfa-4bc9-9e0c-e3c9ff7e2bfc
+ceTaskId=3db5be41-5117-438f-83b8-96b77f6d4352
+ceTaskUrl=http://localhost:9000/api/ce/task?id=3db5be41-5117-438f-83b8-96b77f6d4352

@@ -113,18 +113,19 @@ Flutter App
      ├── Cloudinary
      └── LiveKit
 ```
+
 ### Arhitekturne odločitve
 
 Pri razvoju aplikacije smo sprejeli več arhitekturnih odločitev, ki omogočajo dobro uporabniško izkušnjo, enostavno vzdrževanje sistema in razširljivost rešitve.
 
-| Komponenta | Razlog za izbiro |
-|------------|------------------|
-| Flutter | Razvoj za Android in iOS iz ene same kode ter hitrejši razvoj uporabniškega vmesnika. |
-| Firebase Authentication | Varna registracija in prijava uporabnikov brez razvoja lastnega sistema za avtentikacijo. |
-| Cloud Firestore | Shranjevanje podatkov v realnem času ter enostavna integracija s Flutter aplikacijo. |
-| Firebase Cloud Messaging | Pošiljanje obvestil o novih sporočilih, povabilih in klicih v realnem času. |
-| Cloudinary | Shranjevanje in optimizacija profilnih slik ter zmanjšanje obremenitve podatkovne baze. |
-| LiveKit | Stabilna implementacija avdio in video klicev z nizko zakasnitvijo. |
+| Komponenta               | Razlog za izbiro                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------------------- |
+| Flutter                  | Razvoj za Android in iOS iz ene same kode ter hitrejši razvoj uporabniškega vmesnika.     |
+| Firebase Authentication  | Varna registracija in prijava uporabnikov brez razvoja lastnega sistema za avtentikacijo. |
+| Cloud Firestore          | Shranjevanje podatkov v realnem času ter enostavna integracija s Flutter aplikacijo.      |
+| Firebase Cloud Messaging | Pošiljanje obvestil o novih sporočilih, povabilih in klicih v realnem času.               |
+| Cloudinary               | Shranjevanje in optimizacija profilnih slik ter zmanjšanje obremenitve podatkovne baze.   |
+| LiveKit                  | Stabilna implementacija avdio in video klicev z nizko zakasnitvijo.                       |
 
 ### Uporabljene tehnologije
 
@@ -411,6 +412,26 @@ Rezultati prve analize so služili kot izhodišče za prepoznavanje področij za
 
 ***
 
+### ✅ Rezultati po odpravi kritičnih težav
+
+Po opravljenih popravkih (dodani manjkajoči testi, odpravljene najresnejši code smells) smo analizo ponovili.
+
+> 📸 **Posnetek končne analize:**\
+> ![SonarQube končna analiza](docs/sonarqube-analysis.png)
+
+| Dimenzija             | Opis                                          | Rezultat                       |
+| --------------------- | --------------------------------------------- | ------------------------------ |
+| **Security**          | Varnostne ranljivosti                         | 0 odprtih težav, ocena **A**   |
+| **Reliability**       | Napake, ki lahko povzročijo napačno delovanje | 0 odprtih težav, ocena **A**   |
+| **Maintainability**   | Code Smells                                   | ocena **A** (manjša opozorila) |
+| **Coverage**          | Delež kode, pokrit z testi                    | **73,4 %**                     |
+| **Duplications**      | Podvojena koda                                | **1,1 %** (nespremenjeno)      |
+| **Security Hotspots** | Potencialno občutljive točke                  | **0**                          |
+
+Vse ključne pomanjkljivosti so bile odpravljene. Končna koda dosega **oceno A** na vseh področjih kakovosti.
+
+***
+
 # 🔮 Nadaljnji razvoj
 
 V prihodnosti načrtujemo:
@@ -435,9 +456,11 @@ Pri razvoju projekta smo uporabljali GitHub Projects in Kanban metodologijo za o
 
 Naloge so bile razdeljene v kategorije:
 
-- Todo
-- In Progress
-- Done
+* Todo
+
+* In Progress
+
+* Done
 
 Takšen pristop nam je omogočil pregled nad razvojem projekta, spremljanje napredka posameznih funkcionalnosti ter učinkovito sodelovanje med člani ekipe.
 
