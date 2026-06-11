@@ -239,7 +239,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
                 children: List.generate(5, (index) {
                   final selected = index < rating;
                   return GestureDetector(
-                    key: Key('tab_received'),
+                    key: ValueKey('star_$index'),
                     onTap: () => setDialogState(() => rating = index + 1),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 2),
@@ -546,7 +546,7 @@ class _CollaborationsScreenState extends State<CollaborationsScreen>
     final selected = selectedTab == value;
     return Expanded(
       child: GestureDetector(
-        key: Key('tab_sent'),
+       key: ValueKey('tab_$value'),
         onTap: () { if (selectedTab != value) setState(() => selectedTab = value); },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
