@@ -167,7 +167,7 @@ Pri razvoju aplikacije smo sprejeli več arhitekturnih odločitev, ki omogočajo
 
 ***
 
-## ER Diagram
+## Podatkovna Shema
 
 ![ER Diagram](docs/er.jpeg)
 
